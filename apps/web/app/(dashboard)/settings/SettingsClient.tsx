@@ -2,13 +2,20 @@
 
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tablet, Hash, ImageIcon, X } from 'lucide-react';
-import { updateBrandColor, setStaffPin, uploadIcon, removeIcon } from './actions';
+import { Tablet, Hash, ImageIcon, X, Clock } from 'lucide-react';
+import { HoursFields } from '@/components/classrooms/HoursFields';
+import { updateBrandColor, setStaffPin, uploadIcon, removeIcon, updateCenterHours } from './actions';
 
 type StaffPin = {
   id: string;
   full_name: string;
   kiosk_pin: string | null;
+};
+
+type CenterHours = {
+  openSlot: number;
+  closeSlot: number;
+  operatingDays: number[];
 };
 
 type Props = {
@@ -17,7 +24,75 @@ type Props = {
   initialColor: string;
   initialIconUrl: string | null;
   staffPins: StaffPin[];
+  initialHours: CenterHours;
 };
+
+function HoursSection({ centerId, initial }: { centerId: string; initial: CenterHours }) {
+  const [openSlot, setOpenSlot] = useState(initial.openSlot);
+  const [closeSlot, setCloseSlot] = useState(initial.closeSlot);
+  const [days, setDays] = useState<number[]>(initial.operatingDays);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function toggleDay(day: number) {
+    setDays((d) => (d.includes(day) ? d.filter((x) => x !== day) : [...d, day].sort((a, b) => a - b)));
+    setSaved(false);
+  }
+
+  function handleSave() {
+    setError(null);
+    if (openSlot >= closeSlot) {
+      setError('Close time must be after open time');
+      return;
+    }
+    if (days.length === 0) {
+      setError('Select at least one operating day');
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await updateCenterHours(centerId, openSlot, closeSlot, days);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not save');
+      }
+    });
+  }
+
+  return (
+    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Clock className="w-4 h-4 text-gray-400" />
+        <h2 className="text-sm font-medium text-gray-900">Hours of operation</h2>
+      </div>
+      <p className="text-xs text-gray-400 mb-4">
+        Drives the staffing-pattern grid columns and day tabs on every classroom.
+      </p>
+      <div className="mb-4">
+        <HoursFields
+          openSlot={openSlot}
+          closeSlot={closeSlot}
+          days={days}
+          onOpenSlot={(n) => { setOpenSlot(n); setSaved(false); }}
+          onCloseSlot={(n) => { setCloseSlot(n); setSaved(false); }}
+          onToggleDay={toggleDay}
+        />
+      </div>
+      {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+      <button
+        onClick={handleSave}
+        disabled={isPending}
+        className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-60 ${
+          saved ? 'bg-green-500 text-white' : 'bg-brand text-white'
+        }`}
+      >
+        {saved ? 'Saved' : 'Save hours'}
+      </button>
+    </div>
+  );
+}
 
 function hexToRgb(hex: string): string {
   const clean = hex.replace('#', '');
@@ -70,7 +145,7 @@ function PinRow({ member }: { member: StaffPin }) {
   );
 }
 
-export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, staffPins }: Props) {
+export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, staffPins, initialHours }: Props) {
   const [color, setColor] = useState(initialColor);
   const [iconUrl, setIconUrl] = useState<string | null>(initialIconUrl);
   const [iconPending, startIconTransition] = useTransition();
@@ -184,6 +259,9 @@ export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, 
         </div>
         <div className="mt-3 h-8 rounded-lg" style={{ backgroundColor: color }} />
       </div>
+
+      {/* Hours of operation */}
+      <HoursSection centerId={centerId} initial={initialHours} />
 
       {/* Kiosk mode */}
       <div className="bg-white rounded-card border border-gray-100 px-4 py-4">

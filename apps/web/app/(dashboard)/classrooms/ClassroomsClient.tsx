@@ -4,15 +4,18 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type { ClassroomRow } from '@kinderbase/types';
 import type { RatioResult } from '@kinderbase/core';
+import type { ClassroomHours } from '@/app/(dashboard)/classrooms/actions';
 import { ClassroomCard } from '@/components/classrooms/ClassroomCard';
 import { ClassroomForm } from '@/components/classrooms/ClassroomForm';
 
 type Props = {
   centerId: string;
   classrooms: (ClassroomRow & { ratio: RatioResult })[];
+  centerHours: ClassroomHours;
+  canManageHours: boolean;
 };
 
-export function ClassroomsClient({ centerId, classrooms }: Props) {
+export function ClassroomsClient({ centerId, classrooms, centerHours, canManageHours }: Props) {
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -31,7 +34,12 @@ export function ClassroomsClient({ centerId, classrooms }: Props) {
       {showForm && (
         <div className="bg-white rounded-card border border-gray-100 p-4 mb-4">
           <p className="text-sm font-medium text-gray-900 mb-3">New classroom</p>
-          <ClassroomForm centerId={centerId} onDone={() => setShowForm(false)} />
+          <ClassroomForm
+            centerId={centerId}
+            centerHours={centerHours}
+            canManageHours={canManageHours}
+            onDone={() => setShowForm(false)}
+          />
         </div>
       )}
 

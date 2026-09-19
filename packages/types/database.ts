@@ -47,6 +47,9 @@ export type Database = {
           license_type: 'child_care_center' | 'letter_of_compliance';
           occ_region: string | null;
           state: string;
+          open_slot: number;
+          close_slot: number;
+          operating_days: number[];
           created_at: string;
         };
         Insert: {
@@ -59,6 +62,9 @@ export type Database = {
           license_type?: 'child_care_center' | 'letter_of_compliance';
           occ_region?: string | null;
           state?: string;
+          open_slot?: number;
+          close_slot?: number;
+          operating_days?: number[];
           created_at?: string;
         };
         Update: {
@@ -71,6 +77,9 @@ export type Database = {
           license_type?: 'child_care_center' | 'letter_of_compliance';
           occ_region?: string | null;
           state?: string;
+          open_slot?: number;
+          close_slot?: number;
+          operating_days?: number[];
           created_at?: string;
         };
         Relationships: [
@@ -307,6 +316,12 @@ export type Database = {
           age_group: 'infant' | 'toddler' | 'two_year' | 'preschool' | 'school_age';
           licensed_capacity: number;
           typical_enrollment: number;
+          pattern_effective_date: string | null;
+          open_slot: number | null;
+          close_slot: number | null;
+          operating_days: number[] | null;
+          ratio_children_per_staff: number | null;
+          ratio_max_group: number | null;
           created_at: string;
           deleted_at: string | null;
         };
@@ -317,6 +332,12 @@ export type Database = {
           age_group: 'infant' | 'toddler' | 'two_year' | 'preschool' | 'school_age';
           licensed_capacity: number;
           typical_enrollment?: number;
+          pattern_effective_date?: string | null;
+          open_slot?: number | null;
+          close_slot?: number | null;
+          operating_days?: number[] | null;
+          ratio_children_per_staff?: number | null;
+          ratio_max_group?: number | null;
           created_at?: string;
           deleted_at?: string | null;
         };
@@ -327,6 +348,12 @@ export type Database = {
           age_group?: 'infant' | 'toddler' | 'two_year' | 'preschool' | 'school_age';
           licensed_capacity?: number;
           typical_enrollment?: number;
+          pattern_effective_date?: string | null;
+          open_slot?: number | null;
+          close_slot?: number | null;
+          operating_days?: number[] | null;
+          ratio_children_per_staff?: number | null;
+          ratio_max_group?: number | null;
           created_at?: string;
           deleted_at?: string | null;
         };
@@ -474,6 +501,271 @@ export type Database = {
             foreignKeyName: 'staffing_patterns_classroom_id_fkey';
             columns: ['classroom_id'];
             referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      classroom_staff: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          user_id: string | null;
+          staff_name: string | null;
+          position_code: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          user_id?: string | null;
+          staff_name?: string | null;
+          position_code?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          user_id?: string | null;
+          staff_name?: string | null;
+          position_code?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'classroom_staff_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'classroom_staff_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      staff_shift_slots: {
+        Row: {
+          id: string;
+          classroom_staff_id: string;
+          day_of_week: number;
+          slot: number;
+        };
+        Insert: {
+          id?: string;
+          classroom_staff_id: string;
+          day_of_week: number;
+          slot: number;
+        };
+        Update: {
+          id?: string;
+          classroom_staff_id?: string;
+          day_of_week?: number;
+          slot?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_shift_slots_classroom_staff_id_fkey';
+            columns: ['classroom_staff_id'];
+            referencedRelation: 'classroom_staff';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      classroom_child_counts: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          day_of_week: number;
+          slot: number;
+          total_children: number;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          day_of_week: number;
+          slot: number;
+          total_children?: number;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          day_of_week?: number;
+          slot?: number;
+          total_children?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'classroom_child_counts_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      children: {
+        Row: {
+          id: string;
+          center_id: string;
+          classroom_id: string | null;
+          first_name: string;
+          last_name: string;
+          birthdate: string;
+          enrolled_at: string;
+          status: 'enrolled' | 'withdrawn';
+          created_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          classroom_id?: string | null;
+          first_name: string;
+          last_name: string;
+          birthdate: string;
+          enrolled_at?: string;
+          status?: 'enrolled' | 'withdrawn';
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          classroom_id?: string | null;
+          first_name?: string;
+          last_name?: string;
+          birthdate?: string;
+          enrolled_at?: string;
+          status?: 'enrolled' | 'withdrawn';
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'children_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'children_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      child_attendance: {
+        Row: {
+          id: string;
+          child_id: string;
+          classroom_id: string;
+          attendance_date: string;
+          signed_in_at: string | null;
+          signed_out_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          classroom_id: string;
+          attendance_date: string;
+          signed_in_at?: string | null;
+          signed_out_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          classroom_id?: string;
+          attendance_date?: string;
+          signed_in_at?: string | null;
+          signed_out_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'child_attendance_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'child_attendance_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      child_updates: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          author_id: string | null;
+          update_type: 'meal' | 'nap' | 'milestone' | 'incident';
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          author_id?: string | null;
+          update_type: 'meal' | 'nap' | 'milestone' | 'incident';
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          author_id?: string | null;
+          update_type?: 'meal' | 'nap' | 'milestone' | 'incident';
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'child_updates_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'child_updates_author_id_fkey';
+            columns: ['author_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      child_update_children: {
+        Row: {
+          update_id: string;
+          child_id: string;
+        };
+        Insert: {
+          update_id: string;
+          child_id: string;
+        };
+        Update: {
+          update_id?: string;
+          child_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'child_update_children_update_id_fkey';
+            columns: ['update_id'];
+            referencedRelation: 'child_updates';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'child_update_children_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
             referencedColumns: ['id'];
           }
         ];

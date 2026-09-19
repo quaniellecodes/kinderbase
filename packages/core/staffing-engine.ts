@@ -1,6 +1,6 @@
 import type { AgeGroup } from '@kinderbase/types';
 
-type RatioRule = {
+export type RatioRule = {
   childrenPerStaff: number;
   maxGroupSize: number;
 };
@@ -15,6 +15,25 @@ const RATIO_RULES: Record<string, Record<AgeGroup, RatioRule>> = {
     school_age: { childrenPerStaff: 15, maxGroupSize: 30 },
   },
 };
+
+// COMAR regulation citations per age group (shown on the staffing-pattern badge).
+// NOTE: best-effort section references — confirm exact §-letters against current
+// COMAR 13A.16.03 before relying on these for filings.
+const RATIO_CITATIONS: Record<string, Record<AgeGroup, string>> = {
+  MD: {
+    infant:     'COMAR 13A.16.03 §C(1)',
+    toddler:    'COMAR 13A.16.03 §C(2)',
+    two_year:   'COMAR 13A.16.03 §C(3)',
+    preschool:  'COMAR 13A.16.03 §C(4)',
+    school_age: 'COMAR 13A.16.03 §C(5)',
+  },
+};
+
+/** Returns the COMAR (or state) citation string for an age group's ratio rule. */
+export function getRatioCitation(ageGroup: AgeGroup, state: string): string {
+  const stateCitations = RATIO_CITATIONS[state] ?? RATIO_CITATIONS['MD']!;
+  return stateCitations[ageGroup];
+}
 
 export type RatioStatus = 'ok' | 'warning' | 'violation';
 
@@ -32,15 +51,18 @@ export type RatioResult = {
  * - violation: understaffed or over max group size
  * - warning: exactly at minimum (no buffer — one absence causes violation)
  * - ok: staffed above minimum
+ *
+ * `override` supplies a per-room Manual ratio (Auto/COMAR default when omitted).
  */
 export function computeRatio(
   ageGroup: AgeGroup,
   enrolledCount: number,
   staffCount: number,
-  state: string
+  state: string,
+  override?: RatioRule
 ): RatioResult {
   const stateRules = RATIO_RULES[state] ?? RATIO_RULES['MD'];
-  const rule = stateRules[ageGroup];
+  const rule = override ?? stateRules[ageGroup];
   const requiredStaff = Math.ceil(enrolledCount / rule.childrenPerStaff);
   const overCapacity = enrolledCount > rule.maxGroupSize;
 

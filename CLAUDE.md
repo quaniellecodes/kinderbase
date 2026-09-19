@@ -39,11 +39,16 @@ packages/types/    Database types (database.ts) + shared types/helpers (index.ts
 
 ---
 
-## Supabase project
+## Supabase projects
 
-- Project ref: `jqbvojjgkkhbndsgbsuo`
-- MCP server: `https://mcp.supabase.com/mcp?project_ref=jqbvojjgkkhbndsgbsuo`
-  Add with: `claude mcp add --scope project --transport http supabase "https://mcp.supabase.com/mcp?project_ref=jqbvojjgkkhbndsgbsuo"`
+Two projects share one schema (see **Two Supabase projects** below). `.mcp.json` defines an MCP server for each:
+
+| Env | Project ref | MCP server name |
+|---|---|---|
+| prod | `jqbvojjgkkhbndsgbsuo` | `supabase-prod` |
+| sandbox (dev) | `kbdfbxavmgvonscezjux` | `supabase-sandbox` (default for queries) |
+
+MCP servers load at startup — reload Claude Code and approve them after editing `.mcp.json`.
 
 ---
 
@@ -93,16 +98,39 @@ Required shape for supabase-js 2.103.3:
 |---|---|
 | `001_organizations_centers.sql` | organizations, centers |
 | `002_users_memberships.sql` | users, center_memberships |
-| `002b_rls_centers_memberships.sql` | RLS policies for centers + memberships |
 | `003_credentials.sql` | credentials, credential_audit_logs |
-| `003b_employment_history.sql` | employment_history table + RLS policy |
 | `004_centers_state.sql` | adds `state char(2) DEFAULT 'MD'` to centers |
 | `005_users_bio.sql` | adds `bio text` to users |
 | `006_classrooms.sql` | classrooms + staffing_patterns tables + RLS |
 | `007_time_entries.sql` | time_entries + push_tokens tables + RLS |
 | `008_activity_log.sql` | activity_log table + RLS + center_created index |
+| `009_white_label_kiosk.sql` | white-label / kiosk columns |
+| `010_kiosk_pin.sql` | adds `kiosk_pin` to users |
+| `011_org_icon.sql` | adds `icon_path` to organizations |
+| `012_rls_centers_memberships.sql` | RLS policies for centers + memberships (was `002b`; renumbered for CLI ordering) |
+| `013_employment_history.sql` | employment_history table + RLS policy (was `003b`; renumbered for CLI ordering) |
+| `014_fix_centers_rls.sql` | replaces circular `centers_org_members` policy with non-recursive `centers_member` (idempotent; prod already had the hand-applied equivalent) |
 
-Run all migrations in Supabase SQL editor in order. Always verify with `SELECT * FROM information_schema.tables WHERE table_schema = 'public'` after.
+Applied via the Supabase CLI (`pnpm --filter @kinderbase/web db:push`), not the SQL editor — see **Two Supabase projects** below. Files are ordered by numeric prefix; `012`/`013` (formerly `002b`/`003b`) only depend on tables from `001`/`002`, so running them last is dependency-safe. Verify with `SELECT * FROM information_schema.tables WHERE table_schema = 'public'` after.
+
+---
+
+## Two Supabase projects (prod + sandbox)
+
+Schema (the `migrations/` files) is the single source of truth applied to **both** projects; only data differs. The **sandbox is the day-to-day dev DB** (`.env.local` points at it); prod stays pristine and only gets verified schema.
+
+| Project | Ref | Role |
+|---|---|---|
+| prod | `jqbvojjgkkhbndsgbsuo` | real data; MCP server points here; never seeded |
+| sandbox | `$KB_SANDBOX_REF` | dev DB; `.env.local` → this; gets `seed.ts` fake data |
+
+CLI is initialized (`apps/web/supabase/config.toml`). Scripts (run from repo root, `--filter @kinderbase/web`): `db:link:prod`, `db:link:sandbox` (needs `KB_SANDBOX_REF` env), `db:push`, `db:diff`, `db:migrate` (new migration), `seed`, `seed:reset`.
+
+**Schema-change loop:** write `NNN_*.sql` (additive) → `db:link:sandbox` + `db:push` + `seed:reset` → verify → `db:link:prod` + `db:push` → regenerate `packages/types/database.ts`.
+
+**Prod is already migrated by hand** — baseline it once so the CLI won't re-run: `db:link:prod` then `supabase migration repair --status applied 001 002 003 004 005 006 007 008 009 010 011 012 013`.
+
+`seed.ts` refuses to run against the prod ref unless `--i-know` is passed.
 
 ---
 
