@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Capacitor native builds
+apps/web/ios/App/Pods/
+apps/web/ios/App/build/
+apps/web/android/.gradle/
+apps/web/android/app/build/
+apps/web/android/build/
+
+# Supabase
+.branches/
+.temp/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp
+.vscode/*
+!.vscode/extensions.json
+
+# Test / coverage
+coverage/
+.vitest/

@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand-primary: #D35400;
+    --color-brand-foreground: #FFFFFF;
+    --color-status-green: #1D9E75;
+    --color-status-amber: #EF9F27;
+    --color-status-red: #E24B4A;
+  }
+
+  * {
+    border-color: #e5e7eb;
+  }
+
+  body {
+    font-weight: 400;
+    background-color: #f9fafb;
+    color: #111827;
+  }
+}

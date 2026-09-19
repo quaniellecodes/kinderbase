@@ -1,0 +1,13 @@
+{
+  "name": "kinderbase",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @kinderbase/web dev",
+    "build": "pnpm --filter @kinderbase/web build",
+    "lint": "pnpm --filter @kinderbase/web lint",
+    "typecheck": "pnpm -r exec tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

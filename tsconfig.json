@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@kinderbase/core": ["./packages/core/index.ts"],
+      "@kinderbase/core/*": ["./packages/core/*"],
+      "@kinderbase/types": ["./packages/types/index.ts"],
+      "@kinderbase/types/*": ["./packages/types/*"]
+    }
+  }
+}

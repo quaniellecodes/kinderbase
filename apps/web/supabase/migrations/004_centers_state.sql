@@ -1,0 +1,2 @@
+ALTER TABLE centers
+  ADD COLUMN state char(2) NOT NULL DEFAULT 'MD';
