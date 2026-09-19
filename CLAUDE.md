@@ -109,6 +109,7 @@ Required shape for supabase-js 2.103.3:
 | `011_org_icon.sql` | adds `icon_path` to organizations |
 | `012_rls_centers_memberships.sql` | RLS policies for centers + memberships (was `002b`; renumbered for CLI ordering) |
 | `013_employment_history.sql` | employment_history table + RLS policy (was `003b`; renumbered for CLI ordering) |
+| `014_fix_centers_rls.sql` | replaces circular `centers_org_members` policy with non-recursive `centers_member` (idempotent; prod already had the hand-applied equivalent) |
 
 Applied via the Supabase CLI (`pnpm --filter @kinderbase/web db:push`), not the SQL editor — see **Two Supabase projects** below. Files are ordered by numeric prefix; `012`/`013` (formerly `002b`/`003b`) only depend on tables from `001`/`002`, so running them last is dependency-safe. Verify with `SELECT * FROM information_schema.tables WHERE table_schema = 'public'` after.
 

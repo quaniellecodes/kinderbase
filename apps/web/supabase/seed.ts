@@ -249,6 +249,22 @@ const LAST_NAMES = [
   'Foster', 'Bryant', 'Coleman', 'Simmons', 'Hughes', 'Ford', 'Bell', 'Ross',
 ];
 
+// Staff (teacher/aide/admin) name pools — female first names and surnames common
+// in Black communities. Children keep the mixed FIRST_NAMES/LAST_NAMES pools.
+const STAFF_FIRST_NAMES = [
+  'Aaliyah', 'Imani', 'Keisha', 'Monique', 'Simone', 'Amara', 'Jasmine', 'Nia',
+  'Ayanna', 'Zuri', 'Kenya', 'Latoya', 'Tanisha', 'Ebony', 'Aisha', 'Destiny',
+  'Shanice', 'Deja', 'Kiara', 'Tiana', 'Zora', 'Alani', 'Nyla', 'Sanaa',
+  'Aniyah', 'Camille', 'Renee', 'Yolanda', 'Gabrielle', 'Serena', 'Denise',
+  'Octavia', 'Maya', 'Cierra', 'Jada', 'Whitney', 'Chantel', 'Raven',
+];
+const STAFF_LAST_NAMES = [
+  'Washington', 'Jefferson', 'Jackson', 'Johnson', 'Harris', 'Robinson', 'Coleman',
+  'Brooks', 'Banks', 'Booker', 'Freeman', 'Mosley', 'Gaines', 'Charles', 'Joseph',
+  'Dorsey', 'Rhodes', 'Hampton', 'Carter', 'Dawson', 'Bryant', 'Scott', 'Davis',
+  'Simmons', 'Hughes', 'Ross', 'Bell', 'Ford',
+];
+
 const ISSUING_ORGS = [
   'Maryland State Department of Education',
   'American Red Cross',
@@ -554,8 +570,8 @@ async function main(): Promise<void> {
     centerRole: CenterRole,
     classroomKey: string | null,
   ): SeedUser => {
-    const first = rng.pick(FIRST_NAMES);
-    const last = rng.pick(LAST_NAMES);
+    const first = rng.pick(STAFF_FIRST_NAMES);
+    const last = rng.pick(STAFF_LAST_NAMES);
     const isTeacher = centerRole !== 'admin';
     const profilePublic = isTeacher && rng.chance(0.6);
     const u: SeedUser = {
@@ -580,7 +596,7 @@ async function main(): Promise<void> {
     id: '',
     email: ownerEmail,
     password: args.ownerPassword,
-    fullName: 'Sandbox Owner',
+    fullName: 'Yolanda Carter',
     platformRole: 'owner',
     centerRole: 'director',
     centerIndex: 0,
@@ -742,6 +758,110 @@ async function main(): Promise<void> {
   }
   await insertChunked(db, 'staffing_patterns', patterns);
 
+  // ── 9b. Classroom roster (classroom_staff) + shift slots ────────────────────
+  type RosterInsert = Database['public']['Tables']['classroom_staff']['Insert'];
+  type ShiftInsert = Database['public']['Tables']['staff_shift_slots']['Insert'];
+  const rosterRows: RosterInsert[] = [];
+  const shiftRows: ShiftInsert[] = [];
+  const rosterByRoom = new Map<string, { id: string; userId: string }[]>();
+  const localTodayISO = (): string => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const dowToday = (() => { const j = new Date().getDay(); return j === 0 ? 7 : j; })();
+  const shiftDays = Array.from(new Set([1, 2, 3, 4, 5, dowToday]));
+  for (const room of classrooms) {
+    const cid = classroomIds.get(room.key)!;
+    const roomUsers = users.filter((u) => u.classroomKey === room.key);
+    const list: { id: string; userId: string }[] = [];
+    roomUsers.forEach((u, idx) => {
+      const id = randomUUID();
+      rosterRows.push({ id, classroom_id: cid, user_id: u.id, staff_name: null, position_code: null, sort_order: idx });
+      list.push({ id, userId: u.id });
+      for (const day of shiftDays) {
+        for (let slot = 12; slot < 38; slot++) {
+          if (slot === 24 || slot === 25) continue; // 30-min lunch gap → a break in the bar
+          shiftRows.push({ classroom_staff_id: id, day_of_week: day, slot });
+        }
+      }
+    });
+    rosterByRoom.set(room.key, list);
+  }
+  await insertChunked(db, 'classroom_staff', rosterRows);
+  await insertChunked(db, 'staff_shift_slots', shiftRows);
+
+  // ── 9c. Children, today's attendance, and a per-room presence plan ──────────
+  type ChildInsert = Database['public']['Tables']['children']['Insert'];
+  type AttInsert = Database['public']['Tables']['child_attendance']['Insert'];
+  const childrenRows: ChildInsert[] = [];
+  const attendanceRows: AttInsert[] = [];
+  const childrenByRoom = new Map<string, { id: string; present: boolean }[]>();
+  const presentRosterUserIds = new Set<string>();
+  const today = localTodayISO();
+  let boundaryPlaced = false;
+
+  const ageDaysForBand = (g: AgeGroup): number => {
+    switch (g) {
+      case 'infant': return rng.int(60, 330);
+      case 'toddler': return rng.int(370, 700);
+      case 'two_year': return rng.int(740, 1060);
+      case 'preschool': return rng.int(1100, 1760);
+      default: return rng.int(1830, 3400);
+    }
+  };
+
+  classrooms.forEach((room, roomIdx) => {
+    const cid = classroomIds.get(room.key)!;
+    const roster = rosterByRoom.get(room.key) ?? [];
+    const isFocus = roomIdx === 0; // first room → deliberately understaffed (out of ratio)
+    const nKids = Math.min(room.enrollment, 6);
+    const cpr = RATIO_RULES[room.ageGroup].childrenPerStaff;
+    const kids: { id: string; present: boolean }[] = [];
+
+    for (let i = 0; i < nKids; i++) {
+      const id = randomUUID();
+      let bd = daysAgo(ageDaysForBand(room.ageGroup));
+      // Put one infant/toddler child ~8 days from a COMAR boundary (birthday alert).
+      if (i === 0 && !boundaryPlaced && (room.ageGroup === 'infant' || room.ageGroup === 'toddler')) {
+        const boundaryMonths = room.ageGroup === 'infant' ? 12 : 24;
+        const d = new Date();
+        d.setMonth(d.getMonth() - boundaryMonths);
+        d.setDate(d.getDate() + 8);
+        bd = d;
+        boundaryPlaced = true;
+      }
+      childrenRows.push({
+        id,
+        center_id: centerIds[room.centerIndex],
+        classroom_id: cid,
+        first_name: rng.pick(FIRST_NAMES),
+        last_name: rng.pick(LAST_NAMES),
+        birthdate: isoDate(bd),
+        enrolled_at: isoDate(daysAgo(rng.int(30, 400))),
+        status: 'enrolled',
+      });
+      kids.push({ id, present: false });
+    }
+
+    // Presence: focus room fully present; others ~78%.
+    for (const k of kids) k.present = isFocus ? true : rng.chance(0.78);
+    for (const k of kids.filter((x) => x.present)) {
+      const inAt = new Date();
+      inAt.setHours(7, rng.int(0, 59), 0, 0);
+      attendanceRows.push({ child_id: k.id, classroom_id: cid, attendance_date: today, signed_in_at: inAt.toISOString(), signed_out_at: null });
+    }
+    childrenByRoom.set(room.key, kids);
+
+    // Staff present: focus room one short of required (violation); others meet/exceed.
+    const presentKids = kids.filter((k) => k.present).length;
+    const required = Math.max(1, Math.ceil(presentKids / cpr));
+    let staffPresent = isFocus ? Math.max(0, required - 1) : required + (rng.chance(0.5) ? 1 : 0);
+    staffPresent = Math.min(staffPresent, roster.length);
+    for (let i = 0; i < staffPresent; i++) presentRosterUserIds.add(roster[i]!.userId);
+  });
+  await insertChunked(db, 'children', childrenRows);
+  await insertChunked(db, 'child_attendance', attendanceRows);
+
   // ── 10. Time entries (weekday clock in/out history) ─────────────────────────
   type TimeEntry = Database['public']['Tables']['time_entries']['Insert'];
   const timeEntries: TimeEntry[] = [];
@@ -768,11 +888,14 @@ async function main(): Promise<void> {
       });
     }
   }
-  // A handful currently clocked in today (no clock-out).
-  const openNow = clockable.filter((u) => u.centerRole !== 'substitute').slice(0, Math.min(6, clockable.length));
-  for (const u of openNow) {
+  // Currently clocked in today (no clock-out) = the per-room presence plan, so
+  // real-time ratios line up with the seeded attendance (one room stays short).
+  const usersById = new Map(users.map((u) => [u.id, u]));
+  for (const uid of presentRosterUserIds) {
+    const u = usersById.get(uid);
+    if (!u) continue;
     const clockIn = new Date();
-    clockIn.setUTCHours(13, rng.int(0, 59), 0, 0); // ~morning ET
+    clockIn.setHours(6 + Math.floor(rng.next() * 2), rng.int(0, 59), 0, 0); // 6–8am local
     timeEntries.push({
       user_id: u.id,
       center_id: centerIds[u.centerIndex],
@@ -781,6 +904,50 @@ async function main(): Promise<void> {
     });
   }
   await insertChunked(db, 'time_entries', timeEntries);
+
+  // ── 10b. Child care updates (meals/naps/milestones/incidents) ───────────────
+  type UpdateInsert = Database['public']['Tables']['child_updates']['Insert'];
+  type TagInsert = Database['public']['Tables']['child_update_children']['Insert'];
+  const updateRows: UpdateInsert[] = [];
+  const tagRows: TagInsert[] = [];
+  const BODY: Record<'meal' | 'nap' | 'milestone' | 'incident', string[]> = {
+    meal: ['Finished the full bottle — great appetite!', 'Ate most of lunch, loved the peas.', 'Took 4oz, a little fussy — may be teething.', 'Tried avocado for the first time and liked it.'],
+    nap: ['Napped 12:30–2:00, woke happy.', 'Slept 10:15–11:20 this morning.', 'Short nap today, ~40 minutes.', 'Down for nap at 1:00, still resting.'],
+    milestone: ['Pulled up to standing for the first time!', 'Said a new word today — "more".', 'Took three wobbly steps unassisted!', 'Stacked four blocks all by themselves.'],
+    incident: ['Minor bump on the forehead during play. Parent notified.', 'Small scratch on the arm, cleaned and bandaged. Parent notified.', 'Bumped knee on the mat, comforted and fine. Parent notified.'],
+  };
+  const todayAt = (h: number, m: number): Date => { const d = new Date(); d.setHours(h, m, 0, 0); return d; };
+
+  classrooms.forEach((room, roomIdx) => {
+    const cid = classroomIds.get(room.key)!;
+    const roster = rosterByRoom.get(room.key) ?? [];
+    if (roster.length === 0) return;
+    const kids = childrenByRoom.get(room.key) ?? [];
+    const lead = roster[0]!;
+    const silent = roomIdx === 0 && roster[1] ? roster[1]! : null; // assistant in focus room = behind on posts
+
+    const posts: { authorId: string; type: 'meal' | 'nap' | 'milestone' | 'incident'; at: Date }[] = [];
+    // Lead: a few today + a steady history (drives green accountability).
+    for (const t of ['meal', 'nap', 'milestone'] as const) posts.push({ authorId: lead.userId, type: t, at: todayAt(8 + rng.int(0, 3), rng.int(0, 59)) });
+    for (let k = 0; k < 6; k++) posts.push({ authorId: lead.userId, type: rng.pick(['meal', 'nap', 'milestone'] as const), at: daysAgo(rng.int(2, 9)) });
+    if (silent) {
+      posts.push({ authorId: silent.userId, type: 'incident', at: daysAgo(11) }); // only an old post → red row + nudge
+    } else {
+      for (const m of roster.slice(1)) if (rng.chance(0.6)) posts.push({ authorId: m.userId, type: rng.pick(['meal', 'nap'] as const), at: daysAgo(rng.int(1, 5)) });
+    }
+
+    for (const p of posts) {
+      const id = randomUUID();
+      updateRows.push({ id, classroom_id: cid, author_id: p.authorId, update_type: p.type, body: rng.pick(BODY[p.type]), created_at: p.at.toISOString() });
+      if (kids.length) {
+        const tagged = new Set<string>([kids[rng.int(0, kids.length - 1)]!.id]);
+        if (p.type === 'nap' && kids.length > 1) tagged.add(kids[rng.int(0, kids.length - 1)]!.id);
+        for (const childId of tagged) tagRows.push({ update_id: id, child_id: childId });
+      }
+    }
+  });
+  await insertChunked(db, 'child_updates', updateRows);
+  await insertChunked(db, 'child_update_children', tagRows);
 
   // ── 11. Activity log (center-scoped event stream) ───────────────────────────
   type Activity = Database['public']['Tables']['activity_log']['Insert'];
@@ -818,6 +985,11 @@ async function main(): Promise<void> {
   console.log(`   credentials:       ${credentials.length}`);
   console.log(`   employment rows:   ${employment.length}`);
   console.log(`   staffing patterns: ${patterns.length}`);
+  console.log(`   roster rows:       ${rosterRows.length}`);
+  console.log(`   shift slots:       ${shiftRows.length}`);
+  console.log(`   children:          ${childrenRows.length}`);
+  console.log(`   attendance (today):${attendanceRows.length}`);
+  console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
   console.log(`   activity events:   ${activity.length}`);
   console.log(`\n   Owner login →  ${owner.email}  /  ${owner.password}`);
@@ -848,7 +1020,9 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
     : { data: [] as { user_id: string }[] };
   const userIds = Array.from(new Set((memberRows ?? []).map((m) => m.user_id)));
 
-  // Children first, respecting FK order.
+  // Children first, respecting FK order (children.center_id has no cascade;
+  // classroom-scoped tables cascade when classrooms are deleted below).
+  if (centerIds.length) await db.from('children').delete().in('center_id', centerIds);
   if (classIds.length) await db.from('staffing_patterns').delete().in('classroom_id', classIds);
   if (centerIds.length) {
     await db.from('time_entries').delete().in('center_id', centerIds);

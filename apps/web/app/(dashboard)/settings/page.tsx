@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { isAdmin } from '@kinderbase/types';
-import { getOrgSettings, getStaffPins } from './actions';
+import { getOrgSettings, getStaffPins, getCenterHours } from './actions';
 import { SettingsClient } from './SettingsClient';
 
 export default async function SettingsPage() {
@@ -9,9 +9,10 @@ export default async function SettingsPage() {
   if (!active) redirect('/dashboard');
   if (!isAdmin(active.role)) redirect('/dashboard');
 
-  const [settings, staffPins] = await Promise.all([
+  const [settings, staffPins, hours] = await Promise.all([
     getOrgSettings(active.centerId),
     getStaffPins(active.centerId),
+    getCenterHours(active.centerId),
   ]);
   if (!settings) redirect('/dashboard');
 
@@ -24,6 +25,7 @@ export default async function SettingsPage() {
         initialColor={settings.primaryColor}
         initialIconUrl={settings.iconUrl}
         staffPins={staffPins}
+        initialHours={hours}
       />
     </div>
   );
