@@ -42,7 +42,7 @@ export function StaffTopbar({ header }: { header: StaffHeader }) {
         </>
       ) : (
         <>
-          <Link href="/dashboard/requests/new?type=schedule" className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300">
+          <Link href="/requests/new?type=schedule" className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300">
             Request schedule change
           </Link>
           <button onClick={() => setMsgOpen(true)} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium">Message admin</button>

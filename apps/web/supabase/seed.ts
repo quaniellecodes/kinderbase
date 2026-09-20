@@ -745,23 +745,8 @@ async function main(): Promise<void> {
   }
   await insertChunked(db, 'employment_history', employment);
 
-  // ── 9. Staffing patterns grid (Mon–Fri, 6:00–19:00) ─────────────────────────
-  type Pattern = Database['public']['Tables']['staffing_patterns']['Insert'];
-  const patterns: Pattern[] = [];
-  for (const room of classrooms) {
-    const cid = classroomIds.get(room.key)!;
-    for (let day = 1; day <= 5; day++) {
-      for (let hour = 6; hour <= 19; hour++) {
-        // Core hours fully staffed; opening/closing at ~half (min 1).
-        const core = hour >= 8 && hour <= 16;
-        const count = core ? room.requiredStaff : Math.max(1, Math.ceil(room.requiredStaff / 2));
-        patterns.push({ classroom_id: cid, day_of_week: day, hour, staff_count: count });
-      }
-    }
-  }
-  await insertChunked(db, 'staffing_patterns', patterns);
-
-  // ── 9b. Classroom roster (classroom_staff) + shift slots ────────────────────
+  // ── 9. Classroom roster (classroom_staff) + shift slots ─────────────────────
+  // (The old hourly staffing_patterns table is deprecated and no longer seeded.)
   type RosterInsert = Database['public']['Tables']['classroom_staff']['Insert'];
   type ShiftInsert = Database['public']['Tables']['staff_shift_slots']['Insert'];
   const rosterRows: RosterInsert[] = [];
@@ -1089,7 +1074,6 @@ async function main(): Promise<void> {
   console.log(`   memberships:       ${memberships.length}`);
   console.log(`   credentials:       ${credentials.length}`);
   console.log(`   employment rows:   ${employment.length}`);
-  console.log(`   staffing patterns: ${patterns.length}`);
   console.log(`   roster rows:       ${rosterRows.length}`);
   console.log(`   shift slots:       ${shiftRows.length}`);
   console.log(`   children:          ${childrenRows.length}`);
