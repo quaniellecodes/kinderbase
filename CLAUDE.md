@@ -4,6 +4,20 @@ Living document. Update after every session.
 
 ---
 
+## Session end state (2026-09-19)
+
+**Branches / PRs (nothing merged to `main` yet):**
+- `feat/sandbox-seed-cli-workflow` → **PR #1**: sandbox + Supabase CLI two-project workflow, OCC 1206 staffing pattern (Save/Reset + per-room hours), Auto/Manual ratio override, children domain, admin dashboard, tabbed classroom detail.
+- `feat/staff-profile` → **PR #2** (stacked on PR #1): staff profile screen `/staff/[userId]` (admin + employee self-view), migration 019, requests area; plus dead-end cleanup and a small-screen responsive pass. **Latest commit `6a2c27e`.**
+
+**Built & working:** classroom detail (Overview/Activity/Staffing/Children tabs) with real-time ratios; staffing-pattern grid (drag shifts, child counts, Save/Reset, per-room hours + Auto/Manual COMAR ratio); children domain (enrollment/attendance/care updates); admin dashboard (out-of-ratio banner, stat cards, ratio list); staff profile (hero/score modal/contact/availability/quick actions + Schedule/Credentials/Attendance/Time-history/Notes tabs); requests list + new-request form. Sandbox seeded (medium scale) with staff = **female names of Black descent**; owner login `owner@sandbox.kb` / `Sandbox!23456`.
+
+**Known deferred / cosmetic (not bugs):** Nudge/Message/Send-notification record an `activity_log` row + toast only (no real delivery/inbox); edge functions (`shift-reminder`, `credential-expiry-alerts`) exist but aren't scheduled; teacher-score computation is display-only (nightly job = Session 9, `packages/core/teacher-score.ts`); "Assign float" links to the staffing tab (no float workflow); OCC 1206 PDF export + ADP integration (CSV only) unbuilt; Settings→Parent kiosk intentionally disabled.
+
+**Next candidates:** apply the same responsive tab-bar fix to the classroom detail; reseed sandbox to clear unused legacy `staffing_patterns` rows; then original roadmap Session 8 (OCC exports + PDF).
+
+---
+
 ## What this is
 
 Childcare management platform for OCC-licensed centers in Maryland. Owner operates three Baltimore child care centers. Ships on web (Next.js 14 App Router) + iOS/Android (Capacitor 5 wrapping the same web app).
@@ -110,6 +124,13 @@ Required shape for supabase-js 2.103.3:
 | `012_rls_centers_memberships.sql` | RLS policies for centers + memberships (was `002b`; renumbered for CLI ordering) |
 | `013_employment_history.sql` | employment_history table + RLS policy (was `003b`; renumbered for CLI ordering) |
 | `014_fix_centers_rls.sql` | replaces circular `centers_org_members` policy with non-recursive `centers_member` (idempotent; prod already had the hand-applied equivalent) |
+| `015_staffing_pattern_occ1206.sql` | OCC 1206 grid: `classroom_staff` roster + `staff_shift_slots` (30-min cells) + `classroom_child_counts`; adds `open_slot`/`close_slot`/`operating_days` to centers, `pattern_effective_date` to classrooms; RLS with USING+WITH CHECK. Deprecates the old hourly `staffing_patterns` table |
+| `016_classroom_hours_override.sql` | per-classroom hours/days override (nullable, all-or-none) inheriting center defaults |
+| `017_children_domain.sql` | `children`, `child_attendance` (daily sign-in), `child_updates` + `child_update_children` (care log with multi-child tags); RLS |
+| `018_classroom_ratio_override.sql` | per-classroom Auto/Manual ratio override columns (`ratio_children_per_staff`, `ratio_max_group`) |
+| `019_staff_profile.sql` | `staff_notes` (admin-only RLS), `teacher_scores` (display-only), `staff_profiles` (emergency contact/availability/leave balances), `staff_leave_days`, `staff_requests` (schedule/time_correction/leave) |
+
+**Newer migrations use both `USING` and `WITH CHECK` in every RLS policy** (older ones omitted `WITH CHECK` — a gap fixed going forward).
 
 Applied via the Supabase CLI (`pnpm --filter @kinderbase/web db:push`), not the SQL editor — see **Two Supabase projects** below. Files are ordered by numeric prefix; `012`/`013` (formerly `002b`/`003b`) only depend on tables from `001`/`002`, so running them last is dependency-safe. Verify with `SELECT * FROM information_schema.tables WHERE table_schema = 'public'` after.
 
