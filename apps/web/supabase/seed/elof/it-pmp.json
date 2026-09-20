@@ -1,0 +1,129 @@
+{
+  "view": "infant_toddler",
+  "domain": { "code": "IT-PMP", "name": "Perceptual, Motor, and Physical Development" },
+  "subdomains": [
+    {
+      "name": "Perception",
+      "goals": [
+        {
+          "code": "IT-PMP 1",
+          "text": "Child uses perceptual information to understand objects, experiences, and interactions.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Uses perceptual information to organize basic understanding of objects when given opportunities to observe, handle, and use objects, including recognizing differences in texture and how things feel.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Uses perceptual information about properties of objects in matching and associating them with each other through play and interaction with an adult, such as using a play bottle to feed a baby doll.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Observes others making things happen to understand the cause and effect relationship of intention and action, such as seeing an adult prepare to go outside and then going to get their own jacket.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-PMP 2",
+          "text": "Child uses perceptual information in directing own actions, experiences, and interactions.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Adjusts balance and movement with the changing size and proportion of own body in response to opportunities in the environment.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Uses depth perception, scans for obstacles, and makes a plan on how to move based on that information while learning to crawl, walk, or move in another way.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Coordinates perceptual information and motor actions to participate in play and daily routines, such as singing songs with hand motions or practicing self-care skills.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gross Motor",
+      "goals": [
+        {
+          "code": "IT-PMP 3",
+          "text": "Child demonstrates effective and efficient use of large muscles for movement and position.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Explores new body positions and movements, such as rolling over, sitting, crawling, hitting or kicking at objects to achieve goals.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Moves from crawling to cruising to walking, learning new muscle coordination for each new skill, and how to manage changing ground surfaces.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Gains control of a variety of postures and movements including stooping, going from sitting to standing, running, and jumping.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-PMP 4",
+          "text": "Child demonstrates effective and efficient use of large muscles to explore the environment.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Uses each new posture (raising head, rolling onto back, sitting) to learn new ways to explore the environment. For example, sits up to be able to reach for or hold objects.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Uses body position, balance, and especially movement to explore and examine materials, activities, and spaces.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Uses a variety of increasingly complex movements, body positions, and postures to participate in active and quiet, indoor and outdoor play.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-PMP 5",
+          "text": "Child uses sensory information and body awareness to understand how their body relates to the environment.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Responds to sounds and sights in the environment by orienting head or body to understand the information in the event. For example, a young infant will turn towards an adult and re-position their body to be picked up.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Shows awareness as an accomplished crawler or walker of new challenges or dangers in the environment, such as steep inclines or drop-offs.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Shows understanding of what size openings are needed for their body to move through. Learns about body size, such as doll clothes won’t fit on a child’s body or a child’s body won’t fit on dollhouse furniture.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fine Motor",
+      "goals": [
+        {
+          "code": "IT-PMP 6",
+          "text": "Child coordinates hand and eye movements to perform actions.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Coordinates hands and eyes when reaching for and holding stable or moving objects.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Uses hand-eye coordination for more complex actions, such as releasing objects into a container, or stacking cups, rings or blocks, or picking up pieces of food one by one.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Uses hand-eye coordination when participating in routines, play and activities, such as putting on a mitten, painting at an easel, putting pieces of a puzzle together, or folding paper.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-PMP 7",
+          "text": "Child uses hands for exploration, play, and daily routines.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Uses single actions to explore shape, size, texture, or weight of objects, such as turning an object over or around, or dropping or pushing away an object.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Explores properties of objects and materials by using various hand actions, such as pulling at them, picking them up to examine them, pointing to learn their names, turning knobs on objects, or turning pages in a board book.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Plans ways to use hands for various activities, such as stacking, building, connecting, drawing, painting, and doing self-care skills or routines.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-PMP 8",
+          "text": "Child adjusts reach and grasp to use tools.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Uses increasingly refined grasps, matching the grasp to the task, such as using an index finger and thumb to pick up pieces of cereal or using the whole hand to bang objects together.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Extends reach by using simple tools, such as a pull string, stick, or rake to pull a distant object closer.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Adjusts grasp to use different tools for different purposes, such as a spoon, paintbrush, or marker.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health, Safety, and Nutrition",
+      "goals": [
+        {
+          "code": "IT-PMP 9",
+          "text": "Child demonstrates healthy behaviors with increasing independence as part of everyday routines.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Emerging", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Anticipates and cooperates in daily routines, such as washing hands, blowing nose, or holding a toothbrush with assistance from adults.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Participates in healthy care routines with more independence, such as washing hands, blowing nose, brushing teeth, or drinking from a cup.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-PMP 10",
+          "text": "Child uses safe behaviors with support from adults.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Emerging", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Emerging", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Accepts adult guidance, support, and protection when encountering unsafe situations. Learns some differences between safe and unsafe play behaviors, such as not to stand on chairs or tables, or not to put small objects in mouth.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-PMP 11",
+          "text": "Child demonstrates increasing interest in engaging in healthy eating habits and making nutritious food choices.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Emerging", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Shows interest in new foods that are offered.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Shows willingness to try new nutritious foods when offered on multiple occasions. Sometimes makes nutritious choices about which foods to eat when offered several choices, with support from an adult.", "needs_review": false }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://headstart.gov/interactive-head-start-early-learning-outcomes-framework-ages-birth-five"
+  ]
+}

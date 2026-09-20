@@ -28,6 +28,7 @@ import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@kinderbase/types/database';
+import { seedElof } from './seed-elof';
 
 // ── Local mirrors of shared unions (types are erased at runtime; kept here so the
 //    script is self-contained and never resolves workspace code at runtime) ──────
@@ -495,6 +496,13 @@ async function main(): Promise<void> {
     }
     await resetSandbox(db, args.orgSlug, domain, ownerEmail);
   }
+
+  // ── 0. ELOF framework (system reference data; idempotent, not org-scoped) ──
+  const elof = await seedElof(db);
+  console.log(
+    `Seeded ELOF framework: ${elof.domains} domains, ${elof.subdomains} sub-domains, ` +
+      `${elof.goals} goals, ${elof.progressions} progressions, ${elof.ratingLevels} rating levels.`,
+  );
 
   // ── 1. Organization ──────────────────────────────────────────────────────
   const orgId = randomUUID();

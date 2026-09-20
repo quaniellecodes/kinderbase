@@ -1,0 +1,306 @@
+{
+  "view": "infant_toddler",
+  "domain": {
+    "code": "IT-LC",
+    "name": "Language and Communication"
+  },
+  "subdomains": [
+    {
+      "name": "Attending and Understanding",
+      "goals": [
+        {
+          "code": "IT-LC 1",
+          "text": "Child attends to, understands, and responds to communication and language from others.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Attends to verbal and non-verbal communication by turning toward or looking at a person. Participates in reciprocal interactions by exchanging facial expressions and language sounds with familiar adults.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Shows understanding of the meaning of familiar caregivers' verbal and non-verbal communication and responds with facial expressions, gestures, words, or actions, such as looking at people or objects being referred to.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Shows recognition of words, phrases, and simple sentences. Participates in conversations in ways that show understanding by following comments or suggestions with actions or behavior.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 2",
+          "text": "Child learns from communication and language experiences with others.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Pays attention when familiar adults talk or sign about objects, people, or events during face-to-face interactions by changing focus, making eye contact, or looking at people or objects.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Participates in joint attention with an adult by looking back and forth between the adult and object. Points or gestures when an adult is pointing, naming, or signing about a familiar or new object and learns names and uses of objects.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Participates in increasingly complex and lengthy periods of joint attention with adults. Shows interest, understanding, or enjoyment when participating in language activities, such as demonstrating understanding of objects' functions and uses, or when joining in games, songs, rhymes, or stories.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Communicating and Speaking",
+      "goals": [
+        {
+          "code": "IT-LC 3",
+          "text": "Child communicates needs and wants non-verbally and by using language.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Learns how to use different means of communication to signal distress or discomfort, solicit help, and to communicate interests and needs to others.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Uses a variety of ways to communicate interests, needs and wants, such as saying or making a sign for \"More\" when eating.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Combines words or signs from one or more languages into phrases and sentences to communicate needs, wants, or ideas, such as \"More milk,\" \"I want juice,\" \"Mas leche,\" or \"Quiero juice.\" Children who are dual language learners may combine their two languages or switch between them.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 4",
+          "text": "Child uses non-verbal communication and language to engage others in interaction.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Uses facial expressions, including smiling, or uses gestures or sounds, such as cooing or babbling, to engage familiar adults in social interaction.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Repeats actions or single words to initiate or maintain social interactions with other children or adults, such as clapping hands or calling a name to get someone's attention.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Uses words, signs, phrases, or simple sentences to initiate, continue, or extend conversations with others about feelings, experiences, or thoughts.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 5",
+          "text": "Child uses increasingly complex language in conversation with others.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Explores sounds common in many languages, such as \"ma-ma\" or \"ba-ba.\"",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Initiates and participates in conversations by babbling and using gestures, such as showing or giving, or by using words or signs. Communicates mainly about objects, actions, and events happening in the here and now.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Participates in conversations with others using spoken or sign language that includes simple sentences, questions, and responses. Sometimes describes experiences that have happened in the past or are about to happen. Children who are DLLs develop the ability to participate in conversations with increasing complexity in each of their languages.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 6",
+          "text": "Child initiates non-verbal communication and language to learn and gain information.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Takes turns in non-verbal conversations by using facial expressions, sounds, gestures, or signs to initiate or respond to communication.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Asks simple questions using gestures, such as pointing, signs or words, with variations in pitch and intonation.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Seeks information and meaning of words by asking questions in words or signs, such as \"What's that?\" or \"Who's that?\" or \"Why?\"",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vocabulary",
+      "goals": [
+        {
+          "code": "IT-LC 7",
+          "text": "Child understands an increasing number of words used in communication with others.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Looks at familiar people, animals, or objects when they are named such as mama, puppy, or ball.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Looks or points at a person or object that has been named, follows simple directions, and responds appropriately to the meaning of words or signs.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Comprehends an increasing number of words or signs used in simple sentences during conversation and interaction with familiar adults and children.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 8",
+          "text": "Child uses an increasing number of words in communication and conversation with others.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "May use signs or verbalizations for familiar people or objects.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Imitates new words or signs and uses some words or signs for naming or making simple one-word requests, such as saying or signing \"milk\" when asking for a drink.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Uses an increasing number of words in communication and conversation with others and adds new vocabulary words regularly. Children who are DLLs may have a combined vocabulary in both languages that is similar in number to other children's vocabulary in one language.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Emergent Literacy",
+      "goals": [
+        {
+          "code": "IT-LC 9",
+          "text": "Child attends to, repeats, and uses some rhymes, phrases, or refrains from stories or songs.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Listens and attends to culturally and linguistically familiar words or signs in rhymes or songs.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Says a few words of culturally and linguistically familiar rhymes and repetitive refrains in stories or songs.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Says or repeats culturally and linguistically familiar rhymes, phrases, or refrains from songs or stories.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 10",
+          "text": "Child handles books and relates them to their stories or information.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Explores a book by touching it, patting it, or putting it in mouth.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Holds books, turns pages, looks at the pictures, and uses sounds, signs, or words to identify actions or objects in a book.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Pretends to read books by turning pages and talking about or using signs to describe what is happening in the book.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 11",
+          "text": "Child recognizes pictures and some symbols, signs, or words.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Looks at pictures of familiar people, animals, or objects while an adult points at and/ or names the person, animal, or object.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Points at, signs, or says name of, or talks about animals, people, or objects in photos, pictures, or drawings.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Recognizes and uses some letters or numbers, such as letters in one's name, and shows increasing interest in written forms of language, such as print in books or signs on buildings. Children who are DLLs recognize and use written forms of each of their languages.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 12",
+          "text": "Child comprehends meaning from pictures and stories.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Looks at picture books and listens to an adult talk about pictures in a book.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Points at pictures in a book, making sounds or saying words and interacting with an adult reading a book.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Talks about books, acts out events from stories, and uses some vocabulary encountered during book reading.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-LC 13",
+          "text": "Child makes marks and uses them to represent objects or actions.",
+          "progressions": [
+            {
+              "band": "Birth to 9 Months",
+              "descriptor": "Emerging",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 Months",
+              "descriptor": "Makes marks on a paper with a large crayon or marker to explore writing materials.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 Months",
+              "descriptor": "Makes scribbles on paper to represent an object or action even though an adult might not recognize what it is.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/school-readiness/article/language-infant",
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf"
+  ]
+}

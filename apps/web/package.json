@@ -12,6 +12,7 @@
     "build:android": "pnpm build:mobile && npx cap open android",
     "seed": "tsx supabase/seed.ts",
     "seed:reset": "tsx supabase/seed.ts --reset --yes",
+    "seed:elof": "tsx supabase/seed-elof.ts",
     "db:link:prod": "supabase link --project-ref jqbvojjgkkhbndsgbsuo",
     "db:link:sandbox": "supabase link --project-ref \"$KB_SANDBOX_REF\"",
     "db:push": "supabase db push",

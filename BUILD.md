@@ -9,7 +9,9 @@ Branch `feat/students` (off reconciled `main`). Phased per the approved plan.
 - [x] New primitives: `StatusDot`, `ProgressBar`, `EmptyState`, `Toast`/`Toaster`, `DayToggleRow`, `MultiSelectField` (+ `Toaster` mounted in dashboard layout)
 - [x] `packages/types/database.ts` — all new tables/columns
 - [ ] `PencilField` + `DirtyProvider` — deferred to Phase C (built with its consuming Info/Family screens)
-- [ ] ELOF content: fetch official Head Start ELOF, seed `supabase/seed/elof.json`, verify IT view (5 domains / 21 sub-domains / goals+progressions) — **next**
+- [x] ELOF content (Infant/Toddler view): sourced verbatim from official Office of Head Start 2015 ELOF PDF/pages → `supabase/seed/elof/it-{atl,c,lc,pmp,se}.json`; idempotent `seed-elof.ts` (+ `seed:elof` script, called from `seed.ts`); seeded + **verified in sandbox**: 5 domains / 21 sub-domains / 59 goals / 177 age-band progressions (0 empty), 4 system rating levels
+  - Preschool view (36–60mo) deferred per user ("IT view first, verify, then preschool") — add `ps-*.json` + reseed; `bandToMonths` already handles 36–48 / 48–60 bands
+  - Age bands: Birth to 9mo → (0,9); 8–18mo → (8,18); 16–36mo → (16,36). "Emerging" is the framework's verbatim descriptor for some early bands (not a gap)
 
 ## Phase B — Directory `/students`  (pending)
 ## Phase C — Profile Info + Family (PencilField + DirtyProvider + batched save)  (pending)

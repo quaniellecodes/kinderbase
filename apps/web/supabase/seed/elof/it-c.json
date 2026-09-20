@@ -1,0 +1,308 @@
+{
+  "view": "infant_toddler",
+  "domain": { "code": "IT-C", "name": "Cognition" },
+  "subdomains": [
+    {
+      "name": "Exploration and Discovery",
+      "goals": [
+        {
+          "code": "IT-C 1",
+          "text": "Child actively explores people and objects to understand self, others, and objects.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Uses the senses and a variety of actions to examine people and objects, such as mouthing, touching, shaking or dropping.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Acts intentionally to achieve a goal or when manipulating an object, such as trying to get an adult to do something or trying different ways to reach a toy under a table.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Observes and experiments with how things work, seeks information from others, or experiments with different behaviors to see how people and objects react.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 2",
+          "text": "Child uses understanding of causal relationships to act on social and physical environments.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Repeats an action to make things happen or to get an adult to repeat an action, such as dropping a toy from the high chair repeatedly and waiting for an adult to pick it up.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Engages in purposeful actions to cause things to happen, such as making splashes in a puddle or rolling a ball to knock over a tower.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Identifies the cause of an observed outcome, such as the tower fell over because it was built too high. Predicts outcomes of actions or events, such as turning the faucet will make water come out.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Memory",
+      "goals": [
+        {
+          "code": "IT-C 3",
+          "text": "Child recognizes differences between familiar and unfamiliar people, objects, actions, or events.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Recognizes familiar people by their faces or voices. Learns to distinguish between familiar and unfamiliar people.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Remembers actions of familiar adults, the usual location of familiar objects, and parts of familiar routines. Notices and responds to new people, objects, or materials in the environment.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Anticipates and communicates about multiple steps of familiar routines, activities, or events. Expresses surprise or asks about unexpected outcomes or unusual people, actions, or events.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 4",
+          "text": "Child recognizes the stability of people and objects in the environment.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Shows awareness that people and objects still exist when they are out of sight or sound range. May turn head or crawl towards a parent or other familiar adult who leaves the room.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Searches for hidden or missing people or objects in the place they were last seen or found. May wait and watch at a door or window for the return of a family member.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Uses a variety of search strategies to find hidden or missing people or objects, including looking in multiple locations for things that have been missing for some time.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 5",
+          "text": "Child uses memories as a foundation for more complex actions and thoughts.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Shows excitement with a toy or other object that was played with days earlier. Anticipates familiar actions or routines, such as getting picked up or being fed.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Remembers how to use objects or materials from previous experience. Anticipates routines or events by taking action, such as going to the table when it is time to eat.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Tells others about memories and past experiences. Remembers how to do a series of actions that were observed at an earlier time.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reasoning and Problem-Solving",
+      "goals": [
+        {
+          "code": "IT-C 6",
+          "text": "Child learns to use a variety of strategies in solving problems.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Engages in simple repeated actions to reach a goal, such as trying to get whole hand and then fingers or thumb in mouth.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Explores how to make something happen again or how something works by doing actions over and over again, such as repeatedly filling a container and emptying it out.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Engages in activities for longer periods of time and tries several times to solve more challenging problems, often using a combination of actions or behaviors.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 7",
+          "text": "Child uses reasoning and planning ahead to solve problems.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Uses own actions or movements to solve simple problems, such as rolling to the side to reach an object or kicking to make something move.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Tries different solutions to everyday problems until discovering one that works. May try the same strategy multiple times even if it is not working.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Uses problem-solving and experimenting to figure out solutions to everyday problems, including in social situations, such as when two children who both want to fit into a small car agree to take turns.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Emergent Mathematical Thinking",
+      "goals": [
+        {
+          "code": "IT-C 8",
+          "text": "Child develops sense of number and quantity.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Attends to quantity in play with objects, such as reaching or looking for more than one object.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Uses a few basic words to refer to change in the amount of objects, such as asking for “more” or saying “all gone” when a plate is empty.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Uses language to refer to quantity, such as using some number words or signs to identify small amounts, or using other words referring to quantity, such as a little, too much or a lot.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 9",
+          "text": "Child uses spatial awareness to understand objects and their movement in space.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Explores or examines objects and watches objects when they move.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Explores how things fit together, how they fit with other things, and how they move through space, such as a ball thrown under a table.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Predicts or anticipates how things move through space, or fit together or inside other things, such as putting smaller objects into a small box and larger objects into a large box.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 10",
+          "text": "Child uses matching and sorting of objects or people to understand similar and different characteristics.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Explores or examines differences between familiar or unfamiliar people or between different types of objects, such as by mouthing or shaking a toy.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Matches objects by similar or related characteristics, such as matching shapes with openings in a shape-sorting box or by putting a toy bottle with a baby doll.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Sorts objects into two groups based on a single characteristic, such as grouping toy animals separately from toy cars, or putting red socks and white socks in different piles.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Imitation and Symbolic Representation and Play",
+      "goals": [
+        {
+          "code": "IT-C 11",
+          "text": "Child observes and imitates sounds, words, gestures, actions, and behaviors.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Engages in reciprocal imitation games, such as patting on a table or handing an object back and forth.",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Imitates what other people did earlier, such as wiping up a spill or closing a door.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Imitates more complex actions, words, or signs at a later time in order to communicate, make, or do something.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 12",
+          "text": "Child uses objects or symbols to represent something else.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Emerging",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Uses toy objects in ways similar to the real objects they represent, such as talking on a toy phone.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Uses objects as symbols to represent other objects during pretend play, such as using blocks for toy cars or trucks.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "IT-C 13",
+          "text": "Child uses pretend play to increase understanding of culture, environment, and experiences.",
+          "progressions": [
+            {
+              "band": "Birth to 9 months",
+              "descriptor": "Emerging",
+              "needs_review": false
+            },
+            {
+              "band": "8 to 18 months",
+              "descriptor": "Imitates everyday actions of others, such as pretending to feed a doll or stuffed toy.",
+              "needs_review": false
+            },
+            {
+              "band": "16 to 36 months",
+              "descriptor": "Acts out routines, stories, or social roles using toys and other materials as props, such as setting toy dishes and cups on a table or pretending to shop for groceries.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://eclkc.ohs.acf.hhs.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://headstart.gov/school-readiness/article/cognition-infant"
+  ]
+}
