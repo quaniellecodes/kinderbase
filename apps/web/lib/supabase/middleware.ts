@@ -30,10 +30,20 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const isDashboardRoute = pathname.startsWith('/dashboard');
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup');
 
-  if (isDashboardRoute && !user) {
+  // Public (no session required): auth pages, public profiles, kiosk, the root
+  // redirect, and API routes (which enforce their own auth). The (dashboard)
+  // route group is invisible in URLs — so protecting only "/dashboard" left
+  // /classrooms, /staff, /settings, etc. ungated. Protect everything non-public.
+  const isPublic =
+    pathname === '/' ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/t/') ||
+    pathname.startsWith('/kiosk') ||
+    isAuthRoute;
+
+  if (!isPublic && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

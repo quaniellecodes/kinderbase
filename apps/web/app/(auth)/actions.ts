@@ -15,7 +15,11 @@ export async function login(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect('/dashboard');
+  // Don't redirect() here: it triggers a soft RSC navigation whose prefetched
+  // request doesn't carry the auth cookie this action just set, so the server
+  // sees no session and bounces to /login (fixed only by a manual reload). The
+  // client does a hard navigation instead so the fresh request carries the cookie.
+  return { success: true as const };
 }
 
 export async function signup(formData: FormData) {
