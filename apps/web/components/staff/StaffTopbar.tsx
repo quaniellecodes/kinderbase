@@ -31,21 +31,21 @@ export function StaffTopbar({ header }: { header: StaffHeader }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {header.admin ? (
         <>
-          <Link href={`/staff/${header.userId}?tab=schedule`} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300">
+          <Link href={`/staff/${header.userId}?tab=schedule`} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300 whitespace-nowrap">
             Update schedule
           </Link>
-          <button onClick={() => setMsgOpen(true)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300">Message</button>
-          <button onClick={() => setEditing(true)} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium">Edit profile</button>
+          <button onClick={() => setMsgOpen(true)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300 whitespace-nowrap">Message</button>
+          <button onClick={() => setEditing(true)} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium whitespace-nowrap">Edit profile</button>
         </>
       ) : (
         <>
-          <Link href="/requests/new?type=schedule" className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300">
+          <Link href="/requests/new?type=schedule" className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300 whitespace-nowrap">
             Request schedule change
           </Link>
-          <button onClick={() => setMsgOpen(true)} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium">Message admin</button>
+          <button onClick={() => setMsgOpen(true)} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium whitespace-nowrap">Message admin</button>
         </>
       )}
 

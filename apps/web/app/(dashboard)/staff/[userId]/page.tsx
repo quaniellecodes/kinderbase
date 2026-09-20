@@ -60,12 +60,12 @@ export default async function StaffProfilePage({ params, searchParams }: Props) 
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto w-full">
-      <div className="flex items-center justify-between gap-2 mb-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Link href="/staff" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1">
+          <Link href="/staff" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1 flex-shrink-0">
             <ChevronLeft className="w-3.5 h-3.5" /> Staff
           </Link>
-          <h1 className="text-base font-medium text-gray-900">Staff Profile</h1>
+          <h1 className="text-base font-medium text-gray-900 whitespace-nowrap">Staff Profile</h1>
         </div>
         <StaffTopbar header={header} />
       </div>
@@ -79,12 +79,12 @@ export default async function StaffProfilePage({ params, searchParams }: Props) 
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex gap-5 border-b border-gray-100 mb-4">
+          <div className="flex gap-5 border-b border-gray-100 mb-4 overflow-x-auto -mx-4 px-4">
             {tabs.map((t) => (
               <Link
                 key={t.key}
                 href={`/staff/${params.userId}?tab=${t.key}`}
-                className={`text-sm py-2.5 font-medium transition-colors ${tab === t.key ? 'text-brand border-b-2 border-brand' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`text-sm py-2.5 font-medium transition-colors whitespace-nowrap flex-shrink-0 ${tab === t.key ? 'text-brand border-b-2 border-brand' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 {t.label}
               </Link>
