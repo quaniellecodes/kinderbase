@@ -60,15 +60,23 @@ const DEFAULT_DESCRIPTORS: Record<string, string[]> = {
   family: ['Bilingual (Spanish)', 'Lives with grandparents', 'New sibling at home', 'Celebrates Kwanzaa'],
 };
 
-/** Map an ELOF infant/toddler age-band label to [min, max] months. Case-insensitive. */
-function bandToMonths(band: string): { min: number; max: number; order: number } {
+/**
+ * Map an ELOF age-band label to [min, max] months. Handles the Infant/Toddler
+ * bands ("Birth to 9 Months", "8 to 18 Months", "16 to 36 Months") and the
+ * Preschool bands ("36 to 48 Months", "48 to 60 Months", or a single
+ * "36 to 60 Months" / "By 60 Months"). Generic: parses the numbers in the label.
+ */
+function bandToMonths(band: string): { min: number; max: number } {
   const b = band.toLowerCase().replace(/\s+/g, ' ').trim();
-  if (b.startsWith('birth to 9')) return { min: 0, max: 9, order: 0 };
-  if (b.startsWith('8 to 18')) return { min: 8, max: 18, order: 1 };
-  if (b.startsWith('16 to 36')) return { min: 16, max: 36, order: 2 };
-  // Preschool bands (added later): "36 to 48 Months", "48 to 60 Months".
-  if (b.startsWith('36 to 48')) return { min: 36, max: 48, order: 0 };
-  if (b.startsWith('48 to 60')) return { min: 48, max: 60, order: 1 };
+  const nums = (b.match(/\d+/g) ?? []).map(Number);
+  if (b.startsWith('birth')) return { min: 0, max: nums[0] ?? 12 };
+  if (nums.length >= 2) return { min: nums[0]!, max: nums[1]! };
+  if (nums.length === 1) {
+    // e.g. "By 60 Months" — an end-of-range indicator column, not a span. Treat
+    // it as a point band so it isn't chosen as the "current" band until that age.
+    const m = nums[0]!;
+    return { min: m, max: m };
+  }
   throw new Error(`Unrecognized ELOF age band: "${band}"`);
 }
 
@@ -157,7 +165,12 @@ export async function seedElof(db: Db): Promise<{
       .from('frameworks')
       .delete()
       .in('id', existing.map((r) => r.id));
-    if (error) throw new Error(`Failed clearing existing ELOF framework: ${error.message}`);
+    if (error)
+      throw new Error(
+        `Failed clearing existing ELOF framework: ${error.message}. ` +
+          'Framework content is referenced by existing checkpoints/observations; re-run the full ' +
+          'seed with --reset (pnpm --filter @kinderbase/web seed:reset) to clear org data first.',
+      );
   }
   {
     const { error } = await db.from('rating_levels').delete().is('center_id', null);
@@ -211,8 +224,8 @@ export async function seedElof(db: Db): Promise<{
           goal_text: goal.text,
           sort_order: gi,
         });
-        goal.progressions.forEach((pr) => {
-          const { min, max, order } = bandToMonths(pr.band);
+        goal.progressions.forEach((pr, pi) => {
+          const { min, max } = bandToMonths(pr.band);
           const indicators = pr.descriptor ? pr.descriptor.split(' • ').map((s) => s.trim()).filter(Boolean) : null;
           progressionRows.push({
             goal_id: goalId,
@@ -220,7 +233,7 @@ export async function seedElof(db: Db): Promise<{
             age_band_max_months: max,
             descriptor: pr.descriptor,
             indicators: indicators && indicators.length > 1 ? indicators : null,
-            sort_order: order,
+            sort_order: pi,
           });
         });
       });

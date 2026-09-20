@@ -72,8 +72,14 @@ SAEO tab with sub-nav (`?tab=saeo&saeo=`): Assessment · Observations · Screeni
 
 ---
 
-## Status: all phases A–G complete. `feat/students` ready for review/PR.
-Deferred/notes: preschool ELOF view not seeded (IT-only per plan; `bandToMonths` + createCheckpoint already handle preschool once `ps-*.json` is added); document files aren't seeded (upload path is live).
+## ELOF — all age groups seeded
+- Infant/Toddler view: 5 domains / 21 sub-domains / 59 goals / 177 progressions (`it-*.json`)
+- Preschool view: 7 domains / 24 sub-domains / 59 goals / 134 progressions (`ps-*.json`) — Literacy, Mathematics, and Scientific Reasoning split out from Cognition per the official framework; sourced verbatim from the OHS ELOF PDF
+- Seeder `bandToMonths` is generic (parses any "A to B Months" / "By N Months" label); progression `sort_order` = array index. Demo seed now creates preschool checkpoints/observations too (3 IT + 2 preschool checkpoints).
+- Note: `seed:elof` standalone requires a clean framework (no dependent checkpoints/observations, which are RESTRICT); use `seed:reset` to refresh framework content — the seeder now says so on failure.
+
+## Status: all phases A–G complete + ELOF all ages. `feat/students` ready for review/PR.
+Deferred/notes: document file bytes aren't seeded (upload path is live); no notifications on screening/referral events.
 
 ## Notes / reconciliations (see plan)
 - Students module is backed by the existing `children` table (not a new `students` table). Satellites use `child_id → children`.

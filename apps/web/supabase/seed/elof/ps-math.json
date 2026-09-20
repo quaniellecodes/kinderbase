@@ -1,0 +1,120 @@
+{
+  "view": "preschool",
+  "domain": { "code": "P-MATH", "name": "Mathematics Development" },
+  "subdomains": [
+    {
+      "name": "Counting and Cardinality",
+      "goals": [
+        {
+          "code": "P-MATH 1",
+          "text": "Child knows number names and the count sequence.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Says or signs some number words in sequence (up to 10), starting with one. Understands that counting words are separate words, such as “one,” “two,” “three” versus “onetwothree”.", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Says or signs more number words in sequence.", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Counts verbally or signs to at least 20 by ones.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "P-MATH 2",
+          "text": "Child recognizes the number of objects in a small set.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Develops an understanding of what whole numbers mean. Begins to recognize the number of small objects in groups without counting (referred to as “subitizing”).", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Quickly recognizes the number of objects in a small set (referred to as “subitizing”).", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Instantly recognizes, without counting, small quantities of up to 5 objects and says or signs the number.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "P-MATH 3",
+          "text": "Child understands the relationship between numbers and quantities.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Begins to coordinate verbal counting with objects by pointing to or moving objects for small groups of objects laid in a line (referred to as one-to-one correspondence). Begins to understand that the last number represents how many objects are in a group (referred to as “cardinality”).", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Understands that number words refer to quantity. May point to or move objects while counting objects to 10 and beyond (one-to-one correspondence). Understands that the last number represents how many objects are in a group (cardinality).", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "When counting objects, says or signs the number names in order, pairing one number word that corresponds with one object, up to at least 10. • Counts and answers “How many?” questions for approximately 10 objects. • Accurately counts as many as 5 objects in a scattered configuration. • Understands that each successive number name refers to a quantity that is one larger. • Understands that the last number said represents the number of objects in a set.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "P-MATH 4",
+          "text": "Child compares numbers.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Begins to accurately count and compare objects that are about the same size and are in small groups with adult assistance, such as counts a pile of 2 blocks and a pile of 4, and determines whether the piles have the same or different numbers of blocks. Identifies the first and second objects in a sequence.", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Counts to determine and compare number amounts even when the larger group’s objects are smaller in size, such as buttons, compared with the smaller group’s objects that are larger in size, such as markers. Uses numbers related to order or position.", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Identifies whether the number of objects in one group is more than, less than, or the same as objects in another group for up to at least five objects. • Identifies and uses numbers related to order or position from first to tenth.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "P-MATH 5",
+          "text": "Child associates a quantity with written numerals up to 5 and begins to write numbers.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Begins to understand that a written numeral represents a quantity and may draw objects or use informal symbols to represent numbers.", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Understands that written numbers represent quantities of objects, and uses information symbols, such as a tally, to represent numerals. With adult support, writes some numerals up to 10.", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Associates a number of objects with a written numeral 0–5. • Recognizes and, with support, writes some numerals up to 10.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Operations and Algebraic Thinking",
+      "goals": [
+        {
+          "code": "P-MATH 6",
+          "text": "Child understands addition as adding to and understands subtraction as taking away from.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Begins to add and subtract very small collections of objects with adult support. For example, the teacher says, “You have 3 grapes and get 1 more. How many in all?” Child counts out 3, then counts out 1 more, then counts all 4: “1, 2, 3, 4. I have 4!”", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Solves addition problems by joining objects together and subtraction problems by separating, using manipulatives and fingers to represent objects.", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Represents addition and subtraction in different ways, such as with fingers, objects, and drawings. • Solves addition and subtraction word problems. Adds and subtracts up to 5 to or from a given number. • With adult assistance, begins to use counting on from the larger number for addition. For example, when adding a group of 3 and a group of 2, counts “One, two, three…” and then counts on “Four, five!” (keeping track with fingers). When counting back for subtraction such as taking away 3 from 5, counts, “Five, four, three…two!” (keeping track with fingers).", "needs_review": false }
+          ]
+        },
+        {
+          "code": "P-MATH 7",
+          "text": "Child understands simple patterns.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Recognizes a simple pattern, and with adult assistance, fills in the missing element of a pattern, such as boy, girl, boy, girl, ___, girl. Duplicates and extends ABABAB patterns.", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Creates, identifies, extends, and duplicates simple repeating patterns in different forms, such as with objects, numbers, sounds, and movements.", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Fills in missing elements of simple patterns. • Duplicates simple patterns in a different location than demonstrated, such as making the same alternating color pattern with blocks at a table that was demonstrated on the rug. Extends patterns, such as making an eight block tower of the same pattern that was demonstrated with four blocks. • Identifies the core unit of sequentially repeating patterns, such as color in a sequence of alternating red and blue blocks.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Measurement",
+      "goals": [
+        {
+          "code": "P-MATH 8",
+          "text": "Child measures objects by their various attributes using standard and non-standard measurement. Uses differences in attributes to make comparisons.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "With adult support, begins to understand that attributes can be compared, such as one child can be taller than another child.", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "With some adult support, uses measurable attributes to make comparisons, such as identifies objects as the same/different and more/less.", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Measures using the same unit, such as putting together snap cubes to see how tall a book is. • Compares or orders up to 5 objects based on their measurable attributes, such as height or weight. • Uses comparative language, such as shortest, heavier, or biggest.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Geometry and Spatial Sense",
+      "goals": [
+        {
+          "code": "P-MATH 9",
+          "text": "Child identifies, describes, compares, and composes shapes.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Recognizes and names typical circle, square, and sometimes a triangle. With adult support, matches some shapes that are different sizes and orientations.", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Recognizes and compares a greater number of shapes of different sizes and orientations. Begins to identify sides and angles as distinct parts of shapes.", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Names and describes shapes in terms of length of sides, number of sides, and number of angles. • Correctly names basic shapes regardless of size and orientation. • Analyzes, compares and sorts two- and three-dimensional shapes and objects in different sizes. Describes their similarities, differences, and other attributes, such as size and shape. • Creates and builds shapes from components.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "P-MATH 10",
+          "text": "Child explores the positions of objects in space.",
+          "progressions": [
+            { "band": "36 to 48 Months", "descriptor": "Begins to understand spatial vocabulary. With adult support, follows directions involving their own position in space, such as “Stand up and stretch your arms to the sky.”", "needs_review": false },
+            { "band": "48 to 60 Months", "descriptor": "Increasingly understands spatial vocabulary. Follows directions involving their own position in space, such as “Move to the front of the line.”", "needs_review": false },
+            { "band": "By 60 Months", "descriptor": "Understands and uses language related to directionality, order, and the position of objects, including up/down, and in front/behind. • Correctly follows directions involving their own position in space, such as “Stand up” and “Move forward.”", "needs_review": false }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://eclkc.ohs.acf.hhs.gov/sites/default/files/pdf/elof-ohs-framework.pdf"
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "view": "preschool",
+  "domain": {
+    "code": "P-LC",
+    "name": "Language and Communication"
+  },
+  "subdomains": [
+    {
+      "name": "Attending and Understanding",
+      "goals": [
+        {
+          "code": "P-LC 1",
+          "text": "Child attends to communication and language from others.",
+          "progressions": [
+            {
+              "band": "36 to 60 Months",
+              "descriptor": "Shows acknowledgment of comments or questions and is able to attend to conversations, either spoken or signed. • Shows acknowledgment of complex comments or questions. Is able to attend to longer, multi-turn conversations, either spoken or signed. • Uses verbal and non-verbal signals appropriately to acknowledge the comments or questions of others. • Shows ongoing connection to a conversation, group discussion, or presentation.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-LC 2",
+          "text": "Child understands and responds to increasingly complex communication and language from others.",
+          "progressions": [
+            {
+              "band": "36 to 60 Months",
+              "descriptor": "Understands and responds (verbally and non-verbally) to increasingly longer sentences, simple questions, and simple stories. • Shows an understanding of complex statements, questions, and stories containing multiple phrases and ideas, and responds appropriately. • Shows an ability to recall (in order) multiple step directions. • Demonstrates understanding of a variety of question types, such as “Yes/No?” or “Who/What/When/Where?” or “How/Why?” • Shows understanding of a variety of sentence types, such as multi-clause, cause-effect, sequential order, or if-then. • Shows an understanding of talk related to the past or future. • Shows understanding, such as nodding or gestures, in response to the content of books read aloud, stories that are told, or lengthy explanations given on a topic.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Communicating and Speaking",
+      "goals": [
+        {
+          "code": "P-LC 3",
+          "text": "Child varies the amount of information provided to meet the demands of the situation.",
+          "progressions": [
+            {
+              "band": "36 to 60 Months",
+              "descriptor": "Uses language, spoken or sign, for different purposes and is sometimes able to provide sufficient detail to get needs met from a variety of adults. • Uses language, spoken or sign, for a variety of purposes and can typically provide sufficient detail in order to get needs met from a variety of adults. • Usually provides sufficient detail in order to get needs met, such as explaining a point of difficulty in a task or sharing a request from home with the teacher. • Uses language, spoken or sign, to clarify a word or statement when misunderstood. • Children who are DLLs may switch between their languages.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-LC 4",
+          "text": "Child understands, follows, and uses appropriate social and conversational rules.",
+          "progressions": [
+            {
+              "band": "36 to 60 Months",
+              "descriptor": "Engages in conversations with adults, other children, or within the group setting lasting 2–3 conversational turns, and, with support, will sometimes use appropriate tone and volume for different situations. • Maintains multi-turn conversations with adults or other children by being responsive to the conversational partner in a variety of ways, such as by asking a question. With increasing independence, varies tone and volume of expression to match the social situation. • Maintains multi-turn conversations with adults, other children, and within larger groups by responding in increasingly sophisticated ways, such as asking related questions or expressing agreement. • With increasing independence, matches the tone and volume of expression to the content and social situation, such as by using a whisper to tell a secret.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-LC 5",
+          "text": "Child expresses self in increasingly long, detailed, and sophisticated ways.",
+          "progressions": [
+            {
+              "band": "36 to 60 Months",
+              "descriptor": "Communicates clearly enough to be understood by familiar adults, but may make some pronunciation and grammatical errors. Typically uses 3–5 word phrases/sentences when communicating. With some prompting, can offer multiple (2–3) pieces of information on a single topic. • Communicates clearly enough to be understood by familiar and unfamiliar adults, but may make some pronunciation errors and some isolated grammatical errors. Uses longer sentences, as well as sentences that are slightly more complex, such as “I need a pencil because this one broke.” Can offer multiple pieces of information on a topic with increasing independence and answer simple questions. • Communicates clearly enough to be understood by adults across a range of situations. Pronunciation errors and grammatical errors are isolated and infrequent. Shows proficiency with prepositions, regular/irregular past tense, possessives, and noun-verb agreement. • Typically, uses complete sentences of more than 5 words with complex structures, such as sentences involving sequence and causal relations. • Can produce and organize multiple sentences on a topic, such as giving directions or telling a story, including information about the past or present or things not physically present, and answer a variety of question types.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vocabulary",
+      "goals": [
+        {
+          "code": "P-LC 6",
+          "text": "Child understands and uses a wide variety of words for a variety of purposes.",
+          "progressions": [
+            {
+              "band": "36 to 60 Months",
+              "descriptor": "Shows a rapid increase in acquisition of new vocabulary words that describe actions, emotions, things, or ideas that are meaningful within the everyday environment. Uses new vocabulary words to describe relations among things or ideas. Shows repetition of new words offered by adults. • Shows a steady increase in vocabulary through the acquisition of words with increasing specificity and variety. Shows repetition of new words offered by adults and may ask about the meaning of unfamiliar words. • Demonstrates the use of multiple (2–3) new words or signs a day during play and other activities. • Shows recognition of and/or familiarity with key domain-specific words heard during reading or discussions. • With multiple exposures, uses new domain-specific vocabulary during activities, such as using the word “cocoon” when learning about the life-cycle of caterpillars, or “cylinder” when learning about 3-D shapes. • With support, forms guesses about the meaning of new words from context clues.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-LC 7",
+          "text": "Child shows understanding of word categories and relationships among words.",
+          "progressions": [
+            {
+              "band": "36 to 60 Months",
+              "descriptor": "Typically uses known words in the correct context and, with support, shows an emerging understanding of how words are related to broader categories, such as sorting things by color. • Demonstrates an increasingly sophisticated understanding of words and word categories with support, such as listing multiple examples of a familiar category or identifying a synonym or antonym. • Categorizes words or objects, such as sorting a hard hat, machines, and tools into the construction group, or giving many examples of farm animals. • Discusses new words in relation to known words and word categories, such as “It fell to the bottom when it sank” or “When you hop it’s like jumping on one leg” or “The bear and fox are both wild animals.” • Identifies shared characteristics among people, places, things, or actions, such as identifying that both cats and dogs are furry and have four legs. • Identifies key common antonyms, such as black/white or up/down. Identifies 1–2 synonyms for very familiar words, such as glad or happy. • Shows an ability to distinguish similar words, such as “I don’t like it, I love it!” or “It’s more than tall, it’s gigantic” or “It’s so cold, it’s frosty.”",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://eclkc.ohs.acf.hhs.gov/sites/default/files/pdf/elof-ohs-framework.pdf"
+  ]
+}

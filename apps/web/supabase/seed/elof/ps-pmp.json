@@ -1,0 +1,124 @@
+{
+  "view": "preschool",
+  "domain": {
+    "code": "P-PMP",
+    "name": "Perceptual, Motor, and Physical Development"
+  },
+  "subdomains": [
+    {
+      "name": "Gross Motor",
+      "goals": [
+        {
+          "code": "P-PMP 1",
+          "text": "Child demonstrates control, strength, and coordination of large muscles.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Balances, such as on one leg or a beam, for short periods with some assistance. Performs some skills, such as jumping for height and hopping, but these skills may not be consistently demonstrated. Engages in physical activity that requires strength and stamina for at least brief periods.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Balances, such as on one leg or on a beam, for longer periods of time both when standing still and when moving from one position to another. Demonstrates more coordinated movement when engaging in skills, such as jumping for height and distance, hopping, and running. Engages in more complex movements, such as riding a tricycle, with ease. Engages in physical activities of increasing levels of intensity for sustained periods of time.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-PMP 2",
+          "text": "Child uses perceptual information to guide motions and interactions with objects and other people.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Somewhat aware of own body, space, and relationship to other objects. May have difficulty consistently coordinating motions and interactions with objects and other people.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Shows increasing awareness of body, space, and relationship to other objects in ways that allow for more coordinated movements, actions, and interactions with others.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fine Motor",
+      "goals": [
+        {
+          "code": "P-PMP 3",
+          "text": "Child demonstrates increasing control, strength, and coordination of small muscles.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Performs simple hand-eye tasks, such as drawing simple shapes like circles and cutting paper with scissors. May demonstrate limited precision and control in more complex tasks.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Performs tasks that require more complex hand-eye coordination, such as cutting out shapes and drawing letter-like forms, with moderate levels of precision and control.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health, Safety, and Nutrition",
+      "goals": [
+        {
+          "code": "P-PMP 4",
+          "text": "Child demonstrates personal hygiene and self-care skills.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Shows an awareness of personal hygiene and self-care skills, such as telling an adult it is important to wash hands before eating. May not complete or exhibit these skills regularly without adult guidance and supervision.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Begins to take more responsibility for personal hygiene and self-care skills. Sometimes completes them without adult prompting.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-PMP 5",
+          "text": "Child develops knowledge and skills that help promote nutritious food choices and eating habits.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Demonstrates a basic knowledge of the role of foods and nutrition in healthy development. Often requires adult guidance and supervision to make healthy eating choices.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Demonstrates an increasing understanding of the ways in which foods and nutrition help the body grow and be healthy. Makes healthy eating choices both independently and with support.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-PMP 6",
+          "text": "Child demonstrates knowledge of personal safety practices and routines.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Shows awareness of a growing number of personal safety practices and routines. Looks to adults for support in enacting these.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Exhibits increasing independence in following basic personal safety practices and routines. Follows adult guidance around more complex practices.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://eclkc.ohs.acf.hhs.gov/sites/default/files/pdf/elof-ohs-framework.pdf"
+  ]
+}

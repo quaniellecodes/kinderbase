@@ -1,0 +1,206 @@
+{
+  "view": "preschool",
+  "domain": { "code": "P-SE", "name": "Social and Emotional Development" },
+  "subdomains": [
+    {
+      "name": "Relationships with Adults",
+      "goals": [
+        {
+          "code": "P-SE 1",
+          "text": "Child engages in and maintains positive relationships and interactions with adults.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Engages in positive interactions with adults, such as by demonstrating affection or talking about ideas. Is able to separate from trusted adults when in familiar settings. Uses adults as a resource to solve problems.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Clearly shows enjoyment in interactions with trusted adults while also demonstrating skill in separating from these adults with minimal distress when in a familiar setting. Initiates interactions with adults and participates in longer and more reciprocal interactions with both trusted and new adults.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SE 2",
+          "text": "Child engages in prosocial and cooperative behavior with adults.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Sometimes engages in prosocial behavior with adults, such as greeting the teacher or saying goodbye, and responds to adult requests and directions that may include assistance or prompting. Sometimes demonstrates uncooperative behavior with familiar adults, such as saying “No” to requests, but these moments are typically resolved with support from adults.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Often engages in prosocial behavior with adults and usually responds appropriately to adult requests and directions without significant assistance or prompting. Uncooperative behavior with familiar adults is rare and the child is able to resolve minor conflicts with adults with support, such as being given reminders to use a quiet voice or follow directions.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Relationships with Other Children",
+      "goals": [
+        {
+          "code": "P-SE 3",
+          "text": "Child engages in and maintains positive interactions and relationships with other children.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Sometimes engages in and maintains interactions with other children without support from an adult, or demonstrates skills in doing this when prompted by an adult. May spontaneously engage in prosocial behaviors with other children, such as sharing and taking turns with materials and in conversations, or may engage in these with prompting from adults.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Sustains interactions with other children more often and for increasing periods of time. Demonstrates prosocial behaviors with other children with and without prompting from adults. Likely to show at least some preference for playing with particular children.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SE 4",
+          "text": "Child engages in cooperative play with other children.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Often plays cooperatively with other children. For at least short periods during this play, works with other children to plan and enact this play in a coordinated way.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Cooperatively plays with other children in an increasingly coordinated way. Works with other children to make plans for what and how they will play together. When given the opportunity, these coordinated play periods get longer.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SE 5",
+          "text": "Child uses basic problem-solving skills to resolve conflicts with other children.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Begins to recognize and describe social problems. Suggests solutions to conflicts with adult guidance and support.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Often recognizes and describes social problems, suggests solutions to conflicts, and compromises when working or playing in a group. Although simple conflicts may be resolved without adult assistance, may seek out or need adult support in more challenging moments.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Emotional Functioning",
+      "goals": [
+        {
+          "code": "P-SE 6",
+          "text": "Child expresses a broad range of emotions and recognizes these emotions in self and others.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Expresses a broad range of emotions across contexts, such as during play and in interactions with adults. Notices when strong emotions are exhibited by others and begins to use words to describe some of these emotions, such as happy, sad, or mad.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Expresses a broad range of emotions and begins to notice more subtle or complex emotions in self and others, such as embarrassed or worried. Uses words to describe own feelings when prompted, and may at times use these words without prompting, such as saying “Don’t be mad” when engaged in play with other children.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SE 7",
+          "text": "Child expresses care and concern toward others.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Often pays attention when others are distressed, but attention and response to this distress may be brief. May seek out adult support to help another child who is distressed.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Consistently pays attention when others are distressed and often responds with care, either by seeking out adult support or providing reassurance or support themselves.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SE 8",
+          "text": "Child manages emotions with increasing independence.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Manages less intense emotions, such as mild frustration, independently. May require adult support to manage more intense emotions.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Has an expanding range of strategies for managing emotions, both less intense emotions and those that cause greater distress. Sometimes looks to adults for support in managing the most intense emotions, but shows increasing skill in managing emotions independently.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sense of Identity and Belonging",
+      "goals": [
+        {
+          "code": "P-SE 9",
+          "text": "Child recognizes self as a unique individual having own abilities, characteristics, emotions, and interests.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Describes own physical characteristics and behaviors and indicates likes and dislikes when asked.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Describes a larger range of individual characteristics and interests and communicates how these are similar or different from those of other people.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SE 10",
+          "text": "Child expresses confidence in own skills and positive feelings about self.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Expresses enjoyment in accomplishing daily routines and new skills and may draw adult attention to these accomplishments. May share own ideas or express positive feelings about self, particularly when prompted by an adult.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Enjoys accomplishing a greater number of tasks and sharing these accomplishments with other children and adults. Makes increasing number of contributions to group discussion and may share ideas with or without adult prompting.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SE 11",
+          "text": "Child has sense of belonging to family, community, and other groups.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Communicates feeling a sense of belonging to family and an emerging sense of connections to other communities through words or other forms of expression, such as drawing a picture of their family or sharing a special object related to their cultural heritage.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Has a sense of belonging to family and community and communicates details about these connections, such as sharing a story about a family gathering, both spontaneously and when prompted by an adult or other child.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://headstart.gov/interactive-head-start-early-learning-outcomes-framework-ages-birth-five"
+  ]
+}
