@@ -13,3 +13,4 @@ export { EmptyState } from './EmptyState';
 export { Toaster, toast } from './Toast';
 export { DayToggleRow } from './DayToggleRow';
 export { MultiSelectField } from './MultiSelectField';
+export { PencilField } from './PencilField';

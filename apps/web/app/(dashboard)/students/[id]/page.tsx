@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { ArrowLeft, AlertTriangle, Construction } from 'lucide-react';
 import { Card, Badge, TabBar, Alert, StatusDot, EmptyState, type BadgeTone } from '@/components/ui';
 import { getStudentHeader, type EnrollmentStatus } from '../actions';
+import { InfoPanel } from './InfoPanel';
+import { FamilyPanel } from './FamilyPanel';
 
 const STATUS_META: Record<EnrollmentStatus, { label: string; tone: BadgeTone }> = {
   active: { label: 'Active', tone: 'green' },
@@ -105,14 +107,20 @@ export default async function StudentProfilePage({
       {/* Tabs */}
       <TabBar items={TABS} active={tab} hrefFor={(k) => `/students/${header.id}?tab=${k}`} className="mb-4" />
 
-      {/* Panel (placeholders until later phases fill each tab) */}
-      <Card padding="none">
-        <EmptyState
-          icon={<Construction className="w-8 h-8" />}
-          title={`${activeTabLabel} — coming soon`}
-          description="This tab is part of a later build step. The student directory, profile shell, and navigation are live now."
-        />
-      </Card>
+      {/* Panel */}
+      {tab === 'info' ? (
+        <InfoPanel childId={header.id} />
+      ) : tab === 'family' ? (
+        <FamilyPanel childId={header.id} />
+      ) : (
+        <Card padding="none">
+          <EmptyState
+            icon={<Construction className="w-8 h-8" />}
+            title={`${activeTabLabel} — coming soon`}
+            description="This tab is part of a later build step. The student directory, profile shell, Info, and Family tabs are live now."
+          />
+        </Card>
+      )}
     </div>
   );
 }

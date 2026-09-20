@@ -919,10 +919,74 @@ async function main(): Promise<void> {
     }
   }
 
+  // ── 9c-ter. Guardians, authorized pickups, siblings ─────────────────────────
+  type GuardianInsert = Database['public']['Tables']['guardians']['Insert'];
+  type PickupInsert = Database['public']['Tables']['authorized_pickups']['Insert'];
+  type SiblingInsert = Database['public']['Tables']['student_siblings']['Insert'];
+  const MOM_NAMES = ['Denise', 'Latoya', 'Yolanda', 'Fatima', 'Renee', 'Crystal', 'Angela', 'Tanya', 'Nia', 'Simone'];
+  const DAD_NAMES = ['Marcus', 'Andre', 'Terrence', 'Malik', 'Jerome', 'Darnell', 'Kevin', 'Reginald', 'Curtis', 'Elijah'];
+  const EMPLOYERS = ['Johns Hopkins', 'MedStar Health', 'Baltimore City Schools', 'Under Armour', 'City of Baltimore', 'T. Rowe Price'];
+  const guardianRows: GuardianInsert[] = [];
+  const pickupRows: PickupInsert[] = [];
+  const phone = () => `410-555-${String(rng.int(1000, 9999))}`;
+
+  for (const c of childrenRows) {
+    const last = c.last_name as string;
+    const mom = rng.pick(MOM_NAMES);
+    guardianRows.push({
+      child_id: c.id as string,
+      full_name: `${mom} ${last}`,
+      relationship: 'mother',
+      email: `${mom.toLowerCase()}.${last.toLowerCase()}@example.com`,
+      mobile_phone: phone(),
+      employer: rng.chance(0.7) ? rng.pick(EMPLOYERS) : null,
+      is_primary: true,
+      is_emergency: true,
+      is_pickup_restricted: false,
+      sort_order: 0,
+    });
+    if (rng.chance(0.6)) {
+      const dad = rng.pick(DAD_NAMES);
+      guardianRows.push({
+        child_id: c.id as string,
+        full_name: `${dad} ${last}`,
+        relationship: 'father',
+        email: `${dad.toLowerCase()}.${last.toLowerCase()}@example.com`,
+        mobile_phone: phone(),
+        employer: rng.chance(0.7) ? rng.pick(EMPLOYERS) : null,
+        is_primary: false,
+        is_emergency: true,
+        is_pickup_restricted: false,
+        sort_order: 1,
+      });
+    }
+    if (rng.chance(0.2)) {
+      pickupRows.push({ child_id: c.id as string, full_name: `${rng.pick(MOM_NAMES)} ${last}`, relationship: 'Grandmother', phone: phone() });
+    }
+  }
+
+  // Siblings: children sharing a last name within a center are linked (both ways).
+  const siblingRows: SiblingInsert[] = [];
+  const byLast = new Map<string, string[]>();
+  for (const c of childrenRows) {
+    const k = `${c.center_id}|${c.last_name}`;
+    const arr = byLast.get(k) ?? [];
+    arr.push(c.id as string);
+    byLast.set(k, arr);
+  }
+  for (const ids of byLast.values()) {
+    if (ids.length < 2) continue;
+    for (let i = 0; i < ids.length; i++)
+      for (let j = 0; j < ids.length; j++) if (i !== j) siblingRows.push({ child_id: ids[i]!, sibling_id: ids[j]! });
+  }
+
   await insertChunked(db, 'children', childrenRows);
   await insertChunked(db, 'child_attendance', attendanceRows);
   await insertChunked(db, 'student_health', healthRows);
   await insertChunked(db, 'student_documents', docRows);
+  await insertChunked(db, 'guardians', guardianRows);
+  await insertChunked(db, 'authorized_pickups', pickupRows);
+  await insertChunked(db, 'student_siblings', siblingRows);
 
   // ── 10. Time entries (weekday clock in/out history) ─────────────────────────
   type TimeEntry = Database['public']['Tables']['time_entries']['Insert'];
@@ -1153,6 +1217,9 @@ async function main(): Promise<void> {
   console.log(`   children:          ${childrenRows.length}`);
   console.log(`   student health:    ${healthRows.length}`);
   console.log(`   student docs:      ${docRows.length}`);
+  console.log(`   guardians:         ${guardianRows.length}`);
+  console.log(`   authorized pickups:${pickupRows.length}`);
+  console.log(`   siblings (links):  ${siblingRows.length}`);
   console.log(`   attendance (today):${attendanceRows.length}`);
   console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
