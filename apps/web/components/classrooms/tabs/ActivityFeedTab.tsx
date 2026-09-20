@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { UPDATE_TYPE_LABELS, type UpdateType } from '@kinderbase/types';
 import { UpdateItem } from '@/components/children/UpdateItem';
+import { Button, Card, Textarea } from '@/components/ui';
 import { postChildUpdate, type FeedUpdate } from '@/app/(dashboard)/classrooms/child-actions';
 
 type Props = {
@@ -71,7 +72,7 @@ export function ActivityFeedTab({ classroomId, updates, children }: Props) {
       </div>
 
       {composing && (
-        <div className="bg-white rounded-card border border-gray-100 p-4 mb-4 space-y-3">
+        <Card className="mb-4 space-y-3">
           <div className="flex gap-1.5 flex-wrap">
             {TYPES.map((t) => (
               <button
@@ -83,12 +84,11 @@ export function ActivityFeedTab({ classroomId, updates, children }: Props) {
               </button>
             ))}
           </div>
-          <textarea
+          <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder="What happened?"
             rows={2}
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
           <div className="flex flex-wrap gap-1.5">
             {children.map((c) => (
@@ -102,15 +102,15 @@ export function ActivityFeedTab({ classroomId, updates, children }: Props) {
             ))}
           </div>
           <div className="flex gap-2">
-            <button onClick={submit} disabled={isPosting || !body.trim()} className="text-sm bg-brand text-white px-4 py-1.5 rounded-lg font-medium disabled:opacity-50">
+            <Button onClick={submit} disabled={isPosting || !body.trim()} className="px-4">
               {isPosting ? 'Posting…' : 'Post'}
-            </button>
+            </Button>
             <button onClick={() => setComposing(false)} className="text-sm text-gray-500 px-3">Cancel</button>
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="bg-white rounded-card border border-gray-100 px-4 py-2">
+      <Card padding="none" className="px-4 py-2">
         {shown.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">No updates.</p>
         ) : (
@@ -118,7 +118,7 @@ export function ActivityFeedTab({ classroomId, updates, children }: Props) {
             {shown.map((u) => <UpdateItem key={u.id} update={u} />)}
           </ul>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

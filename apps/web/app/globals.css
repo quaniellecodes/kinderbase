@@ -5,6 +5,10 @@
 @layer base {
   :root {
     --color-brand-primary: #D35400;
+    /* Default brand RGB for `bg-brand`/`text-brand`. The dashboard layout
+       overrides this per-org on its wrapper; :root ensures portalled content
+       (Radix Modal renders to <body>) still resolves the brand color. */
+    --color-brand-rgb: 211 84 0;
     --color-brand-foreground: #FFFFFF;
     --color-status-green: #1D9E75;
     --color-status-amber: #EF9F27;

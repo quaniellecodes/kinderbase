@@ -24,6 +24,25 @@ Childcare management platform for OCC-licensed centers in Maryland. Owner operat
 
 ---
 
+## UI kit (`apps/web/components/ui/`)
+
+Shared, variant-driven primitives — **use these for new work instead of hand-rolled Tailwind**, so a redesign is a one-file change. Built on `cn()` ([lib/utils.ts](apps/web/lib/utils.ts)) + `class-variance-authority`; design tokens stay in `tailwind.config.ts` (`brand`, `status.*`, `rounded-card/chip/shell`).
+
+| Primitive | Notes |
+|---|---|
+| `Button` / `buttonVariants` | variants `primary\|secondary\|danger\|ghost\|chip`, sizes `sm\|md\|lg`. Use `buttonVariants({variant})` on a `<Link>`/`<a>` |
+| `Card` | padding `compact\|default\|spacious` |
+| `Badge` | tones `neutral\|green\|amber\|red\|blue\|purple\|indigo\|sky` (domain badges — RatioBadge, CredentialStatusBadge, UpdateTypeChip — wrap this) |
+| `TabBar` | button-mode (`onSelect`) or link-mode (`hrefFor`); scrollable, optional count badge |
+| `Input` / `Textarea` / `Select` / `Label` | standard field styling |
+| `Modal` | Radix Dialog wrapper — Escape/focus-trap/ARIA/backdrop-close for free |
+| `Alert` | inline notice, tones `amber\|red\|green\|indigo` |
+| `Avatar` / `StatCard` | initials avatar; stat tile |
+
+Migrated so far (reference implementations): staff profile + requests screens. Other screens still use inline Tailwind on the same tokens — migrate opportunistically. shadcn is intentionally not initialized.
+
+---
+
 ## Monorepo layout
 
 ```

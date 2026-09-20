@@ -1,5 +1,6 @@
 import type { EmploymentHistoryRow } from '@kinderbase/types';
 import { Briefcase } from 'lucide-react';
+import { Card } from '@/components/ui';
 
 type Props = {
   history: EmploymentHistoryRow[];
@@ -31,7 +32,7 @@ export function EmploymentHistory({ history }: Props) {
   if (history.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 overflow-hidden">
+    <Card padding="none" className="overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
         <Briefcase className="w-3.5 h-3.5 text-gray-400" />
         <h2 className="text-sm font-medium text-gray-900">
@@ -57,6 +58,6 @@ export function EmploymentHistory({ history }: Props) {
           </li>
         ))}
       </ul>
-    </div>
+    </Card>
   );
 }

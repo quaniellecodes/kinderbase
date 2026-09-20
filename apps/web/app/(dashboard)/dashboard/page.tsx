@@ -4,6 +4,7 @@ import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { isAdmin } from '@kinderbase/types';
 import { getCenterDashboard } from '@/app/(dashboard)/classrooms/child-actions';
 import { StatCard } from '@/components/ui/StatCard';
+import { Card } from '@/components/ui';
 import { OutOfRatioBanner } from '@/components/dashboard/OutOfRatioBanner';
 import { ClassroomRatioList } from '@/components/dashboard/ClassroomRatioList';
 
@@ -61,11 +62,11 @@ export default async function DashboardPage() {
           <ClassroomRatioList rooms={data.rooms} />
         </div>
       ) : (
-        <div className="bg-white rounded-card border border-gray-100 p-6">
+        <Card padding="spacious">
           <p className="text-sm text-gray-400 text-center">
             Your schedule and upcoming shifts will appear here.
           </p>
-        </div>
+        </Card>
       )}
     </div>
   );

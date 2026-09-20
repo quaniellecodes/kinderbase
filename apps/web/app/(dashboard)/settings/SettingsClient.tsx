@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tablet, Hash, ImageIcon, X, Clock } from 'lucide-react';
+import { Card, Button, Input } from '@/components/ui';
 import { HoursFields } from '@/components/classrooms/HoursFields';
 import { updateBrandColor, setStaffPin, uploadIcon, removeIcon, updateCenterHours } from './actions';
 
@@ -62,7 +63,7 @@ function HoursSection({ centerId, initial }: { centerId: string; initial: Center
   }
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+    <Card>
       <div className="flex items-center gap-2 mb-1">
         <Clock className="w-4 h-4 text-gray-400" />
         <h2 className="text-sm font-medium text-gray-900">Hours of operation</h2>
@@ -90,7 +91,7 @@ function HoursSection({ centerId, initial }: { centerId: string; initial: Center
       >
         {saved ? 'Saved' : 'Save hours'}
       </button>
-    </div>
+    </Card>
   );
 }
 
@@ -183,7 +184,7 @@ export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, 
   return (
     <div className="space-y-6 max-w-lg">
       {/* Center icon */}
-      <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+      <Card>
         <h2 className="text-sm font-medium text-gray-900 mb-1">Center icon</h2>
         <p className="text-xs text-gray-400 mb-4">
           Appears in the browser tab and next to your center name in the sidebar. PNG or SVG, under 2MB.
@@ -231,10 +232,10 @@ export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, 
             </button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Brand color */}
-      <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+      <Card>
         <h2 className="text-sm font-medium text-gray-900 mb-3">Brand color</h2>
         <div className="flex items-center gap-3">
           <input
@@ -243,28 +244,29 @@ export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, 
             onChange={e => handleColorChange(e.target.value)}
             className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200"
           />
-          <input
+          <Input
             type="text"
             value={color}
             onChange={e => handleColorChange(e.target.value)}
-            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-brand/30"
+            className="flex-1 font-mono"
           />
-          <button
+          <Button
+            variant="primary"
+            size="lg"
             onClick={handleColorSave}
             disabled={colorPending}
-            className="text-sm bg-brand text-white px-4 py-2 rounded-lg font-medium disabled:opacity-60"
           >
             Save
-          </button>
+          </Button>
         </div>
         <div className="mt-3 h-8 rounded-lg" style={{ backgroundColor: color }} />
-      </div>
+      </Card>
 
       {/* Hours of operation */}
       <HoursSection centerId={centerId} initial={initialHours} />
 
       {/* Kiosk mode */}
-      <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+      <Card>
         <h2 className="text-sm font-medium text-gray-900 mb-1">Kiosk mode</h2>
         <p className="text-xs text-gray-400 mb-4">
           Lock this device into a dedicated view for staff clock-in. Staff enter their 4-digit PIN to clock in or out.
@@ -292,11 +294,11 @@ export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, 
             </div>
           </button>
         </div>
-      </div>
+      </Card>
 
       {/* Staff PINs */}
       {staffPins.length > 0 && (
-        <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+        <Card>
           <div className="flex items-center gap-2 mb-1">
             <Hash className="w-4 h-4 text-gray-400" />
             <h2 className="text-sm font-medium text-gray-900">Kiosk PINs</h2>
@@ -309,7 +311,7 @@ export function SettingsClient({ orgId, centerId, initialColor, initialIconUrl, 
               <PinRow key={m.id} member={m} />
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

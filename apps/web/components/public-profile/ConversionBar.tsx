@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Button, buttonVariants, Modal } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 type Props = {
   name: string;
@@ -24,12 +26,12 @@ export function ConversionBar({ name }: Props) {
               Claim this profile to manage your credentials.
             </p>
           </div>
-          <button
+          <Button
             onClick={() => setShowModal(true)}
-            className="flex-shrink-0 min-h-[44px] px-4 rounded-[10px] bg-brand text-white text-sm font-medium whitespace-nowrap"
+            className="flex-shrink-0 min-h-[44px] px-4 py-0 rounded-[10px] whitespace-nowrap"
           >
             Claim profile
-          </button>
+          </Button>
         </div>
         <p className="text-center text-[10px] text-gray-400 mt-2">
           Powered by KinderBase
@@ -37,42 +39,31 @@ export function ConversionBar({ name }: Props) {
       </div>
 
       {/* Claim modal */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white rounded-[14px] w-full max-w-sm p-6"
-            onClick={e => e.stopPropagation()}
+      <Modal open={showModal} onOpenChange={setShowModal} title="Claim your profile">
+        <p className="text-sm text-gray-500 mt-2">
+          Create a KinderBase account to manage your credentials, share your profile, and receive expiration alerts.
+        </p>
+        <div className="mt-5 flex flex-col gap-2">
+          <a
+            href="/signup"
+            className={cn(buttonVariants({ variant: 'primary' }), 'w-full min-h-[44px] rounded-[10px]')}
           >
-            <h2 className="text-base font-medium text-gray-900">Claim your profile</h2>
-            <p className="text-sm text-gray-500 mt-2">
-              Create a KinderBase account to manage your credentials, share your profile, and receive expiration alerts.
-            </p>
-            <div className="mt-5 flex flex-col gap-2">
-              <a
-                href="/signup"
-                className="w-full min-h-[44px] flex items-center justify-center rounded-[10px] bg-brand text-white text-sm font-medium"
-              >
-                Create account
-              </a>
-              <a
-                href="/login"
-                className="w-full min-h-[44px] flex items-center justify-center rounded-[10px] border border-gray-200 text-sm font-medium text-gray-700"
-              >
-                Sign in
-              </a>
-            </div>
-            <button
-              onClick={() => setShowModal(false)}
-              className="mt-4 w-full text-xs text-gray-400 text-center"
-            >
-              Dismiss
-            </button>
-          </div>
+            Create account
+          </a>
+          <a
+            href="/login"
+            className={cn(buttonVariants({ variant: 'secondary' }), 'w-full min-h-[44px] rounded-[10px]')}
+          >
+            Sign in
+          </a>
         </div>
-      )}
+        <button
+          onClick={() => setShowModal(false)}
+          className="mt-4 w-full text-xs text-gray-400 text-center"
+        >
+          Dismiss
+        </button>
+      </Modal>
     </>
   );
 }

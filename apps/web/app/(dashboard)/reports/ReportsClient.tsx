@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FileText, Download } from 'lucide-react';
+import { Card, Button } from '@/components/ui';
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -45,7 +46,7 @@ export function ReportsClient() {
   return (
     <div className="space-y-4">
       {/* Attendance Report */}
-      <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+      <Card>
         <div className="flex items-start gap-3 mb-4">
           <FileText className="w-5 h-5 text-brand mt-0.5 flex-shrink-0" />
           <div>
@@ -92,18 +93,20 @@ export function ReportsClient() {
           </div>
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="lg"
           onClick={() => download(`/api/reports/attendance?from=${from}&to=${to}`, 'attendance')}
           disabled={loading === 'attendance'}
-          className="mt-4 flex items-center gap-2 bg-brand text-white text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-60"
+          className="mt-4 gap-2"
         >
           <Download className="w-4 h-4" />
           {loading === 'attendance' ? 'Generating…' : 'Download PDF'}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {/* Credentials Report */}
-      <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+      <Card>
         <div className="flex items-start gap-3 mb-4">
           <FileText className="w-5 h-5 text-brand mt-0.5 flex-shrink-0" />
           <div>
@@ -112,15 +115,17 @@ export function ReportsClient() {
           </div>
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="lg"
           onClick={() => download('/api/reports/credentials', 'credentials')}
           disabled={loading === 'credentials'}
-          className="flex items-center gap-2 bg-brand text-white text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-60"
+          className="gap-2"
         >
           <Download className="w-4 h-4" />
           {loading === 'credentials' ? 'Generating…' : 'Download PDF'}
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { OPERATING_DAY_LABELS, slotToLabel, SLOTS_PER_DAY } from '@kinderbase/types';
+import { Button, Card, Modal, Select } from '@/components/ui';
 import { updateScheduleDay } from '@/app/(dashboard)/staff/[userId]/actions';
 import type { StaffSchedule } from '@/app/(dashboard)/staff/[userId]/actions';
 
@@ -35,7 +36,7 @@ export function ScheduleGrid({ userId, schedule, canEdit }: { userId: string; sc
   }
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+    <Card>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-medium text-gray-900">Weekly schedule — current period</h2>
         {schedule.roomName && <span className="text-xs text-gray-400">{schedule.roomName}</span>}
@@ -78,30 +79,25 @@ export function ScheduleGrid({ userId, schedule, canEdit }: { userId: string; sc
         </table>
       </div>
 
-      {editDay != null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setEditDay(null)}>
-          <div className="bg-white rounded-card max-w-xs w-full p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-medium text-gray-900">Edit {OPERATING_DAY_LABELS[editDay]} shift</h3>
-            <div className="flex items-center gap-2">
-              <select value={start} onChange={(e) => setStart(Number(e.target.value))} className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5">
-                {OPEN_OPTS.map((s) => <option key={s} value={s}>{slotToLabel(s)}</option>)}
-              </select>
-              <span className="text-gray-400">–</span>
-              <select value={end} onChange={(e) => setEnd(Number(e.target.value))} className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5">
-                {CLOSE_OPTS.map((s) => <option key={s} value={s}>{slotToLabel(s)}</option>)}
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => save(true)} disabled={isSaving} className="text-sm text-red-500 px-2">Clear</button>
-              <div className="flex-1" />
-              <button onClick={() => setEditDay(null)} className="text-sm text-gray-500 px-2">Cancel</button>
-              <button onClick={() => save(false)} disabled={isSaving || end <= start} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium disabled:opacity-50">
-                {isSaving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
+      <Modal open={editDay != null} onOpenChange={(o) => !o && setEditDay(null)} title={editDay != null ? `Edit ${OPERATING_DAY_LABELS[editDay]} shift` : undefined}>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Select value={start} onChange={(e) => setStart(Number(e.target.value))} className="flex-1">
+              {OPEN_OPTS.map((s) => <option key={s} value={s}>{slotToLabel(s)}</option>)}
+            </Select>
+            <span className="text-gray-400">–</span>
+            <Select value={end} onChange={(e) => setEnd(Number(e.target.value))} className="flex-1">
+              {CLOSE_OPTS.map((s) => <option key={s} value={s}>{slotToLabel(s)}</option>)}
+            </Select>
+          </div>
+          <div className="flex gap-2 items-center">
+            <Button variant="ghost" size="md" onClick={() => save(true)} disabled={isSaving} className="text-red-500">Clear</Button>
+            <div className="flex-1" />
+            <Button variant="ghost" size="md" onClick={() => setEditDay(null)} className="text-gray-500">Cancel</Button>
+            <Button onClick={() => save(false)} disabled={isSaving || end <= start}>{isSaving ? 'Saving…' : 'Save'}</Button>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+    </Card>
   );
 }

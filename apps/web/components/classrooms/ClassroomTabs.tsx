@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { ClassroomStaffingView } from '@kinderbase/types';
+import { Card, TabBar } from '@/components/ui';
 import { StaffingPatternGrid } from '@/components/classrooms/StaffingPatternGrid';
 import { ClassroomHoursEditor } from '@/components/classrooms/ClassroomHoursEditor';
 import { ComarModeBadge } from '@/components/classrooms/ComarModeBadge';
@@ -48,22 +49,7 @@ export function ClassroomTabs({ classroomId, canEdit, initialTab, overview, upda
 
   return (
     <div>
-      <div className="flex gap-5 border-b border-gray-100 mb-5">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`text-sm py-2.5 font-medium transition-colors inline-flex items-center gap-1.5 ${
-              tab === t.key ? 'text-brand border-b-2 border-brand' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            {t.label}
-            {t.badge != null && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">{t.badge}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      <TabBar className="mb-5" items={tabs} active={tab} onSelect={(k) => setTab(k as Tab)} />
 
       {tab === 'overview' && (
         <OverviewTab classroomId={classroomId} overview={overview} canEdit={canEdit} onSeeAll={() => setTab('activity')} />
@@ -77,7 +63,7 @@ export function ClassroomTabs({ classroomId, canEdit, initialTab, overview, upda
         <div>
           <ComarModeBadge classroomId={classroomId} ratio={staffing.ratio} canEdit={canEdit} />
           {canEdit && <ClassroomHoursEditor classroomId={classroomId} hours={staffing.hours} view={staffing.view} />}
-          <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+          <Card>
             <div className="flex items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-medium text-gray-900">Weekly staffing pattern</h2>
               {!canEdit && <span className="text-[10px] text-gray-400">View only</span>}
@@ -88,7 +74,7 @@ export function ClassroomTabs({ classroomId, canEdit, initialTab, overview, upda
               canEdit={canEdit}
               members={staffing.members}
             />
-          </div>
+          </Card>
         </div>
       )}
 

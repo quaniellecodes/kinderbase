@@ -1,11 +1,12 @@
+import { Badge, Card, type BadgeTone } from '@/components/ui';
 import { clockTime } from '@/lib/format';
 import type { TimeHistory, Punch } from '@/app/(dashboard)/staff/[userId]/actions';
 
-const STATUS: Record<Punch['status'], { label: string; chip: string }> = {
-  on_time: { label: 'On time', chip: 'bg-green-50 text-green-700' },
-  half_day: { label: 'Half day', chip: 'bg-indigo-50 text-indigo-700' },
-  adj_pending: { label: 'Adj. pending', chip: 'bg-amber-50 text-amber-700' },
-  open: { label: 'Clocked in', chip: 'bg-gray-100 text-gray-500' },
+const STATUS: Record<Punch['status'], { label: string; tone: BadgeTone }> = {
+  on_time: { label: 'On time', tone: 'green' },
+  half_day: { label: 'Half day', tone: 'indigo' },
+  adj_pending: { label: 'Adj. pending', tone: 'amber' },
+  open: { label: 'Clocked in', tone: 'neutral' },
 };
 
 function fmtDay(iso: string): string {
@@ -22,7 +23,7 @@ function range(a: string, b: string): string {
 
 export function TimeHistoryTab({ userId, data, canExport }: { userId: string; data: TimeHistory; canExport: boolean }) {
   return (
-    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+    <Card>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-3">
         <h2 className="text-sm font-medium text-gray-900">Time history — current pay period</h2>
         <div className="flex items-center gap-3">
@@ -47,10 +48,10 @@ export function TimeHistoryTab({ userId, data, canExport }: { userId: string; da
             <span className="text-gray-400">–</span>
             <span className="text-gray-500 whitespace-nowrap">{p.outAt ? clockTime(p.outAt) : '—'}</span>
             <span className="text-gray-900 font-medium whitespace-nowrap">{dur(p.minutes)}</span>
-            <span className={`ml-auto text-[11px] px-2 py-0.5 rounded-chip whitespace-nowrap ${STATUS[p.status].chip}`}>{STATUS[p.status].label}</span>
+            <Badge tone={STATUS[p.status].tone} className="ml-auto whitespace-nowrap">{STATUS[p.status].label}</Badge>
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

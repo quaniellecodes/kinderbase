@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Phone, Globe, UserRound } from 'lucide-react';
+import { Button, Card, Input, Modal } from '@/components/ui';
 import { updateContact } from '@/app/(dashboard)/staff/[userId]/actions';
 import type { StaffHeader } from '@/app/(dashboard)/staff/[userId]/actions';
 
@@ -50,16 +51,15 @@ export function ContactCard({ header, canEdit }: { header: StaffHeader; canEdit:
   }
 
   const field = (key: keyof typeof form, placeholder: string) => (
-    <input
+    <Input
       value={form[key]}
       onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
       placeholder={placeholder}
-      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
     />
   );
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+    <Card>
       <div className="flex items-center justify-between mb-1">
         <h2 className="text-sm font-medium text-gray-900">Contact</h2>
         {canEdit && <button onClick={() => setEditing(true)} className="text-xs text-brand hover:underline">Edit</button>}
@@ -78,27 +78,22 @@ export function ContactCard({ header, canEdit }: { header: StaffHeader; canEdit:
         )}
       </div>
 
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setEditing(false)}>
-          <div className="bg-white rounded-card max-w-sm w-full p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-medium text-gray-900">Edit contact</h3>
-            {field('phone', 'Mobile number')}
-            {field('personal_email', 'Personal email')}
-            <div className="border-t border-gray-100 pt-3 space-y-2">
-              <p className="text-[11px] uppercase tracking-wide text-gray-400">Emergency contact</p>
-              {field('emergency_contact_name', 'Name')}
-              {field('emergency_contact_relation', 'Relationship')}
-              {field('emergency_contact_phone', 'Phone')}
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button onClick={() => setEditing(false)} className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600">Cancel</button>
-              <button onClick={save} disabled={isSaving} className="flex-1 text-sm bg-brand text-white rounded-lg py-2 font-medium disabled:opacity-60">
-                {isSaving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
+      <Modal open={editing} onOpenChange={setEditing} title="Edit contact">
+        <div className="space-y-3">
+          {field('phone', 'Mobile number')}
+          {field('personal_email', 'Personal email')}
+          <div className="border-t border-gray-100 pt-3 space-y-2">
+            <p className="text-[11px] uppercase tracking-wide text-gray-400">Emergency contact</p>
+            {field('emergency_contact_name', 'Name')}
+            {field('emergency_contact_relation', 'Relationship')}
+            {field('emergency_contact_phone', 'Phone')}
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button variant="secondary" size="lg" onClick={() => setEditing(false)} className="flex-1">Cancel</Button>
+            <Button size="lg" onClick={save} disabled={isSaving} className="flex-1">{isSaving ? 'Saving…' : 'Save'}</Button>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+    </Card>
   );
 }

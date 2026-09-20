@@ -10,6 +10,7 @@ import {
 } from '@kinderbase/types';
 import { createClassroom, updateClassroom, type ClassroomHours } from '@/app/(dashboard)/classrooms/actions';
 import { HoursFields } from '@/components/classrooms/HoursFields';
+import { Input, Select, Label, Button } from '@/components/ui';
 
 type Props = {
   centerId: string;
@@ -54,52 +55,48 @@ export function ClassroomForm({ centerId, classroom, centerHours, canManageHours
       <input type="hidden" name="center_id" value={centerId} />
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Room name</label>
-        <input
+        <Label>Room name</Label>
+        <Input
           name="name"
           required
           defaultValue={classroom?.name}
           placeholder="e.g. Sunflower Room"
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Age group</label>
-        <select
+        <Label>Age group</Label>
+        <Select
           name="age_group"
           required
           defaultValue={classroom?.age_group}
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
         >
           <option value="">Select age group</option>
           {AGE_GROUPS.map(([value, label]) => (
             <option key={value} value={value}>{label}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Licensed capacity</label>
-          <input
+          <Label>Licensed capacity</Label>
+          <Input
             name="licensed_capacity"
             type="number"
             required
             min={1}
             defaultValue={classroom?.licensed_capacity}
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Typical enrollment</label>
-          <input
+          <Label>Typical enrollment</Label>
+          <Input
             name="typical_enrollment"
             type="number"
             required
             min={0}
             defaultValue={classroom?.typical_enrollment ?? 0}
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
         </div>
       </div>
@@ -139,19 +136,12 @@ export function ClassroomForm({ centerId, classroom, centerHours, canManageHours
       )}
 
       <div className="flex gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onDone}
-          className="flex-1 text-sm border border-gray-200 rounded-lg px-4 py-2 text-gray-600"
-        >
+        <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={onDone}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          className="flex-1 text-sm bg-brand text-white rounded-lg px-4 py-2 font-medium"
-        >
+        </Button>
+        <Button type="submit" size="lg" className="flex-1">
           {classroom ? 'Save changes' : 'Add classroom'}
-        </button>
+        </Button>
       </div>
     </form>
   );
