@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
+import Link from 'next/link';
 import { UserPlus, Search, X, ChevronDown, Hash, Wifi } from 'lucide-react';
 import {
   searchUsers,
@@ -99,9 +100,9 @@ function StaffRow({
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
+      <Link href={`/staff/${member.userId}`} className="flex-1 min-w-0 group">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium text-gray-900 truncate">{member.full_name}</p>
+          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-brand">{member.full_name}</p>
           <RoleBadge role={member.role} />
           {member.hasPin && (
             <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
@@ -110,7 +111,7 @@ function StaffRow({
           )}
         </div>
         <p className="text-xs text-gray-400 truncate">{member.email}</p>
-      </div>
+      </Link>
 
       {isDirector && (
         <div className="relative flex-shrink-0">
