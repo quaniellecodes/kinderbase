@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { formatAgeMonths } from '@kinderbase/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { StatCard } from '@/components/ui/StatCard';
+import { Button, Card } from '@/components/ui';
 import { UpdateItem } from '@/components/children/UpdateItem';
 import { BirthdayAlertCard } from '@/components/children/BirthdayAlertCard';
 import { clockTime, formatLastPosted } from '@/lib/format';
@@ -27,13 +28,15 @@ function NudgeButton({ classroomId, teacherId, teacherName }: { classroomId: str
   const [sent, setSent] = useState(false);
   const [isPending, start] = useTransition();
   return (
-    <button
+    <Button
+      variant="danger"
+      size="sm"
       onClick={() => start(async () => { await nudgeTeacher(classroomId, teacherId, teacherName); setSent(true); })}
       disabled={isPending || sent}
-      className={`text-xs px-2.5 py-1 rounded-chip font-medium ${sent ? 'bg-gray-100 text-gray-500' : 'border border-red-200 text-red-600 hover:bg-red-50'}`}
+      className={`rounded-chip ${sent ? 'bg-gray-100 text-gray-500 border-transparent hover:bg-gray-100' : ''}`}
     >
       {sent ? '✓ Sent' : 'Nudge'}
-    </button>
+    </Button>
   );
 }
 
@@ -56,7 +59,7 @@ export function OverviewTab({ classroomId, overview, canEdit, onSeeAll }: Props)
         </div>
 
         {/* Accountability */}
-        <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+        <Card>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-medium text-gray-900">Teacher update accountability</h2>
             <span className="text-[11px] text-gray-400">Last 7 days</span>
@@ -79,10 +82,10 @@ export function OverviewTab({ classroomId, overview, canEdit, onSeeAll }: Props)
             })}
           </div>
           <p className="text-[10px] text-gray-400 mt-2">Highlighted red if no post in 3+ days · nudge sends an in-app notification</p>
-        </div>
+        </Card>
 
         {/* Recent activity */}
-        <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+        <Card>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-sm font-medium text-gray-900">Recent activity</h2>
             <button onClick={onSeeAll} className="text-xs font-medium text-brand hover:underline">See all</button>
@@ -94,12 +97,12 @@ export function OverviewTab({ classroomId, overview, canEdit, onSeeAll }: Props)
               {recentUpdates.map((u) => <UpdateItem key={u.id} update={u} />)}
             </ul>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* RIGHT SIDEBAR */}
       <div className="md:w-72 flex-shrink-0 space-y-4">
-        <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+        <Card>
           <h2 className="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Children — updates today</h2>
           <div className="space-y-2">
             {children.map((c) => (
@@ -113,11 +116,11 @@ export function OverviewTab({ classroomId, overview, canEdit, onSeeAll }: Props)
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         <BirthdayAlertCard alerts={birthdayAlerts} />
 
-        <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+        <Card>
           <h2 className="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Assigned staff</h2>
           <div className="space-y-2">
             {assignedStaff.map((s, i) => (
@@ -135,7 +138,7 @@ export function OverviewTab({ classroomId, overview, canEdit, onSeeAll }: Props)
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

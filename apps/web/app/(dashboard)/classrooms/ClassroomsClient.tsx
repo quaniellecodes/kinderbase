@@ -7,6 +7,7 @@ import type { RatioResult } from '@kinderbase/core';
 import type { ClassroomHours } from '@/app/(dashboard)/classrooms/actions';
 import { ClassroomCard } from '@/components/classrooms/ClassroomCard';
 import { ClassroomForm } from '@/components/classrooms/ClassroomForm';
+import { Card, Button } from '@/components/ui';
 
 type Props = {
   centerId: string;
@@ -22,17 +23,14 @@ export function ClassroomsClient({ centerId, classrooms, centerHours, canManageH
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-medium text-gray-900">Classrooms</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 text-sm bg-brand text-white px-3 py-1.5 rounded-lg font-medium"
-        >
+        <Button size="md" onClick={() => setShowForm(true)}>
           <Plus className="w-3.5 h-3.5" />
           Add room
-        </button>
+        </Button>
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-card border border-gray-100 p-4 mb-4">
+        <Card className="mb-4">
           <p className="text-sm font-medium text-gray-900 mb-3">New classroom</p>
           <ClassroomForm
             centerId={centerId}
@@ -40,7 +38,7 @@ export function ClassroomsClient({ centerId, classrooms, centerHours, canManageH
             canManageHours={canManageHours}
             onDone={() => setShowForm(false)}
           />
-        </div>
+        </Card>
       )}
 
       {classrooms.length === 0 && !showForm && (

@@ -16,6 +16,7 @@ import {
   type CenterMemberOption,
   type SaveStaffingPayload,
 } from '@/app/(dashboard)/classrooms/actions';
+import { Button, Input, Select } from '@/components/ui';
 
 type Props = {
   view: ClassroomStaffingView;
@@ -306,20 +307,24 @@ export function StaffingPatternGrid({ view, canEdit, members }: Props) {
             >
               <Copy className="w-3 h-3" /> Copy to all days
             </button>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleReset}
               disabled={!dirty || isSaving}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              className="gap-1 px-2 rounded text-gray-600 hover:bg-gray-50 hover:border-gray-200 disabled:opacity-40"
             >
               <RotateCcw className="w-3 h-3" /> Reset
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleSave}
               disabled={!dirty || isSaving}
-              className="inline-flex items-center gap-1 px-3 py-1 rounded text-xs bg-brand text-white font-medium disabled:opacity-40"
+              className="gap-1 px-3 rounded disabled:opacity-40"
             >
               <Save className="w-3 h-3" /> {isSaving ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -466,37 +471,41 @@ export function StaffingPatternGrid({ view, canEdit, members }: Props) {
       {/* Add staff */}
       {canEdit && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <select
+          <Select
             value={newMemberId}
             onChange={(e) => setNewMemberId(e.target.value)}
-            className="text-xs rounded border border-gray-200 px-2 py-1 text-gray-700"
+            className="w-auto text-xs rounded px-2 py-1 text-gray-700"
           >
             <option value="">Add member…</option>
             {availableMembers.map((m) => (
               <option key={m.userId} value={m.userId}>{m.fullName}</option>
             ))}
-          </select>
-          <button
+          </Select>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleAddMember}
             disabled={!newMemberId}
-            className="inline-flex items-center gap-1 text-xs rounded bg-brand text-white px-2 py-1 disabled:opacity-40"
+            className="gap-1 rounded px-2 disabled:opacity-40"
           >
             <Plus className="w-3 h-3" /> Add
-          </button>
+          </Button>
           <span className="text-gray-300 text-xs">or</span>
-          <input
+          <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Name (not a member)"
-            className="text-xs rounded border border-gray-200 px-2 py-1 text-gray-700"
+            className="w-auto text-xs rounded px-2 py-1 text-gray-700"
           />
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleAddFreeText}
             disabled={!newName.trim()}
-            className="inline-flex items-center gap-1 text-xs rounded border border-gray-200 text-gray-700 px-2 py-1 disabled:opacity-40"
+            className="gap-1 rounded px-2 text-gray-700 hover:border-gray-200 disabled:opacity-40"
           >
             <Plus className="w-3 h-3" /> Add name
-          </button>
+          </Button>
         </div>
       )}
 

@@ -1,3 +1,5 @@
+import { Card } from '@/components/ui';
+
 type EntryWithUser = {
   id: string;
   user_id: string;
@@ -52,7 +54,7 @@ export function TimeSheet({ entries, showNames }: Props) {
       {Array.from(groups.entries()).map(([date, dayEntries]) => (
         <div key={date}>
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">{date}</p>
-          <div className="bg-white rounded-card border border-gray-100 divide-y divide-gray-50">
+          <Card padding="none" className="divide-y divide-gray-50">
             {dayEntries.map(e => {
               const duration = formatDuration(e.clocked_in_at, e.clocked_out_at);
               return (
@@ -74,7 +76,7 @@ export function TimeSheet({ entries, showNames }: Props) {
                 </div>
               );
             })}
-          </div>
+          </Card>
         </div>
       ))}
     </div>

@@ -1,6 +1,7 @@
 import type { CredentialRow } from '@kinderbase/types';
 import { CREDENTIAL_TYPE_LABELS } from '@kinderbase/types';
 import { CredentialStatusBadge } from '@/components/credentials/CredentialStatusBadge';
+import { Card } from '@/components/ui';
 
 type Props = {
   credentials: CredentialRow[];
@@ -9,14 +10,14 @@ type Props = {
 export function CredentialTable({ credentials }: Props) {
   if (credentials.length === 0) {
     return (
-      <div className="bg-white rounded-card border border-gray-100 px-4 py-10 text-center">
+      <Card padding="none" className="px-4 py-10 text-center">
         <p className="text-sm text-gray-400">No credentials shared yet.</p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 overflow-hidden">
+    <Card padding="none" className="overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100">
         <h2 className="text-sm font-medium text-gray-900">
           Credentials
@@ -58,6 +59,6 @@ export function CredentialTable({ credentials }: Props) {
           );
         })}
       </ul>
-    </div>
+    </Card>
   );
 }

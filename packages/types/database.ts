@@ -770,6 +770,230 @@ export type Database = {
           }
         ];
       };
+      staff_notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          center_id: string;
+          written_by: string;
+          content: string;
+          category: 'general' | 'hr' | 'performance_review' | 'commendation' | 'incident';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          center_id: string;
+          written_by: string;
+          content: string;
+          category?: 'general' | 'hr' | 'performance_review' | 'commendation' | 'incident';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          center_id?: string;
+          written_by?: string;
+          content?: string;
+          category?: 'general' | 'hr' | 'performance_review' | 'commendation' | 'incident';
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_notes_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      teacher_scores: {
+        Row: {
+          id: string;
+          user_id: string;
+          center_id: string;
+          attendance_score: number;
+          posting_score: number;
+          lesson_plan_score: number;
+          schedule_score: number;
+          observation_score: number;
+          center_score: number;
+          teacher_visible_score: number | null;
+          teacher_visible_as_of: string | null;
+          computed_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          center_id: string;
+          attendance_score?: number;
+          posting_score?: number;
+          lesson_plan_score?: number;
+          schedule_score?: number;
+          observation_score?: number;
+          center_score?: number;
+          teacher_visible_score?: number | null;
+          teacher_visible_as_of?: string | null;
+          computed_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          center_id?: string;
+          attendance_score?: number;
+          posting_score?: number;
+          lesson_plan_score?: number;
+          schedule_score?: number;
+          observation_score?: number;
+          center_score?: number;
+          teacher_visible_score?: number | null;
+          teacher_visible_as_of?: string | null;
+          computed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'teacher_scores_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      staff_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          center_id: string;
+          personal_email: string | null;
+          emergency_contact_name: string | null;
+          emergency_contact_relation: string | null;
+          emergency_contact_phone: string | null;
+          availability: Record<string, string>;
+          sick_hours: number;
+          vacation_hours: number;
+          personal_hours: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          center_id: string;
+          personal_email?: string | null;
+          emergency_contact_name?: string | null;
+          emergency_contact_relation?: string | null;
+          emergency_contact_phone?: string | null;
+          availability?: Record<string, string>;
+          sick_hours?: number;
+          vacation_hours?: number;
+          personal_hours?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          center_id?: string;
+          personal_email?: string | null;
+          emergency_contact_name?: string | null;
+          emergency_contact_relation?: string | null;
+          emergency_contact_phone?: string | null;
+          availability?: Record<string, string>;
+          sick_hours?: number;
+          vacation_hours?: number;
+          personal_hours?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_profiles_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      staff_leave_days: {
+        Row: {
+          id: string;
+          user_id: string;
+          center_id: string;
+          day: string;
+          kind: 'pto' | 'sick' | 'personal' | 'unexcused';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          center_id: string;
+          day: string;
+          kind: 'pto' | 'sick' | 'personal' | 'unexcused';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          center_id?: string;
+          day?: string;
+          kind?: 'pto' | 'sick' | 'personal' | 'unexcused';
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_leave_days_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      staff_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          center_id: string;
+          type: 'schedule' | 'time_correction' | 'leave';
+          status: 'pending' | 'approved' | 'rejected';
+          for_date: string | null;
+          time_entry_id: string | null;
+          details: string | null;
+          created_by: string | null;
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          center_id: string;
+          type: 'schedule' | 'time_correction' | 'leave';
+          status?: 'pending' | 'approved' | 'rejected';
+          for_date?: string | null;
+          time_entry_id?: string | null;
+          details?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          center_id?: string;
+          type?: 'schedule' | 'time_correction' | 'leave';
+          status?: 'pending' | 'approved' | 'rejected';
+          for_date?: string | null;
+          time_entry_id?: string | null;
+          details?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_requests_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};

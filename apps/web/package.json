@@ -29,6 +29,7 @@
     "@capacitor/push-notifications": "^5.1.2",
     "@kinderbase/core": "workspace:*",
     "@kinderbase/types": "workspace:*",
+    "@radix-ui/react-dialog": "^1.1.23",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.45.4",

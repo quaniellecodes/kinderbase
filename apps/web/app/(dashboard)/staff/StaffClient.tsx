@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
+import Link from 'next/link';
 import { UserPlus, Search, X, ChevronDown, Hash, Wifi } from 'lucide-react';
 import {
   searchUsers,
@@ -10,6 +11,7 @@ import {
   removeStaff,
 } from './actions';
 import type { CenterRole } from '@kinderbase/types';
+import { Button, Card, Input, Select, Label, TabBar, Modal } from '@/components/ui';
 
 const ROLE_LABELS: Record<CenterRole, string> = {
   director: 'Director',
@@ -99,9 +101,9 @@ function StaffRow({
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
+      <Link href={`/staff/${member.userId}`} className="flex-1 min-w-0 group">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium text-gray-900 truncate">{member.full_name}</p>
+          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-brand">{member.full_name}</p>
           <RoleBadge role={member.role} />
           {member.hasPin && (
             <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
@@ -110,7 +112,7 @@ function StaffRow({
           )}
         </div>
         <p className="text-xs text-gray-400 truncate">{member.email}</p>
-      </div>
+      </Link>
 
       {isDirector && (
         <div className="relative flex-shrink-0">
@@ -153,9 +155,11 @@ function StaffRow({
 type SearchResult = { id: string; full_name: string; email: string };
 
 function AddStaffModal({
+  open,
   centerId,
   onClose,
 }: {
+  open: boolean;
   centerId: string;
   onClose: () => void;
 }) {
@@ -197,122 +201,107 @@ function AddStaffModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl w-full max-w-md">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
-          <h2 className="text-base font-medium text-gray-900">Add staff member</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal open={open} onOpenChange={o => { if (!o) onClose(); }} title="Add staff member">
+      {/* Tabs */}
+      <TabBar
+        fill
+        items={[
+          { key: 'search', label: 'Search KinderBase' },
+          { key: 'manual', label: 'Add manually' },
+        ]}
+        active={tab}
+        onSelect={k => setTab(k as 'search' | 'manual')}
+      />
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-100">
-          {(['search', 'manual'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 text-sm py-2.5 font-medium transition-colors ${tab === t ? 'text-brand border-b-2 border-brand' : 'text-gray-400'}`}
-            >
-              {t === 'search' ? 'Search KinderBase' : 'Add manually'}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-5 space-y-4">
-          {tab === 'search' ? (
-            <>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by name or email…"
-                  value={query}
-                  onChange={e => handleQueryChange(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30"
-                  autoFocus
-                />
-              </div>
-
-              {results.length > 0 && !selected && (
-                <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 max-h-48 overflow-y-auto">
-                  {results.map(r => (
-                    <button
-                      key={r.id}
-                      onClick={() => { setSelected(r); setResults([]); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
-                        {getInitials(r.full_name)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{r.full_name}</p>
-                        <p className="text-xs text-gray-400 truncate">{r.email}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {selected && (
-                <div className="flex items-center gap-3 bg-brand/5 border border-brand/20 rounded-xl px-3 py-2.5">
-                  <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
-                    {getInitials(selected.full_name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{selected.full_name}</p>
-                    <p className="text-xs text-gray-400">{selected.email}</p>
-                  </div>
-                  <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <input
+      <div className="p-5 space-y-4">
+        {tab === 'search' ? (
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
                 type="text"
-                placeholder="Full name"
-                value={manualName}
-                onChange={e => setManualName(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30"
+                placeholder="Search by name or email…"
+                value={query}
+                onChange={e => handleQueryChange(e.target.value)}
+                className="pl-9"
+                autoFocus
               />
-              <input
-                type="email"
-                placeholder="Email address"
-                value={manualEmail}
-                onChange={e => setManualEmail(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30"
-              />
-            </>
-          )}
+            </div>
 
-          {/* Role picker */}
-          <div>
-            <label className="text-xs text-gray-500 block mb-1.5">Role</label>
-            <select
-              value={role}
-              onChange={e => setRole(e.target.value as CenterRole)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
-            >
-              {ASSIGNABLE_ROLES.map(r => (
-                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-              ))}
-            </select>
-          </div>
+            {results.length > 0 && !selected && (
+              <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                {results.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => { setSelected(r); setResults([]); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
+                      {getInitials(r.full_name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{r.full_name}</p>
+                      <p className="text-xs text-gray-400 truncate">{r.email}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
-          <button
-            onClick={tab === 'search' ? handleAddExisting : handleAddManual}
-            disabled={isPending || (tab === 'search' ? !selected : !manualName.trim() || !manualEmail.trim())}
-            className="w-full bg-brand text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50"
+            {selected && (
+              <div className="flex items-center gap-3 bg-brand/5 border border-brand/20 rounded-xl px-3 py-2.5">
+                <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
+                  {getInitials(selected.full_name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{selected.full_name}</p>
+                  <p className="text-xs text-gray-400">{selected.email}</p>
+                </div>
+                <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <Input
+              type="text"
+              placeholder="Full name"
+              value={manualName}
+              onChange={e => setManualName(e.target.value)}
+            />
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={manualEmail}
+              onChange={e => setManualEmail(e.target.value)}
+            />
+          </>
+        )}
+
+        {/* Role picker */}
+        <div>
+          <Label className="text-xs text-gray-500 mb-1.5">Role</Label>
+          <Select
+            value={role}
+            onChange={e => setRole(e.target.value as CenterRole)}
           >
-            {isPending ? 'Adding…' : 'Add to center'}
-          </button>
+            {ASSIGNABLE_ROLES.map(r => (
+              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+            ))}
+          </Select>
         </div>
+
+        <Button
+          onClick={tab === 'search' ? handleAddExisting : handleAddManual}
+          disabled={isPending || (tab === 'search' ? !selected : !manualName.trim() || !manualEmail.trim())}
+          className="w-full py-2.5"
+        >
+          {isPending ? 'Adding…' : 'Add to center'}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -328,25 +317,26 @@ export function StaffClient({ centerId, staff, isDirector }: Props) {
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-gray-500">{staff.length} staff member{staff.length !== 1 ? 's' : ''}</p>
         {isDirector && (
-          <button
+          <Button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 bg-brand text-white text-sm px-4 py-2 rounded-lg font-medium"
+            size="lg"
+            className="gap-2"
           >
             <UserPlus className="w-4 h-4" />
             Add staff
-          </button>
+          </Button>
         )}
       </div>
 
       {staff.length === 0 ? (
-        <div className="bg-white rounded-card border border-gray-100 py-12 text-center">
+        <Card padding="none" className="py-12 text-center">
           <p className="text-sm text-gray-400">No staff members yet.</p>
           {isDirector && (
             <button onClick={() => setShowAdd(true)} className="mt-3 text-sm text-brand font-medium">
               Add your first staff member
             </button>
           )}
-        </div>
+        </Card>
       ) : (
         <div className="space-y-4">
           {clockedIn.length > 0 && (
@@ -355,27 +345,27 @@ export function StaffClient({ centerId, staff, isDirector }: Props) {
                 <Wifi className="w-3 h-3 text-green-500" />
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Clocked in ({clockedIn.length})</p>
               </div>
-              <div className="bg-white rounded-card border border-gray-100 divide-y divide-gray-50">
+              <Card padding="none" className="divide-y divide-gray-50">
                 {clockedIn.map(m => (
                   <StaffRow key={m.membershipId} member={m} centerId={centerId} isDirector={isDirector} />
                 ))}
-              </div>
+              </Card>
             </div>
           )}
           <div>
             {clockedIn.length > 0 && (
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Not clocked in ({clockedOut.length})</p>
             )}
-            <div className="bg-white rounded-card border border-gray-100 divide-y divide-gray-50">
+            <Card padding="none" className="divide-y divide-gray-50">
               {clockedOut.map(m => (
                 <StaffRow key={m.membershipId} member={m} centerId={centerId} isDirector={isDirector} />
               ))}
-            </div>
+            </Card>
           </div>
         </div>
       )}
 
-      {showAdd && <AddStaffModal centerId={centerId} onClose={() => setShowAdd(false)} />}
+      <AddStaffModal open={showAdd} centerId={centerId} onClose={() => setShowAdd(false)} />
     </div>
   );
 }

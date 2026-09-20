@@ -120,22 +120,6 @@ export async function deleteClassroom(id: string) {
   revalidatePath('/classrooms');
 }
 
-export async function upsertStaffingPattern(
-  classroomId: string,
-  dayOfWeek: number,
-  hour: number,
-  staffCount: number
-) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthenticated');
-
-  await supabase.from('staffing_patterns').upsert(
-    { classroom_id: classroomId, day_of_week: dayOfWeek, hour, staff_count: staffCount },
-    { onConflict: 'classroom_id,day_of_week,hour' }
-  );
-}
-
 export async function getClassrooms(centerId: string) {
   const supabase = createClient();
   const { data } = await supabase

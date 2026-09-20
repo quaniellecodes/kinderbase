@@ -24,6 +24,15 @@ export function isAdmin(role: CenterRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
+export const CENTER_ROLE_LABELS: Record<CenterRole, string> = {
+  director: 'Director',
+  admin: 'Admin',
+  lead_teacher: 'Lead Teacher',
+  assistant_teacher: 'Assistant Teacher',
+  aide: 'Aide',
+  substitute: 'Substitute',
+};
+
 export type Platform = 'ios' | 'android' | 'web';
 
 export type CredentialType =
@@ -372,6 +381,102 @@ export function nextComarBoundary(
   const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return { date, fromGroup: current, toGroup: next.group };
 }
+
+// ── Staff profile ──────────────────────────────────────────────────────────
+
+export type NoteCategory = 'general' | 'hr' | 'performance_review' | 'commendation' | 'incident';
+
+export const NOTE_CATEGORY_LABELS: Record<NoteCategory, string> = {
+  general: 'General',
+  hr: 'HR',
+  performance_review: 'Performance review',
+  commendation: 'Commendation',
+  incident: 'Incident',
+};
+
+export const NOTE_CATEGORY_CHIP: Record<NoteCategory, string> = {
+  general: 'bg-gray-100 text-gray-600',
+  hr: 'bg-blue-50 text-blue-700',
+  performance_review: 'bg-purple-50 text-purple-700',
+  commendation: 'bg-green-50 text-green-700',
+  incident: 'bg-red-50 text-red-700',
+};
+
+export type AvailabilityStatus = 'full' | 'am' | 'pm' | 'none';
+
+export const AVAILABILITY_CHIP: Record<AvailabilityStatus, string> = {
+  full: 'bg-green-100 text-green-700 border-green-200',
+  am: 'bg-amber-100 text-amber-700 border-amber-200',
+  pm: 'bg-amber-100 text-amber-700 border-amber-200',
+  none: 'bg-gray-50 text-gray-300 border-gray-200',
+};
+
+export type LeaveKind = 'pto' | 'sick' | 'personal' | 'unexcused';
+export type StaffRequestType = 'schedule' | 'time_correction' | 'leave';
+export type StaffRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export type StaffNoteRow = {
+  id: string;
+  user_id: string;
+  center_id: string;
+  written_by: string;
+  content: string;
+  category: NoteCategory;
+  created_at: string;
+};
+
+export type TeacherScoreRow = {
+  id: string;
+  user_id: string;
+  center_id: string;
+  attendance_score: number;
+  posting_score: number;
+  lesson_plan_score: number;
+  schedule_score: number;
+  observation_score: number;
+  center_score: number;
+  teacher_visible_score: number | null;
+  teacher_visible_as_of: string | null;
+  computed_at: string;
+};
+
+export type StaffProfileRow = {
+  id: string;
+  user_id: string;
+  center_id: string;
+  personal_email: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relation: string | null;
+  emergency_contact_phone: string | null;
+  availability: Record<string, AvailabilityStatus>;
+  sick_hours: number;
+  vacation_hours: number;
+  personal_hours: number;
+  updated_at: string;
+};
+
+export type StaffLeaveDayRow = {
+  id: string;
+  user_id: string;
+  center_id: string;
+  day: string;
+  kind: LeaveKind;
+  created_at: string;
+};
+
+export type StaffRequestRow = {
+  id: string;
+  user_id: string;
+  center_id: string;
+  type: StaffRequestType;
+  status: StaffRequestStatus;
+  for_date: string | null;
+  time_entry_id: string | null;
+  details: string | null;
+  created_by: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
 
 /** Everything the staffing-pattern grid (and future OCC 1206 PDF) needs for a classroom. */
 export type ClassroomStaffingView = {
