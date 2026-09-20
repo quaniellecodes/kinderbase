@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Bell, Download, Send, Trash2 } from 'lucide-react';
+import { Button, Card } from '@/components/ui';
 import { nudgeStaff, sendStaffNotification, removeFromCenter, createStaffRequest } from '@/app/(dashboard)/staff/[userId]/actions';
 
 export function QuickActionsCard({ userId, userName }: { userId: string; userName: string }) {
@@ -40,28 +41,26 @@ export function QuickActionsCard({ userId, userName }: { userId: string; userNam
   }
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+    <Card>
       <h2 className="text-sm font-medium text-gray-900 mb-3">Actions</h2>
       <div className="space-y-2">
         {actions.map((a) => (
-          <button
+          <Button
             key={a.label}
+            variant="secondary"
+            size="lg"
             onClick={a.onClick}
             disabled={isPending}
-            className="w-full flex items-center gap-2.5 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:border-gray-300 disabled:opacity-60"
+            className="w-full justify-start gap-2.5"
           >
             <span className="text-gray-400">{a.icon}</span>{a.label}
-          </button>
+          </Button>
         ))}
-        <button
-          onClick={remove}
-          disabled={isPending}
-          className="w-full flex items-center gap-2.5 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
-        >
+        <Button onClick={remove} variant="danger" size="lg" disabled={isPending} className="w-full justify-start gap-2.5">
           <Trash2 className="w-4 h-4" /> Remove from center
-        </button>
+        </Button>
       </div>
       {toast && <p className="text-xs text-status-green mt-2 text-center">{toast}</p>}
-    </div>
+    </Card>
   );
 }

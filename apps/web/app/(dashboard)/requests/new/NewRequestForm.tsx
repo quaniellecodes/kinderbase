@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card, Input, Textarea, Label } from '@/components/ui';
 import { createOwnRequest } from '../actions';
 import type { StaffRequestType } from '@kinderbase/types';
 
@@ -27,31 +28,31 @@ export function NewRequestForm({ initialType }: { initialType: StaffRequestType 
   }
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 p-4 space-y-3">
+    <Card className="space-y-3">
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+        <Label>Type</Label>
         <div className="flex gap-1.5">
           {TYPES.map((t) => (
-            <button key={t.key} onClick={() => setType(t.key)} className={`text-xs px-3 py-1.5 rounded-chip font-medium ${type === t.key ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600'}`}>
+            <Button key={t.key} variant="chip" size="md" onClick={() => setType(t.key)} className={type === t.key ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600'}>
               {t.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Date (optional)</label>
-        <input type="date" value={forDate} onChange={(e) => setForDate(e.target.value)} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30" />
+        <Label>Date (optional)</Label>
+        <Input type="date" value={forDate} onChange={(e) => setForDate(e.target.value)} />
       </div>
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Details</label>
-        <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Describe your request…" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30" />
+        <Label>Details</Label>
+        <Textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Describe your request…" />
       </div>
       <div className="flex gap-2">
-        <button onClick={() => router.back()} className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600">Cancel</button>
-        <button onClick={submit} disabled={isSaving || !details.trim()} className="flex-1 text-sm bg-brand text-white rounded-lg py-2 font-medium disabled:opacity-50">
+        <Button variant="secondary" size="lg" onClick={() => router.back()} className="flex-1">Cancel</Button>
+        <Button size="lg" onClick={submit} disabled={isSaving || !details.trim()} className="flex-1">
           {isSaving ? 'Submitting…' : 'Submit request'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

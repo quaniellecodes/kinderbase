@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Button, buttonVariants, Modal, Input, Select, Textarea } from '@/components/ui';
 import { updateStaffBasics, sendStaffNotification, messageAdmin } from '@/app/(dashboard)/staff/[userId]/actions';
 import { CENTER_ROLE_LABELS, type CenterRole } from '@kinderbase/types';
 import type { StaffHeader } from '@/app/(dashboard)/staff/[userId]/actions';
@@ -34,50 +35,44 @@ export function StaffTopbar({ header }: { header: StaffHeader }) {
     <div className="flex flex-wrap items-center gap-2">
       {header.admin ? (
         <>
-          <Link href={`/staff/${header.userId}?tab=schedule`} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300 whitespace-nowrap">
+          <Link href={`/staff/${header.userId}?tab=schedule`} className={buttonVariants({ variant: 'secondary' }) + ' whitespace-nowrap'}>
             Update schedule
           </Link>
-          <button onClick={() => setMsgOpen(true)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300 whitespace-nowrap">Message</button>
-          <button onClick={() => setEditing(true)} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium whitespace-nowrap">Edit profile</button>
+          <Button variant="secondary" className="whitespace-nowrap" onClick={() => setMsgOpen(true)}>Message</Button>
+          <Button className="whitespace-nowrap" onClick={() => setEditing(true)}>Edit profile</Button>
         </>
       ) : (
         <>
-          <Link href="/requests/new?type=schedule" className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-gray-300 whitespace-nowrap">
+          <Link href="/requests/new?type=schedule" className={buttonVariants({ variant: 'secondary' }) + ' whitespace-nowrap'}>
             Request schedule change
           </Link>
-          <button onClick={() => setMsgOpen(true)} className="text-sm bg-brand text-white rounded-lg px-3 py-1.5 font-medium whitespace-nowrap">Message admin</button>
+          <Button className="whitespace-nowrap" onClick={() => setMsgOpen(true)}>Message admin</Button>
         </>
       )}
 
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setEditing(false)}>
-          <div className="bg-white rounded-card max-w-sm w-full p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-medium text-gray-900">Edit profile</h3>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30" />
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Mobile" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30" />
-            <select value={role} onChange={(e) => setRole(e.target.value as CenterRole)} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30">
-              {ROLES.map((r) => <option key={r} value={r}>{CENTER_ROLE_LABELS[r]}</option>)}
-            </select>
-            <div className="flex gap-2 pt-1">
-              <button onClick={() => setEditing(false)} className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600">Cancel</button>
-              <button onClick={saveProfile} disabled={isPending} className="flex-1 text-sm bg-brand text-white rounded-lg py-2 font-medium disabled:opacity-60">Save</button>
-            </div>
+      <Modal open={editing} onOpenChange={setEditing} title="Edit profile">
+        <div className="space-y-3">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Mobile" />
+          <Select value={role} onChange={(e) => setRole(e.target.value as CenterRole)}>
+            {ROLES.map((r) => <option key={r} value={r}>{CENTER_ROLE_LABELS[r]}</option>)}
+          </Select>
+          <div className="flex gap-2 pt-1">
+            <Button variant="secondary" size="lg" onClick={() => setEditing(false)} className="flex-1">Cancel</Button>
+            <Button size="lg" onClick={saveProfile} disabled={isPending} className="flex-1">Save</Button>
           </div>
         </div>
-      )}
+      </Modal>
 
-      {msgOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setMsgOpen(false)}>
-          <div className="bg-white rounded-card max-w-sm w-full p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-medium text-gray-900">{header.admin ? `Message ${header.fullName}` : 'Message admin'}</h3>
-            <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} placeholder="Message…" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30" />
-            <div className="flex gap-2">
-              <button onClick={() => setMsgOpen(false)} className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600">Cancel</button>
-              <button onClick={sendMsg} disabled={isPending || !msg.trim()} className="flex-1 text-sm bg-brand text-white rounded-lg py-2 font-medium disabled:opacity-50">Send</button>
-            </div>
+      <Modal open={msgOpen} onOpenChange={setMsgOpen} title={header.admin ? `Message ${header.fullName}` : 'Message admin'}>
+        <div className="space-y-3">
+          <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} placeholder="Message…" />
+          <div className="flex gap-2">
+            <Button variant="secondary" size="lg" onClick={() => setMsgOpen(false)} className="flex-1">Cancel</Button>
+            <Button size="lg" onClick={sendMsg} disabled={isPending || !msg.trim()} className="flex-1">Send</Button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

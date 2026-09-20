@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card } from '@/components/ui';
 import { updateAvailability } from '@/app/(dashboard)/staff/[userId]/actions';
 import type { StaffHeader } from '@/app/(dashboard)/staff/[userId]/actions';
 import type { AvailabilityStatus } from '@kinderbase/types';
@@ -51,7 +52,7 @@ export function AvailabilityCard({ header, canEdit }: { header: StaffHeader; can
   const display = editing ? avail : initial;
 
   return (
-    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+    <Card>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-medium text-gray-900">Availability</h2>
         {canEdit && !editing && <button onClick={() => setEditing(true)} className="text-xs text-brand hover:underline">Edit</button>}
@@ -86,13 +87,11 @@ export function AvailabilityCard({ header, canEdit }: { header: StaffHeader; can
 
       {editing && (
         <div className="flex gap-2 mt-4">
-          <button onClick={() => { setEditing(false); setAvail(initial); }} className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600">Cancel</button>
-          <button onClick={save} disabled={isSaving} className="flex-1 text-sm bg-brand text-white rounded-lg py-2 font-medium disabled:opacity-60">
-            {isSaving ? 'Saving…' : 'Save'}
-          </button>
+          <Button variant="secondary" size="lg" onClick={() => { setEditing(false); setAvail(initial); }} className="flex-1">Cancel</Button>
+          <Button size="lg" onClick={save} disabled={isSaving} className="flex-1">{isSaving ? 'Saving…' : 'Save'}</Button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

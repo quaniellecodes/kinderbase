@@ -10,6 +10,7 @@ import {
   getStaffTimeHistory,
   getStaffNotes,
 } from './actions';
+import { TabBar } from '@/components/ui';
 import { StaffHero } from '@/components/staff/StaffHero';
 import { ContactCard } from '@/components/staff/ContactCard';
 import { AvailabilityCard } from '@/components/staff/AvailabilityCard';
@@ -79,17 +80,12 @@ export default async function StaffProfilePage({ params, searchParams }: Props) 
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex gap-5 border-b border-gray-100 mb-4 overflow-x-auto -mx-4 px-4">
-            {tabs.map((t) => (
-              <Link
-                key={t.key}
-                href={`/staff/${params.userId}?tab=${t.key}`}
-                className={`text-sm py-2.5 font-medium transition-colors whitespace-nowrap flex-shrink-0 ${tab === t.key ? 'text-brand border-b-2 border-brand' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                {t.label}
-              </Link>
-            ))}
-          </div>
+          <TabBar
+            className="mb-4 -mx-4 px-4"
+            items={tabs}
+            active={tab}
+            hrefFor={(key) => `/staff/${params.userId}?tab=${key}`}
+          />
           {content}
         </div>
       </div>
