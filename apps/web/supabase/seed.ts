@@ -835,6 +835,11 @@ async function main(): Promise<void> {
         birthdate: isoDate(bd),
         enrolled_at: isoDate(daysAgo(rng.int(30, 400))),
         status: 'enrolled',
+        // Student-module columns are NOT NULL; set on every row so the batch
+        // insert is homogeneous (PostgREST fills omitted keys with NULL, not the
+        // column default, once any row in the batch sets them). Enriched below.
+        enrollment_status: 'active',
+        tags: [],
       });
       kids.push({ id, present: false });
     }
@@ -855,8 +860,69 @@ async function main(): Promise<void> {
     staffPresent = Math.min(staffPresent, roster.length);
     for (let i = 0; i < staffPresent; i++) presentRosterUserIds.add(roster[i]!.userId);
   });
+  // ── 9c-bis. Student-module detail: tags, enrollment status, health, docs ────
+  type HealthInsert = Database['public']['Tables']['student_health']['Insert'];
+  type DocInsert = Database['public']['Tables']['student_documents']['Insert'];
+  const STUDENT_TAGS = ['Scholarship', 'IEP', 'Bilingual', 'New this year'];
+  const REQUIRED_DOCS = [
+    { doc_type: 'immunization', label: 'Immunization record (DHMH 896)' },
+    { doc_type: 'emergency', label: 'Emergency contact & authorization' },
+    { doc_type: 'health_inventory', label: 'Health inventory / physical' },
+  ];
+  const healthRows: HealthInsert[] = [];
+  const docRows: DocInsert[] = [];
+
+  const kidsByCenter = new Map<string, ChildInsert[]>();
+  for (const c of childrenRows) {
+    const arr = kidsByCenter.get(c.center_id as string) ?? [];
+    arr.push(c);
+    kidsByCenter.set(c.center_id as string, arr);
+  }
+
+  for (const [, kids] of kidsByCenter) {
+    kids.forEach((c, i) => {
+      // Tags on ~1/3 of students so the tag filter has something to show.
+      if (i % 3 === 0) c.tags = [rng.pick(STUDENT_TAGS)];
+      // A couple of non-active statuses per center to exercise the status filter.
+      if (i === kids.length - 1 && kids.length > 3) c.enrollment_status = 'waitlist';
+      else if (i === kids.length - 2 && kids.length > 4) c.enrollment_status = 'inactive';
+
+      // Required documents: mostly current; leave one required doc missing on ~1 in 4.
+      const missingIdx = i % 4 === 2 ? rng.int(0, REQUIRED_DOCS.length - 1) : -1;
+      REQUIRED_DOCS.forEach((d, di) => {
+        const missing = di === missingIdx;
+        docRows.push({
+          child_id: c.id as string,
+          doc_type: d.doc_type,
+          label: d.label,
+          status: missing ? 'missing' : 'current',
+          is_required: true,
+          is_confidential: false,
+          uploaded_at: missing ? null : new Date(`${isoDate(daysAgo(rng.int(20, 300)))}T12:00:00`).toISOString(),
+        });
+      });
+    });
+
+    // One severe allergy per center, on the first (present, active) child.
+    const first = kids[0];
+    if (first) {
+      healthRows.push({
+        child_id: first.id as string,
+        kind: 'allergy',
+        name: 'Peanuts',
+        detail: 'Anaphylaxis risk. Avoid all tree nuts and peanut products.',
+        severity: 'severe',
+        rescue_med: 'EpiPen Jr.',
+        rescue_med_location: 'Front office medication cabinet',
+        rescue_med_expires: isoDate(daysFromNow(rng.int(120, 320))),
+      });
+    }
+  }
+
   await insertChunked(db, 'children', childrenRows);
   await insertChunked(db, 'child_attendance', attendanceRows);
+  await insertChunked(db, 'student_health', healthRows);
+  await insertChunked(db, 'student_documents', docRows);
 
   // ── 10. Time entries (weekday clock in/out history) ─────────────────────────
   type TimeEntry = Database['public']['Tables']['time_entries']['Insert'];
@@ -1085,6 +1151,8 @@ async function main(): Promise<void> {
   console.log(`   roster rows:       ${rosterRows.length}`);
   console.log(`   shift slots:       ${shiftRows.length}`);
   console.log(`   children:          ${childrenRows.length}`);
+  console.log(`   student health:    ${healthRows.length}`);
+  console.log(`   student docs:      ${docRows.length}`);
   console.log(`   attendance (today):${attendanceRows.length}`);
   console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
