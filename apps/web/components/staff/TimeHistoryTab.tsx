@@ -1,0 +1,55 @@
+import { clockTime } from '@/lib/format';
+import type { TimeHistory, Punch } from '@/app/(dashboard)/staff/[userId]/actions';
+
+const STATUS: Record<Punch['status'], { label: string; chip: string }> = {
+  on_time: { label: 'On time', chip: 'bg-green-50 text-green-700' },
+  half_day: { label: 'Half day', chip: 'bg-indigo-50 text-indigo-700' },
+  adj_pending: { label: 'Adj. pending', chip: 'bg-amber-50 text-amber-700' },
+  open: { label: 'Clocked in', chip: 'bg-gray-100 text-gray-500' },
+};
+
+function fmtDay(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function dur(min: number | null): string {
+  if (min == null) return '—';
+  return `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
+}
+function range(a: string, b: string): string {
+  const f = (s: string) => new Date(`${s}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `${f(a)} – ${f(b)}`;
+}
+
+export function TimeHistoryTab({ userId, data, canExport }: { userId: string; data: TimeHistory; canExport: boolean }) {
+  return (
+    <div className="bg-white rounded-card border border-gray-100 px-4 py-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-medium text-gray-900">Time history — current pay period</h2>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-400">{range(data.periodStart, data.periodEnd)}</span>
+          {canExport && <a href={`/api/staff/${userId}/export?kind=time`} className="text-xs text-brand hover:underline">Export to ADP</a>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-3 bg-gray-50 rounded-lg p-3 mb-3 text-center">
+        <div><p className="text-xl font-medium text-gray-900">{data.totalHours}</p><p className="text-[11px] text-gray-500">Total hrs</p></div>
+        <div><p className="text-xl font-medium text-gray-900">{data.overtimeHours}</p><p className="text-[11px] text-gray-500">Overtime</p></div>
+        <div><p className="text-xl font-medium text-status-amber">{data.adjPending}</p><p className="text-[11px] text-gray-500">Adj. pending</p></div>
+        <div><p className="text-xl font-medium text-status-green">{data.adjApproved}</p><p className="text-[11px] text-gray-500">Adj. approved</p></div>
+      </div>
+
+      <div className="divide-y divide-gray-100">
+        {data.punches.length === 0 && <p className="text-sm text-gray-400 py-3">No punches this period.</p>}
+        {data.punches.map((p, i) => (
+          <div key={i} className="flex items-center gap-3 py-2.5 text-sm">
+            <span className="text-gray-500 w-28 flex-shrink-0">{fmtDay(p.date)}</span>
+            <span className="text-status-green w-20">{clockTime(p.inAt)}</span>
+            <span className="text-gray-500 w-20">{p.outAt ? clockTime(p.outAt) : '—'}</span>
+            <span className="flex-1 text-right text-gray-900 font-medium">{dur(p.minutes)}</span>
+            <span className={`text-[11px] px-2 py-0.5 rounded-chip ${STATUS[p.status].chip}`}>{STATUS[p.status].label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

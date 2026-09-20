@@ -281,6 +281,9 @@ function isoDate(d: Date): string {
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * DAY_MS);
 }
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
 function daysFromNow(n: number): Date {
   return new Date(Date.now() + n * DAY_MS);
 }
@@ -975,6 +978,108 @@ async function main(): Promise<void> {
   }
   await insertChunked(db, 'activity_log', activity);
 
+  // ── 12. Staff profile data (scores, profiles, leave days, notes, requests) ──
+  type ScoreInsert = Database['public']['Tables']['teacher_scores']['Insert'];
+  type ProfileInsert = Database['public']['Tables']['staff_profiles']['Insert'];
+  type LeaveInsert = Database['public']['Tables']['staff_leave_days']['Insert'];
+  type NoteInsert = Database['public']['Tables']['staff_notes']['Insert'];
+  type ReqInsert = Database['public']['Tables']['staff_requests']['Insert'];
+  const scores: ScoreInsert[] = [];
+  const profiles: ProfileInsert[] = [];
+  const leaveDays: LeaveInsert[] = [];
+  const notes: NoteInsert[] = [];
+  const requests: ReqInsert[] = [];
+
+  const SCORE_WEIGHTS = { attendance: 0.3, posting: 0.25, lesson: 0.2, schedule: 0.15, observation: 0.1 };
+  const RELATIONS = ['sister', 'spouse', 'mother', 'brother', 'partner', 'father'];
+  const AVAIL_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+
+  // Score + profile for every non-admin staff member (teachers, aides, subs, director).
+  const scored = users.filter((u) => u.centerRole !== 'admin');
+  scored.forEach((u, idx) => {
+    const s = {
+      attendance: 3.5 + rng.next() * 1.5,
+      posting: 2.8 + rng.next() * 2.0,
+      lesson: 3.5 + rng.next() * 1.5,
+      schedule: 3.8 + rng.next() * 1.2,
+      observation: 3.5 + rng.next() * 1.5,
+    };
+    const center = Math.round(
+      (s.attendance * SCORE_WEIGHTS.attendance + s.posting * SCORE_WEIGHTS.posting + s.lesson * SCORE_WEIGHTS.lesson +
+        s.schedule * SCORE_WEIGHTS.schedule + s.observation * SCORE_WEIGHTS.observation) * 100
+    ) / 100;
+    // Every 5th teacher is "recently hired" → visible score not yet available.
+    const recentlyHired = idx % 5 === 0;
+    scores.push({
+      user_id: u.id, center_id: centerIds[u.centerIndex],
+      attendance_score: round2(s.attendance), posting_score: round2(s.posting), lesson_plan_score: round2(s.lesson),
+      schedule_score: round2(s.schedule), observation_score: round2(s.observation), center_score: center,
+      teacher_visible_score: recentlyHired ? null : Math.round((center - 0.1) * 100) / 100,
+      teacher_visible_as_of: recentlyHired ? null : isoDate(daysAgo(30)),
+    });
+
+    const [first, last] = u.fullName.split(' ');
+    const availability: Record<string, string> = {};
+    for (const k of AVAIL_KEYS) availability[k] = k === 'sat' || k === 'sun' ? 'none' : 'full';
+    availability['fri'] = 'pm'; // one partial day, matching the mock
+    profiles.push({
+      user_id: u.id, center_id: centerIds[u.centerIndex],
+      personal_email: `${(first ?? 'staff').toLowerCase()}.${(last ?? 'kb').toLowerCase()}@gmail.com`,
+      emergency_contact_name: `${rng.pick(FIRST_NAMES)} ${last ?? rng.pick(LAST_NAMES)}`,
+      emergency_contact_relation: rng.pick(RELATIONS),
+      emergency_contact_phone: `(410) 555-0${rng.int(100, 999)}`,
+      availability,
+      sick_hours: rng.int(4, 24), vacation_hours: rng.int(16, 80), personal_hours: rng.int(0, 16),
+    });
+  });
+
+  // Leave days + notes + requests for the first few leads (rich profiles to explore).
+  const leads = scored.filter((u) => u.centerRole === 'lead_teacher').slice(0, 3);
+  leads.forEach((u, i) => {
+    const cid = centerIds[u.centerIndex];
+    // A couple of unexcused + several PTO/sick days across the last 90 days.
+    const used = new Set<string>();
+    const pushLeave = (kind: 'pto' | 'sick' | 'personal' | 'unexcused', n: number) => {
+      let added = 0;
+      while (added < n) {
+        const day = daysAgo(rng.int(3, 88));
+        const dow = day.getDay();
+        const key = isoDate(day);
+        if (dow === 0 || dow === 6 || used.has(key)) continue;
+        used.add(key);
+        leaveDays.push({ user_id: u.id, center_id: cid, day: key, kind });
+        added++;
+      }
+    };
+    pushLeave('unexcused', 2);
+    pushLeave('pto', 3);
+    pushLeave('sick', 2);
+
+    notes.push({ user_id: u.id, center_id: cid, written_by: owner.id, category: 'commendation',
+      content: `Observed ${u.fullName.split(' ')[0]} during morning routine. Excellent engagement and strong documentation habits.`,
+      created_at: daysAgo(rng.int(20, 40)).toISOString() });
+    notes.push({ user_id: u.id, center_id: cid, written_by: owner.id, category: 'performance_review',
+      content: '90-day performance review completed. Meets all expectations.', created_at: daysAgo(rng.int(60, 80)).toISOString() });
+    if (i === 0) {
+      notes.push({ user_id: u.id, center_id: cid, written_by: owner.id, category: 'hr',
+        content: 'Flagged interest in pursuing CDA. Discussed tuition support options.', created_at: daysAgo(rng.int(5, 15)).toISOString() });
+    }
+
+    // Requests: a pending schedule change + one pending / one approved time correction.
+    requests.push({ user_id: u.id, center_id: cid, type: 'schedule', status: 'pending', created_by: u.id,
+      details: 'Requesting Friday mornings only for the next two weeks.', created_at: daysAgo(rng.int(1, 4)).toISOString() });
+    requests.push({ user_id: u.id, center_id: cid, type: 'time_correction', status: 'pending', created_by: owner.id,
+      for_date: isoDate(daysAgo(2)), details: 'Clock-in was late due to a system issue.', created_at: daysAgo(2).toISOString() });
+    requests.push({ user_id: u.id, center_id: cid, type: 'time_correction', status: 'approved', created_by: owner.id,
+      for_date: isoDate(daysAgo(6)), details: 'Missed clock-out corrected.', created_at: daysAgo(6).toISOString(), resolved_at: daysAgo(5).toISOString() });
+  });
+
+  await insertChunked(db, 'teacher_scores', scores);
+  await insertChunked(db, 'staff_profiles', profiles);
+  await insertChunked(db, 'staff_leave_days', leaveDays);
+  await insertChunked(db, 'staff_notes', notes);
+  await insertChunked(db, 'staff_requests', requests);
+
   // ── Summary ─────────────────────────────────────────────────────────────────
   console.log('\n✅ Seed complete');
   console.log(`   organization:      1 (${args.orgSlug})`);
@@ -992,6 +1097,11 @@ async function main(): Promise<void> {
   console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
   console.log(`   activity events:   ${activity.length}`);
+  console.log(`   teacher scores:    ${scores.length}`);
+  console.log(`   staff profiles:    ${profiles.length}`);
+  console.log(`   leave days:        ${leaveDays.length}`);
+  console.log(`   staff notes:       ${notes.length}`);
+  console.log(`   staff requests:    ${requests.length}`);
   console.log(`\n   Owner login →  ${owner.email}  /  ${owner.password}`);
   console.log(`   Staff logins →  <name>@${domain}  /  Sandbox!23456`);
   console.log(`   Reset later  →  pnpm dlx tsx apps/web/supabase/seed.ts --org-slug ${args.orgSlug} --reset --yes\n`);
@@ -1025,6 +1135,11 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
   if (centerIds.length) await db.from('children').delete().in('center_id', centerIds);
   if (classIds.length) await db.from('staffing_patterns').delete().in('classroom_id', classIds);
   if (centerIds.length) {
+    await db.from('staff_requests').delete().in('center_id', centerIds);
+    await db.from('staff_leave_days').delete().in('center_id', centerIds);
+    await db.from('staff_notes').delete().in('center_id', centerIds);
+    await db.from('teacher_scores').delete().in('center_id', centerIds);
+    await db.from('staff_profiles').delete().in('center_id', centerIds);
     await db.from('time_entries').delete().in('center_id', centerIds);
     await db.from('activity_log').delete().in('center_id', centerIds);
   }
