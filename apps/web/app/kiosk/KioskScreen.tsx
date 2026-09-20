@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Lock } from 'lucide-react';
 import { kioskClockIn, kioskClockOut, kioskLookupPin } from './actions';
+import { Modal } from '@/components/ui';
 
 type StaffMember = {
   id: string;
@@ -132,9 +133,13 @@ export function KioskScreen({ centerId, centerName, brandRgb }: Props) {
       </div>
 
       {/* Confirm modal */}
-      {confirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+      <Modal
+        open={confirm !== null}
+        onOpenChange={o => { if (!o) setConfirm(null); }}
+        hideClose
+      >
+        {confirm && (
+          <>
             <div className="flex flex-col items-center text-center gap-3 mb-6">
               <div className="w-16 h-16 rounded-full bg-brand flex items-center justify-center text-xl font-medium text-white">
                 {getInitials(confirm.member.full_name)}
@@ -163,9 +168,9 @@ export function KioskScreen({ centerId, centerName, brandRgb }: Props) {
                 {confirm.member.isClockedIn ? 'Clock out' : 'Clock in'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

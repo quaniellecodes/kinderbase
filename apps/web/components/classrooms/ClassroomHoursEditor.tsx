@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, ChevronDown, ChevronRight } from 'lucide-react';
 import { OPERATING_DAY_LABELS, slotToLabel, type ClassroomStaffingView } from '@kinderbase/types';
+import { Button, Card } from '@/components/ui';
 import { HoursFields } from '@/components/classrooms/HoursFields';
 import {
   updateClassroomHours,
@@ -95,7 +96,7 @@ export function ClassroomHoursEditor({ classroomId, hours, view }: Props) {
   const current = summarize(hours.effective.openSlot, hours.effective.closeSlot, hours.effective.operatingDays);
 
   return (
-    <div className="mb-4 bg-white rounded-card border border-gray-100 px-4 py-3">
+    <Card padding="compact" className="mb-4">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-2 text-left"
@@ -143,15 +144,11 @@ export function ClassroomHoursEditor({ classroomId, hours, view }: Props) {
 
           {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
 
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="text-sm px-4 py-2 rounded-lg font-medium bg-brand text-white disabled:opacity-60"
-          >
+          <Button onClick={handleSave} disabled={isSaving} size="lg">
             {isSaving ? 'Saving…' : 'Save hours'}
-          </button>
+          </Button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

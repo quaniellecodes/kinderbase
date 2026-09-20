@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import { updateTimeEntry } from '@/app/(dashboard)/time/actions';
+import { Card, Button } from '@/components/ui';
 
 type Entry = {
   id: string;
@@ -98,19 +99,20 @@ function EntryRow({ entry }: { entry: Entry }) {
           </div>
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={handleSave}
             disabled={isPending}
-            className="flex items-center gap-1 text-xs bg-brand text-white px-3 py-1.5 rounded-lg disabled:opacity-60"
+            className="gap-1 text-xs"
           >
             <Check className="w-3 h-3" /> Save
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleCancel}
-            className="flex items-center gap-1 text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg"
+            className="gap-1 text-xs text-gray-600"
           >
             <X className="w-3 h-3" /> Cancel
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -156,9 +158,9 @@ export function AdminTimeSheet({ entries }: Props) {
       {Array.from(groups.entries()).map(([date, dayEntries]) => (
         <div key={date}>
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">{date}</p>
-          <div className="bg-white rounded-card border border-gray-100 divide-y divide-gray-50">
+          <Card padding="none" className="divide-y divide-gray-50">
             {dayEntries.map(e => <EntryRow key={e.id} entry={e} />)}
-          </div>
+          </Card>
         </div>
       ))}
     </div>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Info } from 'lucide-react';
+import { Button, Input } from '@/components/ui';
 import { setRatioOverride } from '@/app/(dashboard)/classrooms/child-actions';
 import type { ClassroomRatioInfo } from '@/app/(dashboard)/classrooms/actions';
 
@@ -60,31 +61,32 @@ export function ComarModeBadge({ classroomId, ratio, canEdit }: Props) {
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="text-xs text-indigo-800">
             Children per staff
-            <input
+            <Input
               type="number"
               min={1}
               value={cps}
               onChange={(e) => setCps(Math.max(1, parseInt(e.target.value) || 1))}
-              className="ml-2 w-16 text-sm border border-indigo-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+              className="ml-2 w-16 border-indigo-200 px-2 py-1 focus:ring-1 focus:ring-indigo-300"
             />
           </label>
           <label className="text-xs text-indigo-800">
             Max group
-            <input
+            <Input
               type="number"
               min={1}
               value={maxg}
               onChange={(e) => setMaxg(Math.max(1, parseInt(e.target.value) || 1))}
-              className="ml-2 w-16 text-sm border border-indigo-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+              className="ml-2 w-16 border-indigo-200 px-2 py-1 focus:ring-1 focus:ring-indigo-300"
             />
           </label>
-          <button
+          <Button
+            size="sm"
             onClick={() => save({ childrenPerStaff: cps, maxGroup: maxg })}
             disabled={isSaving}
-            className="text-xs font-medium bg-indigo-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-60"
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-600 disabled:opacity-60"
           >
             {isSaving ? 'Saving…' : 'Save override'}
-          </button>
+          </Button>
           <button onClick={() => setEditing(false)} className="text-xs text-indigo-500">Cancel</button>
         </div>
       )}
