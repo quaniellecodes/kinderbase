@@ -16,7 +16,11 @@ export function LoginForm() {
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+      return;
     }
+    // Hard navigation so the browser sends the newly-set auth cookie on the
+    // first /dashboard request (a soft redirect races the cookie write).
+    window.location.assign('/dashboard');
   }
 
   return (
