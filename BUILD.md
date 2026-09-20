@@ -64,7 +64,16 @@ SAEO tab with sub-nav (`?tab=saeo&saeo=`): Assessment · Observations · Screeni
 - [x] seed.ts: 3 screenings (incl. one "refer"), 1 fully worked referral (services_active, IFSP, 1 input w/ 2 observations attached, 2 plan goals); all cascade via children on reset
 - Verified in sandbox; tsc + build + 34 core tests green. **Phase F complete.**
 - Gotcha logged: `"use server"` files may export only async functions — stage constants/`compactAge`-style values must live in a plain module.
-## Phase G — Add-student wizard  (pending)
+## Phase G — Add-student wizard  (done)
+- [x] `new-actions.ts` — `getNewStudentOptions` (classrooms + language/tag suggestions) + `createStudent` (admin/director gated via active context); generates `student_code`, inserts a primary guardian, seeds `student_about`/`student_schedule` shells, and creates a current-period ELOF checkpoint when a framework exists for the age
+- [x] `WizardClient` — 4 steps (Identity · Enrollment · Family · Review) with a stepper + progress bar, per-step validation, and a localStorage draft (survives refresh, cleared on create); on success redirects to the new profile
+- [x] `/students/new` page now renders the wizard (admin-gated), replacing the stub
+- Verified: tsc + production build (all student routes) + 34 core tests green
+
+---
+
+## Status: all phases A–G complete. `feat/students` ready for review/PR.
+Deferred/notes: preschool ELOF view not seeded (IT-only per plan; `bandToMonths` + createCheckpoint already handle preschool once `ps-*.json` is added); document files aren't seeded (upload path is live).
 
 ## Notes / reconciliations (see plan)
 - Students module is backed by the existing `children` table (not a new `students` table). Satellites use `child_id → children`.

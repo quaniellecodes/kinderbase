@@ -4,11 +4,18 @@ Living document. Update after every session.
 
 ---
 
-## Session end state (2026-09-19)
+## Session end state (2026-09-20)
 
-**Branches / PRs (nothing merged to `main` yet):**
+**Current branch: `feat/students`** (off reconciled `main`) — the **Students module**, all phases A–G complete and pushed. See [BUILD.md](BUILD.md) for the phase-by-phase log. Latest commit is the Phase G wizard.
+
+**Students module (this session):** directory `/students` (search/filters/grid-list, alert icons) → profile `/students/[id]` with hero + About/Schedule rail + tabs: **Info & Family** (inline `PencilField` + batched save + beforeunload), **Health** (allergies/meds/diet/conditions + physicians), **Documents** (status/required/confidential, signed-URL download route `/api/students/[id]/documents/[docId]`, upload with supersede), **Activity** (child_updates + attendance timeline), **SAEO** (Assessment checkpoints → rating screen `/students/[id]/checkpoint/[cpId]` with domain rail + age-band progressions + autosave + submit-lock; Observations; Screening; Evaluation with Part C/B + turning-3 banner). Add-student wizard `/students/new`. Backed by the existing `children` table; migrations 020–022; ELOF Infant/Toddler seeded verbatim (5 domains/21 sub/59 goals/177 progressions). New UI primitives: `StatusDot`, `ProgressBar`, `EmptyState`, `Toast`, `DayToggleRow`, `MultiSelectField`, `PencilField`.
+
+**Prior branches / PRs (pre-this-session):**
 - `feat/sandbox-seed-cli-workflow` → **PR #1**: sandbox + Supabase CLI two-project workflow, OCC 1206 staffing pattern (Save/Reset + per-room hours), Auto/Manual ratio override, children domain, admin dashboard, tabbed classroom detail.
-- `feat/staff-profile` → **PR #2** (stacked on PR #1): staff profile screen `/staff/[userId]` (admin + employee self-view), migration 019, requests area; plus dead-end cleanup and a small-screen responsive pass. **Latest commit `6a2c27e`.**
+- `feat/staff-profile` → **PR #2** (stacked on PR #1): staff profile screen `/staff/[userId]` (admin + employee self-view), migration 019, requests area; plus dead-end cleanup and a small-screen responsive pass.
+- UI-kit extraction + login-fix were reconciled into `main` before branching `feat/students`.
+
+**Students-module deferred:** preschool ELOF view not seeded (IT-only per plan; seeder already handles preschool age bands once `ps-*.json` added); document file bytes not seeded (upload path live); Screening/Evaluation are functional but no notifications.
 
 **Built & working:** classroom detail (Overview/Activity/Staffing/Children tabs) with real-time ratios; staffing-pattern grid (drag shifts, child counts, Save/Reset, per-room hours + Auto/Manual COMAR ratio); children domain (enrollment/attendance/care updates); admin dashboard (out-of-ratio banner, stat cards, ratio list); staff profile (hero/score modal/contact/availability/quick actions + Schedule/Credentials/Attendance/Time-history/Notes tabs); requests list + new-request form. Sandbox seeded (medium scale) with staff = **female names of Black descent**; owner login `owner@sandbox.kb` / `Sandbox!23456`.
 
@@ -148,6 +155,9 @@ Required shape for supabase-js 2.103.3:
 | `017_children_domain.sql` | `children`, `child_attendance` (daily sign-in), `child_updates` + `child_update_children` (care log with multi-child tags); RLS |
 | `018_classroom_ratio_override.sql` | per-classroom Auto/Manual ratio override columns (`ratio_children_per_staff`, `ratio_max_group`) |
 | `019_staff_profile.sql` | `staff_notes` (admin-only RLS), `teacher_scores` (display-only), `staff_profiles` (emergency contact/availability/leave balances), `staff_leave_days`, `staff_requests` (schedule/time_correction/leave) |
+| `020_students_profile.sql` | Students module: extends `children` (preferred/middle name, `student_code`, `enrollment_status`, sex, languages, tags, address, photo consent, admin notes); `child_attendance` sign-in-by/method; satellites `student_siblings`, `guardians`, `authorized_pickups`, `student_health`, `student_physicians`, `student_documents` (confidential admin-only RLS), `student_descriptors` (center/null defaults), `student_about`, `student_schedule` |
+| `021_saeo.sql` | SAEO: `frameworks`/`framework_domains`/`framework_subdomains`/`framework_goals`/`goal_progressions`/`goal_crosswalks`, `rating_levels`, `checkpoints`/`checkpoint_ratings`, `observations`/`observation_goals`, `screenings` (insert-only, no UPDATE/DELETE), `referrals`/`referral_inputs`/`plan_goals`. Framework reference tables readable by any authed user (seeded via service role) |
+| `022_student_documents_bucket.sql` | private `student-documents` storage bucket (idempotent); access only via service role + signed-URL route. **Applied to sandbox via MCP; run `db:push` on prod** |
 
 **Newer migrations use both `USING` and `WITH CHECK` in every RLS policy** (older ones omitted `WITH CHECK` — a gap fixed going forward).
 
