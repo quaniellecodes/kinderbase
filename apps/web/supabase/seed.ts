@@ -870,8 +870,12 @@ async function main(): Promise<void> {
     { doc_type: 'emergency', label: 'Emergency contact & authorization' },
     { doc_type: 'health_inventory', label: 'Health inventory / physical' },
   ];
+  type PhysInsert = Database['public']['Tables']['student_physicians']['Insert'];
   const healthRows: HealthInsert[] = [];
   const docRows: DocInsert[] = [];
+  const physicianRows: PhysInsert[] = [];
+  const PHYS_NAMES = ['Dr. Adeyemi', 'Dr. Okafor', 'Dr. Washington', 'Dr. Brooks', 'Dr. Mensah'];
+  const PRACTICES = ['Harbor Pediatrics', 'Charm City Kids Health', 'Green Spring Pediatrics'];
 
   const kidsByCenter = new Map<string, ChildInsert[]>();
   for (const c of childrenRows) {
@@ -888,20 +892,60 @@ async function main(): Promise<void> {
       if (i === kids.length - 1 && kids.length > 3) c.enrollment_status = 'waitlist';
       else if (i === kids.length - 2 && kids.length > 4) c.enrollment_status = 'inactive';
 
-      // Required documents: mostly current; leave one required doc missing on ~1 in 4.
+      // Required documents: mostly current; leave one required doc missing on ~1 in 4;
+      // occasionally flag one as review-due with a date.
       const missingIdx = i % 4 === 2 ? rng.int(0, REQUIRED_DOCS.length - 1) : -1;
+      const reviewIdx = i % 5 === 1 ? rng.int(0, REQUIRED_DOCS.length - 1) : -1;
       REQUIRED_DOCS.forEach((d, di) => {
         const missing = di === missingIdx;
+        const review = !missing && di === reviewIdx;
         docRows.push({
           child_id: c.id as string,
           doc_type: d.doc_type,
           label: d.label,
-          status: missing ? 'missing' : 'current',
+          status: missing ? 'missing' : review ? 'review_due' : 'current',
           is_required: true,
           is_confidential: false,
+          review_due: review ? isoDate(daysFromNow(rng.int(10, 60))) : null,
           uploaded_at: missing ? null : new Date(`${isoDate(daysAgo(rng.int(20, 300)))}T12:00:00`).toISOString(),
         });
       });
+
+      // A confidential document on ~1 in 6 (admin-only visibility demo).
+      if (i % 6 === 4) {
+        docRows.push({
+          child_id: c.id as string,
+          doc_type: 'custody',
+          label: 'Custody agreement',
+          status: 'current',
+          is_required: false,
+          is_confidential: true,
+          review_due: null,
+          uploaded_at: new Date(`${isoDate(daysAgo(rng.int(30, 400)))}T12:00:00`).toISOString(),
+        });
+      }
+
+      // Physician on file for most children.
+      if (i % 5 !== 0) {
+        physicianRows.push({
+          child_id: c.id as string,
+          name: rng.pick(PHYS_NAMES),
+          practice: rng.pick(PRACTICES),
+          phone: `410-555-${String(rng.int(1000, 9999))}`,
+          last_visit: isoDate(daysAgo(rng.int(20, 360))),
+        });
+      }
+
+      // Extra health variety beyond the per-center severe allergy.
+      if (i % 3 === 1) {
+        healthRows.push({ child_id: c.id as string, kind: 'medication', name: 'Albuterol inhaler', detail: 'For wheezing episodes.', severity: 'prn', rescue_med: 'Albuterol', rescue_med_location: 'Classroom med bag', rescue_med_expires: isoDate(daysFromNow(rng.int(60, 300))) });
+      }
+      if (i % 5 === 2) {
+        healthRows.push({ child_id: c.id as string, kind: 'diet', name: 'Dairy-free', detail: 'Lactose intolerant — soy milk provided by family.', severity: 'moderate', rescue_med: null, rescue_med_location: null, rescue_med_expires: null });
+      }
+      if (i % 6 === 3) {
+        healthRows.push({ child_id: c.id as string, kind: 'condition', name: 'Asthma', detail: 'Mild, exercise-induced.', severity: 'mild', rescue_med: null, rescue_med_location: null, rescue_med_expires: null });
+      }
     });
 
     // One severe allergy per center, on the first (present, active) child.
@@ -984,6 +1028,7 @@ async function main(): Promise<void> {
   await insertChunked(db, 'children', childrenRows);
   await insertChunked(db, 'child_attendance', attendanceRows);
   await insertChunked(db, 'student_health', healthRows);
+  await insertChunked(db, 'student_physicians', physicianRows);
   await insertChunked(db, 'student_documents', docRows);
   await insertChunked(db, 'guardians', guardianRows);
   await insertChunked(db, 'authorized_pickups', pickupRows);
@@ -1246,6 +1291,7 @@ async function main(): Promise<void> {
   console.log(`   shift slots:       ${shiftRows.length}`);
   console.log(`   children:          ${childrenRows.length}`);
   console.log(`   student health:    ${healthRows.length}`);
+  console.log(`   physicians:        ${physicianRows.length}`);
   console.log(`   student docs:      ${docRows.length}`);
   console.log(`   guardians:         ${guardianRows.length}`);
   console.log(`   authorized pickups:${pickupRows.length}`);

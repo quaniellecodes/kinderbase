@@ -40,7 +40,16 @@ Branch `feat/students` (off reconciled `main`). Phased per the approved plan.
 - [x] seed.ts: ~half of children get an About profile; all get a Mon–Fri schedule; reset now clears center-scoped descriptors before deleting the center (RESTRICT FK)
 - Verified in sandbox: 49 default descriptors / 9 groups, 24 About rows, 48 schedules, 0 orphaned center descriptors; tsc + build + 34 core tests green
 - MultiSelect surface (home languages / tags) is already handled inline on the Info tab (Phase C), so no separate modal needed
-## Phase E — Health / Documents / Activity tabs  (pending)
+## Phase E — Health / Documents / Activity tabs  (done)
+- [x] `access.ts` — shared `studentContext`/`isEditor`/`orNull` guard for the new action files
+- [x] Health: `health-actions.ts` + `HealthEditor`/`HealthPanel` — allergies/medications/diet/conditions (`student_health`, severe → red emphasis + rescue-med fields) and physicians (`student_physicians`); add/edit/remove via modals; admin/director-gated
+- [x] Documents: `documents-actions.ts` + `DocumentsEditor`/`DocumentsPanel` — register with status (current/review_due/missing/na), required + confidential flags; **confidential rows hidden from non-admins in the query**; add/edit/delete + file upload (re-upload creates a superseding row, `superseded_by`)
+  - Storage: private `student-documents` bucket (migration `022`; created in sandbox); `lib/storage/student-documents.ts`; download via `GET /api/students/[id]/documents/[docId]` → 15-min signed URL, member-gated (confidential → admin), never public
+- [x] Activity: `activity-actions.ts` + `ActivityPanel` — read-only merged timeline of `child_updates` (care log) + `child_attendance` sign-in/out, newest first
+- [x] Wired health/documents/activity tabs into the profile; only SAEO remains a placeholder
+- [x] seed.ts: 35 health items (severe allergy + meds/diet/conditions), 38 physicians, 152 docs (incl. review_due + confidential); reset unaffected (all cascade via children)
+- Verified in sandbox: 9 review_due, 8 confidential, meds/diet/conditions present, 38 physicians; migration 022 bucket present; tsc + build + 34 core tests green
+- Deferred: none functionally — upload path is live; (no file bytes in seed, so downloads appear once a file is uploaded)
 ## Phase F — SAEO (Assessment → Screening → Evaluation → Observations)  (pending; needs ELOF verified)
 ## Phase G — Add-student wizard  (pending)
 

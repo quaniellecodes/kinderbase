@@ -5,6 +5,9 @@ import { Card, Badge, TabBar, Alert, StatusDot, EmptyState, type BadgeTone } fro
 import { getStudentHeader, type EnrollmentStatus } from '../actions';
 import { InfoPanel } from './InfoPanel';
 import { FamilyPanel } from './FamilyPanel';
+import { HealthPanel } from './HealthPanel';
+import { DocumentsPanel } from './DocumentsPanel';
+import { ActivityPanel } from './ActivityPanel';
 import { AboutCard } from './AboutCard';
 import { ScheduleCard } from './ScheduleCard';
 import { getStudentAbout, getStudentSchedule } from './about-schedule-actions';
@@ -125,12 +128,18 @@ export default async function StudentProfilePage({
             <InfoPanel childId={header.id} />
           ) : tab === 'family' ? (
             <FamilyPanel childId={header.id} />
+          ) : tab === 'health' ? (
+            <HealthPanel childId={header.id} />
+          ) : tab === 'documents' ? (
+            <DocumentsPanel childId={header.id} />
+          ) : tab === 'activity' ? (
+            <ActivityPanel childId={header.id} />
           ) : (
             <Card padding="none">
               <EmptyState
                 icon={<Construction className="w-8 h-8" />}
                 title={`${activeTabLabel} — coming soon`}
-                description="This tab is part of a later build step. The directory, profile, Info, Family, About, and Schedule are live now."
+                description="This tab is part of a later build step. Everything except SAEO is live now."
               />
             </Card>
           )}
