@@ -50,7 +50,7 @@ Branch `feat/students` (off reconciled `main`). Phased per the approved plan.
 - [x] seed.ts: 35 health items (severe allergy + meds/diet/conditions), 38 physicians, 152 docs (incl. review_due + confidential); reset unaffected (all cascade via children)
 - Verified in sandbox: 9 review_due, 8 confidential, meds/diet/conditions present, 38 physicians; migration 022 bucket present; tsc + build + 34 core tests green
 - Deferred: none functionally — upload path is live; (no file bytes in seed, so downloads appear once a file is uploaded)
-## Phase F — SAEO  (in progress)
+## Phase F — SAEO  (done)
 SAEO tab with sub-nav (`?tab=saeo&saeo=`): Assessment · Observations · Screening · Evaluation.
 - [x] `saeo-actions.ts` — context (child's ELOF view from age, framework availability, photo consent), goal options, observations (create with goal tags + consent-gated photo, soft delete), checkpoints (list + create; 90-day period; view from age)
 - [x] Observations: `ObservationsSection` + `ObservationsClient` — list (goal-code chips, signed photo), composer modal (goal multiselect by code, photo gated on `photo_consent`)
@@ -59,8 +59,11 @@ SAEO tab with sub-nav (`?tab=saeo&saeo=`): Assessment · Observations · Screeni
 - [x] `SaeoPanel` wired in; preschool view shows a "content not loaded" notice (IT-only per plan)
 - [x] seed.ts: 6 observations (goal-tagged) + 3 draft checkpoints (12 ratings each) on IT children; cascade via children on reset
 - Verified: 3 checkpoints × 12 ratings, 6 observations w/ goal links (demo: Elena Hayes); tsc + build + 34 core tests green
-- [ ] Screening (read-only + admin "record result", superseded_by history) — next
-- [ ] Evaluation (referral tracker, Part C/B by age, turning-3 banner, contribute-input, plan) — next
+- [x] Screening: `screening-actions.ts` + `ScreeningClient`/`ScreeningSection` — read-only current results + corrected-history expander; admin "Record result" (insert); corrections insert a new row and set `superseded_by` on the old (service role, since screenings have no UPDATE policy)
+- [x] Evaluation: `evaluation-actions.ts` (+ `evaluation-constants.ts` for stage flow/labels — can't export non-fns from a "use server" file) + `EvaluationClient`/`EvaluationSection` — referral stage tracker, Part C/B by age with suggested agency, **Part C→B turning-3-within-90-days amber banner**, advance-stage control (stamps dates), contribute-input composer (attaches observations), plan goals (IFSP/IEP) when eligible/services_active
+- [x] seed.ts: 3 screenings (incl. one "refer"), 1 fully worked referral (services_active, IFSP, 1 input w/ 2 observations attached, 2 plan goals); all cascade via children on reset
+- Verified in sandbox; tsc + build + 34 core tests green. **Phase F complete.**
+- Gotcha logged: `"use server"` files may export only async functions — stage constants/`compactAge`-style values must live in a plain module.
 ## Phase G — Add-student wizard  (pending)
 
 ## Notes / reconciliations (see plan)

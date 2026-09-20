@@ -1,8 +1,9 @@
-import { Construction } from 'lucide-react';
-import { TabBar, Card, Alert, EmptyState } from '@/components/ui';
+import { TabBar, Alert } from '@/components/ui';
 import { getSaeoContext } from './saeo-actions';
 import { AssessmentSection } from './AssessmentSection';
 import { ObservationsSection } from './ObservationsSection';
+import { ScreeningSection } from './ScreeningSection';
+import { EvaluationSection } from './EvaluationSection';
 
 const SUB = [
   { key: 'assessment', label: 'Assessment' },
@@ -14,7 +15,6 @@ const SUB = [
 export async function SaeoPanel({ childId, sub }: { childId: string; sub: string }) {
   const ctx = await getSaeoContext(childId);
   const active = SUB.some((s) => s.key === sub) ? sub : 'assessment';
-  const label = SUB.find((s) => s.key === active)?.label ?? 'Assessment';
 
   return (
     <div>
@@ -31,10 +31,10 @@ export async function SaeoPanel({ childId, sub }: { childId: string; sub: string
         <AssessmentSection childId={childId} />
       ) : active === 'observations' ? (
         <ObservationsSection childId={childId} />
+      ) : active === 'screening' ? (
+        <ScreeningSection childId={childId} />
       ) : (
-        <Card padding="none">
-          <EmptyState icon={<Construction className="w-8 h-8" />} title={`${label} — coming soon`} description="This SAEO area is part of the next build step." />
-        </Card>
+        <EvaluationSection childId={childId} />
       )}
     </div>
   );

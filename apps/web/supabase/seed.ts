@@ -1066,6 +1066,8 @@ async function main(): Promise<void> {
   // ── 9c-quinquies. SAEO: observations + a draft checkpoint (infant/toddler) ──
   let obsCount = 0;
   let cpCount = 0;
+  let screenCount = 0;
+  let referralCount = 0;
   const { data: fwRow } = await db
     .from('frameworks')
     .select('id')
@@ -1098,10 +1100,18 @@ async function main(): Promise<void> {
       type ObsGoalInsert = Database['public']['Tables']['observation_goals']['Insert'];
       type CpInsert = Database['public']['Tables']['checkpoints']['Insert'];
       type CpRatingInsert = Database['public']['Tables']['checkpoint_ratings']['Insert'];
+      type ScreenInsert = Database['public']['Tables']['screenings']['Insert'];
+      type RefInsert = Database['public']['Tables']['referrals']['Insert'];
+      type RefInputInsert = Database['public']['Tables']['referral_inputs']['Insert'];
+      type PlanGoalInsert = Database['public']['Tables']['plan_goals']['Insert'];
       const obsRows: ObsInsert[] = [];
       const obsGoalRows: ObsGoalInsert[] = [];
       const cpRows: CpInsert[] = [];
       const cpRatingRows: CpRatingInsert[] = [];
+      const screenRows: ScreenInsert[] = [];
+      const referralRows: RefInsert[] = [];
+      const refInputRows: RefInputInsert[] = [];
+      const planGoalRows: PlanGoalInsert[] = [];
       const monthsOf = (bd: string) => Math.floor((Date.now() - new Date(`${bd}T00:00:00`).getTime()) / (30.44 * 86_400_000));
 
       const itByCenter = new Map<string, ChildInsert[]>();
@@ -1114,9 +1124,11 @@ async function main(): Promise<void> {
       }
 
       for (const [cid, kids] of itByCenter) {
-        kids.slice(0, 3).forEach((c) => {
+        kids.slice(0, 3).forEach((c, ki) => {
+          const cObs: string[] = [];
           for (let o = 0; o < 2; o++) {
             const oid = randomUUID();
+            cObs.push(oid);
             obsRows.push({ id: oid, child_id: c.id as string, center_id: cid, classroom_id: (c.classroom_id as string) ?? null, observed_by: owner.id, observed_on: isoDate(daysAgo(rng.int(3, 40))), title: rng.pick(OBS_TITLES), body: rng.pick(OBS_BODIES) });
             const picks = new Set<string>();
             while (picks.size < rng.int(1, 2)) picks.add(rng.pick(itGoalIds));
@@ -1125,6 +1137,45 @@ async function main(): Promise<void> {
           const cpId = randomUUID();
           cpRows.push({ id: cpId, child_id: c.id as string, center_id: cid, framework_id: fwRow.id, view: 'infant_toddler', period_label: 'Fall 2026', period_start: isoDate(daysAgo(10)), period_end: isoDate(daysFromNow(80)), status: 'draft' });
           for (const gid of itGoalIds.slice(0, 12)) cpRatingRows.push({ checkpoint_id: cpId, goal_id: gid, rating_level_id: rng.pick(levelIds), rated_at: new Date().toISOString() });
+
+          // A developmental screening for each of these children.
+          const ageM = monthsOf(c.birthdate as string);
+          screenRows.push({
+            child_id: c.id as string,
+            center_id: cid,
+            instrument: 'ASQ-3',
+            interval_label: `${Math.max(2, Math.round(ageM / 6) * 6)} month`,
+            result_summary: ki === 0 ? 'Communication domain below cutoff; monitor and refer.' : 'All domains within typical range.',
+            outcome: ki === 0 ? 'refer' : 'pass',
+            administered_by: owner.id,
+            administered_on: isoDate(daysAgo(rng.int(20, 90))),
+            due_on: isoDate(daysFromNow(rng.int(120, 200))),
+          });
+
+          // One worked-through referral per center (on the first child) to exercise Evaluation.
+          if (ki === 0) {
+            const refId = randomUUID();
+            referralRows.push({
+              id: refId,
+              child_id: c.id as string,
+              center_id: cid,
+              stage: 'services_active',
+              concern_summary: 'Delays in expressive communication noted during screening and daily routines.',
+              raised_by: owner.id,
+              raised_on: isoDate(daysAgo(70)),
+              agency: 'Maryland Infants & Toddlers Program (MITP)',
+              is_part_c: true,
+              parent_consent_on: isoDate(daysAgo(63)),
+              referred_on: isoDate(daysAgo(60)),
+              evaluation_on: isoDate(daysAgo(35)),
+              plan_type: 'IFSP',
+              plan_start: isoDate(daysAgo(25)),
+              plan_review_due: isoDate(daysFromNow(65)),
+            });
+            refInputRows.push({ referral_id: refId, submitted_by: owner.id, body: 'Teacher notes: uses gestures more than words; responds well to modeling. Attaching recent observations.', observation_ids: cObs });
+            planGoalRows.push({ referral_id: refId, goal_text: 'Increase expressive vocabulary to 20+ words.', strategy: 'Narrate routines and offer choices with verbal labels.' });
+            planGoalRows.push({ referral_id: refId, goal_text: 'Combine two words to make requests.', strategy: 'Model two-word phrases during play and mealtimes.' });
+          }
         });
       }
 
@@ -1132,8 +1183,14 @@ async function main(): Promise<void> {
       await insertChunked(db, 'observation_goals', obsGoalRows);
       await insertChunked(db, 'checkpoints', cpRows);
       await insertChunked(db, 'checkpoint_ratings', cpRatingRows);
+      await insertChunked(db, 'screenings', screenRows);
+      await insertChunked(db, 'referrals', referralRows);
+      await insertChunked(db, 'referral_inputs', refInputRows);
+      await insertChunked(db, 'plan_goals', planGoalRows);
       obsCount = obsRows.length;
       cpCount = cpRows.length;
+      screenCount = screenRows.length;
+      referralCount = referralRows.length;
     }
   }
 
@@ -1374,6 +1431,8 @@ async function main(): Promise<void> {
   console.log(`   schedules:         ${schedRows.length}`);
   console.log(`   observations:      ${obsCount}`);
   console.log(`   draft checkpoints: ${cpCount}`);
+  console.log(`   screenings:        ${screenCount}`);
+  console.log(`   referrals:         ${referralCount}`);
   console.log(`   attendance (today):${attendanceRows.length}`);
   console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
