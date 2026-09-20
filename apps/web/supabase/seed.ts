@@ -501,7 +501,8 @@ async function main(): Promise<void> {
   const elof = await seedElof(db);
   console.log(
     `Seeded ELOF framework: ${elof.domains} domains, ${elof.subdomains} sub-domains, ` +
-      `${elof.goals} goals, ${elof.progressions} progressions, ${elof.ratingLevels} rating levels.`,
+      `${elof.goals} goals, ${elof.progressions} progressions, ${elof.ratingLevels} rating levels, ` +
+      `${elof.descriptors} descriptors.`,
   );
 
   // ── 1. Organization ──────────────────────────────────────────────────────
@@ -988,6 +989,35 @@ async function main(): Promise<void> {
   await insertChunked(db, 'authorized_pickups', pickupRows);
   await insertChunked(db, 'student_siblings', siblingRows);
 
+  // ── 9c-quater. "All About Me" + attendance schedule ─────────────────────────
+  type AboutInsert = Database['public']['Tables']['student_about']['Insert'];
+  type SchedInsert = Database['public']['Tables']['student_schedule']['Insert'];
+  // Labels below must exist among the seeded default descriptors (seed-elof.ts).
+  const ABOUT_SAMPLES: Record<string, string[]>[] = [
+    { loves: ['Music & singing', 'Books & stories'], comfort: ['Favorite blanket'], sleep: ['Naps after lunch'] },
+    { loves: ['Outdoor play', 'Animals'], eating: ['Good eater'], routines: ['Song before nap'] },
+    { loves: ['Blocks', 'Art & drawing'], dislikes: ['Loud noises'], friends: ['Very social'] },
+  ];
+  const aboutRows: AboutInsert[] = [];
+  const schedRows: SchedInsert[] = [];
+  childrenRows.forEach((c, i) => {
+    if (i % 2 === 0) {
+      aboutRows.push({
+        child_id: c.id as string,
+        selections: ABOUT_SAMPLES[i % ABOUT_SAMPLES.length] as AboutInsert['selections'],
+        note: null,
+      });
+    }
+    schedRows.push({
+      child_id: c.id as string,
+      days: { days: [1, 2, 3, 4, 5] } as SchedInsert['days'],
+      dropoff_window: '7:30–8:30 AM',
+      pickup_window: '4:30–5:30 PM',
+    });
+  });
+  await insertChunked(db, 'student_about', aboutRows);
+  await insertChunked(db, 'student_schedule', schedRows);
+
   // ── 10. Time entries (weekday clock in/out history) ─────────────────────────
   type TimeEntry = Database['public']['Tables']['time_entries']['Insert'];
   const timeEntries: TimeEntry[] = [];
@@ -1220,6 +1250,8 @@ async function main(): Promise<void> {
   console.log(`   guardians:         ${guardianRows.length}`);
   console.log(`   authorized pickups:${pickupRows.length}`);
   console.log(`   siblings (links):  ${siblingRows.length}`);
+  console.log(`   about profiles:    ${aboutRows.length}`);
+  console.log(`   schedules:         ${schedRows.length}`);
   console.log(`   attendance (today):${attendanceRows.length}`);
   console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
@@ -1279,6 +1311,9 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
     await db.from('push_tokens').delete().in('user_id', userIds);
   }
   if (centerIds.length) {
+    // Center-scoped student descriptors (created via the About modal) restrict
+    // center deletion — clear them first. System defaults (center_id null) stay.
+    await db.from('student_descriptors').delete().in('center_id', centerIds);
     await db.from('center_memberships').delete().in('center_id', centerIds);
     await db.from('classrooms').delete().in('center_id', centerIds);
     await db.from('centers').delete().in('org_id', orgId ? [orgId] : []);

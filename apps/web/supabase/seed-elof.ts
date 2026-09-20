@@ -46,6 +46,20 @@ const RATING_LEVELS: Array<{ level_number: number; label: string; color: string 
   { level_number: 4, label: 'Exceeding', color: '#2563EB' },
 ];
 
+// ── "All About Me" default descriptors (center_id null system defaults). Keys
+//    must match apps/web/lib/students/about.ts ABOUT_GROUPS. ─────────────────
+const DEFAULT_DESCRIPTORS: Record<string, string[]> = {
+  loves: ['Music & singing', 'Books & stories', 'Blocks', 'Animals', 'Outdoor play', 'Art & drawing', 'Dancing', 'Water play'],
+  comfort: ['Pacifier', 'Favorite blanket', 'Stuffed animal', 'Rocking', 'Being held', 'Soft music', 'Dim lights'],
+  sleep: ['Naps after lunch', 'Needs white noise', 'Sleeps with lovey', 'Back rubs to sleep', 'Short napper', 'Long napper'],
+  eating: ['Good eater', 'Picky eater', 'Uses utensils', 'Still bottle-fed', 'Finger foods', 'Needs food cut small'],
+  friends: ['Very social', 'Plays alongside others', 'Prefers one friend', 'Loves group play', 'Shy at first'],
+  words: ['Potty = "potty"', 'Bottle = "ba-ba"', 'Grandma = "Nana"', 'Water = "wawa"'],
+  dislikes: ['Loud noises', 'Sudden transitions', 'Getting hands messy', 'Bright lights', 'Large crowds'],
+  routines: ['Hug goodbye at the door', 'Song before nap', 'Help with handwashing', 'Wave at the window'],
+  family: ['Bilingual (Spanish)', 'Lives with grandparents', 'New sibling at home', 'Celebrates Kwanzaa'],
+};
+
 /** Map an ELOF infant/toddler age-band label to [min, max] months. Case-insensitive. */
 function bandToMonths(band: string): { min: number; max: number; order: number } {
   const b = band.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -127,6 +141,7 @@ export async function seedElof(db: Db): Promise<{
   goals: number;
   progressions: number;
   ratingLevels: number;
+  descriptors: number;
 }> {
   const domainFiles = loadDomainFiles();
 
@@ -147,6 +162,10 @@ export async function seedElof(db: Db): Promise<{
   {
     const { error } = await db.from('rating_levels').delete().is('center_id', null);
     if (error) throw new Error(`Failed clearing system rating levels: ${error.message}`);
+  }
+  {
+    const { error } = await db.from('student_descriptors').delete().is('center_id', null);
+    if (error) throw new Error(`Failed clearing system descriptors: ${error.message}`);
   }
 
   // ── Framework row ──
@@ -226,12 +245,20 @@ export async function seedElof(db: Db): Promise<{
     })),
   );
 
+  // ── "All About Me" default descriptors (center_id null) ──
+  const descriptorRows: Database['public']['Tables']['student_descriptors']['Insert'][] = [];
+  for (const [group, labels] of Object.entries(DEFAULT_DESCRIPTORS)) {
+    for (const label of labels) descriptorRows.push({ center_id: null, group_key: group, label });
+  }
+  await insertChunked(db, 'student_descriptors', descriptorRows);
+
   return {
     domains: domainRows.length,
     subdomains: subdomainRows.length,
     goals: goalRows.length,
     progressions: progressionRows.length,
     ratingLevels: RATING_LEVELS.length,
+    descriptors: descriptorRows.length,
   };
 }
 
@@ -257,7 +284,7 @@ async function main(): Promise<void> {
   const tally = await seedElof(db);
   console.log(
     `  ✓ ${tally.domains} domains, ${tally.subdomains} sub-domains, ${tally.goals} goals, ` +
-      `${tally.progressions} progressions, ${tally.ratingLevels} rating levels`,
+      `${tally.progressions} progressions, ${tally.ratingLevels} rating levels, ${tally.descriptors} descriptors`,
   );
 }
 

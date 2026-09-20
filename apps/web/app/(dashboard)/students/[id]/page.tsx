@@ -5,6 +5,9 @@ import { Card, Badge, TabBar, Alert, StatusDot, EmptyState, type BadgeTone } fro
 import { getStudentHeader, type EnrollmentStatus } from '../actions';
 import { InfoPanel } from './InfoPanel';
 import { FamilyPanel } from './FamilyPanel';
+import { AboutCard } from './AboutCard';
+import { ScheduleCard } from './ScheduleCard';
+import { getStudentAbout, getStudentSchedule } from './about-schedule-actions';
 
 const STATUS_META: Record<EnrollmentStatus, { label: string; tone: BadgeTone }> = {
   active: { label: 'Active', tone: 'green' },
@@ -40,6 +43,8 @@ export default async function StudentProfilePage({
 }) {
   const header = await getStudentHeader(params.id);
   if (!header) notFound();
+
+  const [about, schedule] = await Promise.all([getStudentAbout(params.id), getStudentSchedule(params.id)]);
 
   const tabParam = typeof searchParams.tab === 'string' ? searchParams.tab : 'info';
   const tab = TABS.some((t) => t.key === tabParam) ? tabParam : 'info';
@@ -94,33 +99,43 @@ export default async function StudentProfilePage({
         </div>
       </Card>
 
-      {/* Severe allergy banner */}
-      {header.severeAllergies.length > 0 && (
-        <Alert tone="red" className="mb-4">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span>
-            <span className="font-semibold">Severe allergy:</span> {header.severeAllergies.join(', ')}
-          </span>
-        </Alert>
-      )}
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Left rail: About + Schedule summary cards */}
+        {(about || schedule) && (
+          <div className="w-full md:w-72 flex-shrink-0 space-y-4">
+            {about && <AboutCard childId={header.id} name={header.name} about={about} />}
+            {schedule && <ScheduleCard childId={header.id} schedule={schedule} />}
+          </div>
+        )}
 
-      {/* Tabs */}
-      <TabBar items={TABS} active={tab} hrefFor={(k) => `/students/${header.id}?tab=${k}`} className="mb-4" />
+        {/* Right: allergy banner + tabs + panel */}
+        <div className="flex-1 min-w-0">
+          {header.severeAllergies.length > 0 && (
+            <Alert tone="red" className="mb-4">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                <span className="font-semibold">Severe allergy:</span> {header.severeAllergies.join(', ')}
+              </span>
+            </Alert>
+          )}
 
-      {/* Panel */}
-      {tab === 'info' ? (
-        <InfoPanel childId={header.id} />
-      ) : tab === 'family' ? (
-        <FamilyPanel childId={header.id} />
-      ) : (
-        <Card padding="none">
-          <EmptyState
-            icon={<Construction className="w-8 h-8" />}
-            title={`${activeTabLabel} — coming soon`}
-            description="This tab is part of a later build step. The student directory, profile shell, Info, and Family tabs are live now."
-          />
-        </Card>
-      )}
+          <TabBar items={TABS} active={tab} hrefFor={(k) => `/students/${header.id}?tab=${k}`} className="mb-4" />
+
+          {tab === 'info' ? (
+            <InfoPanel childId={header.id} />
+          ) : tab === 'family' ? (
+            <FamilyPanel childId={header.id} />
+          ) : (
+            <Card padding="none">
+              <EmptyState
+                icon={<Construction className="w-8 h-8" />}
+                title={`${activeTabLabel} — coming soon`}
+                description="This tab is part of a later build step. The directory, profile, Info, Family, About, and Schedule are live now."
+              />
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -30,7 +30,16 @@ Branch `feat/students` (off reconciled `main`). Phased per the approved plan.
 - [x] Family tab: guardian cards (inline edit + Primary/Emergency/Restricted badges + add/remove), authorized pickups (add/remove), siblings (display-only links); `FamilyPanel` remounts (key on row-id signature) so add/remove resets the dirty baseline
 - [x] seed.ts: 1–2 guardians per child (mother primary+emergency, ~60% father), ~20% a grandparent pickup, siblings linked by shared last name within a center
 - Verified in sandbox: 77 guardians / 9 pickups / 76 sibling links; sibling embed FK (`student_siblings_sibling_id_fkey`) confirmed; tsc + build + 34 core tests green
-## Phase D — Modals (About / Schedule / MultiSelect)  (pending)
+## Phase D — About / Schedule cards + modals  (done)
+- [x] Two-column profile layout: hero on top, left rail (About + Schedule cards) + right (allergy banner + tabs)
+- [x] `AboutCard` — amber "About <name>" card; grouped descriptor chips + note; edit Modal with a `MultiSelectField` per group (9 ABOUT_GROUPS) + note; inline "+ Add" creates reusable center-scoped descriptors on save
+- [x] `ScheduleCard` — days (`DayToggleRow`) + drop-off/pickup windows + transition room/date; edit Modal
+- [x] `about-schedule-actions.ts` — get/save About (`student_about` upsert + persists new labels to `student_descriptors`) and Schedule (`student_schedule` upsert, `days` jsonb `{days:number[]}`); admin/director-gated
+- [x] `lib/students/about.ts` — 9 stable ABOUT_GROUPS (keys shared with seeder)
+- [x] seed-elof.ts: seed 49 default descriptors (center_id null) across 9 groups, idempotent
+- [x] seed.ts: ~half of children get an About profile; all get a Mon–Fri schedule; reset now clears center-scoped descriptors before deleting the center (RESTRICT FK)
+- Verified in sandbox: 49 default descriptors / 9 groups, 24 About rows, 48 schedules, 0 orphaned center descriptors; tsc + build + 34 core tests green
+- MultiSelect surface (home languages / tags) is already handled inline on the Info tab (Phase C), so no separate modal needed
 ## Phase E — Health / Documents / Activity tabs  (pending)
 ## Phase F — SAEO (Assessment → Screening → Evaluation → Observations)  (pending; needs ELOF verified)
 ## Phase G — Add-student wizard  (pending)
