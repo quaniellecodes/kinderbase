@@ -8,6 +8,7 @@ import { FamilyPanel } from './FamilyPanel';
 import { HealthPanel } from './HealthPanel';
 import { DocumentsPanel } from './DocumentsPanel';
 import { ActivityPanel } from './ActivityPanel';
+import { SaeoPanel } from './SaeoPanel';
 import { AboutCard } from './AboutCard';
 import { ScheduleCard } from './ScheduleCard';
 import { getStudentAbout, getStudentSchedule } from './about-schedule-actions';
@@ -42,7 +43,7 @@ export default async function StudentProfilePage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { tab?: string | string[] };
+  searchParams: { tab?: string | string[]; saeo?: string | string[] };
 }) {
   const header = await getStudentHeader(params.id);
   if (!header) notFound();
@@ -134,12 +135,14 @@ export default async function StudentProfilePage({
             <DocumentsPanel childId={header.id} />
           ) : tab === 'activity' ? (
             <ActivityPanel childId={header.id} />
+          ) : tab === 'saeo' ? (
+            <SaeoPanel childId={header.id} sub={typeof searchParams.saeo === 'string' ? searchParams.saeo : 'assessment'} />
           ) : (
             <Card padding="none">
               <EmptyState
                 icon={<Construction className="w-8 h-8" />}
                 title={`${activeTabLabel} — coming soon`}
-                description="This tab is part of a later build step. Everything except SAEO is live now."
+                description="This tab is part of a later build step."
               />
             </Card>
           )}

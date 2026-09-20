@@ -50,7 +50,17 @@ Branch `feat/students` (off reconciled `main`). Phased per the approved plan.
 - [x] seed.ts: 35 health items (severe allergy + meds/diet/conditions), 38 physicians, 152 docs (incl. review_due + confidential); reset unaffected (all cascade via children)
 - Verified in sandbox: 9 review_due, 8 confidential, meds/diet/conditions present, 38 physicians; migration 022 bucket present; tsc + build + 34 core tests green
 - Deferred: none functionally — upload path is live; (no file bytes in seed, so downloads appear once a file is uploaded)
-## Phase F — SAEO (Assessment → Screening → Evaluation → Observations)  (pending; needs ELOF verified)
+## Phase F — SAEO  (in progress)
+SAEO tab with sub-nav (`?tab=saeo&saeo=`): Assessment · Observations · Screening · Evaluation.
+- [x] `saeo-actions.ts` — context (child's ELOF view from age, framework availability, photo consent), goal options, observations (create with goal tags + consent-gated photo, soft delete), checkpoints (list + create; 90-day period; view from age)
+- [x] Observations: `ObservationsSection` + `ObservationsClient` — list (goal-code chips, signed photo), composer modal (goal multiselect by code, photo gated on `photo_consent`)
+- [x] Assessment: `AssessmentSection` + `NewCheckpointButton`; checkpoint list → rating screen `/students/[id]/checkpoint/[cpId]`
+- [x] Rating screen: `checkpoint-actions.ts` (`getCheckpointDetail` = domains→subdomains→goals + current age-band progression + ratings + observation evidence per goal; `rateGoal` autosave [locked unless draft]; `setCheckpointStatus` submit/reopen) + `CheckpointRating` (domain rail, progress, submit/lock) + reusable `GoalRatingRow` (segmented control, note, evidence chips, per-row autosave)
+- [x] `SaeoPanel` wired in; preschool view shows a "content not loaded" notice (IT-only per plan)
+- [x] seed.ts: 6 observations (goal-tagged) + 3 draft checkpoints (12 ratings each) on IT children; cascade via children on reset
+- Verified: 3 checkpoints × 12 ratings, 6 observations w/ goal links (demo: Elena Hayes); tsc + build + 34 core tests green
+- [ ] Screening (read-only + admin "record result", superseded_by history) — next
+- [ ] Evaluation (referral tracker, Part C/B by age, turning-3 banner, contribute-input, plan) — next
 ## Phase G — Add-student wizard  (pending)
 
 ## Notes / reconciliations (see plan)

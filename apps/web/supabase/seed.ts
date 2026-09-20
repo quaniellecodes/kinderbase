@@ -1063,6 +1063,80 @@ async function main(): Promise<void> {
   await insertChunked(db, 'student_about', aboutRows);
   await insertChunked(db, 'student_schedule', schedRows);
 
+  // ── 9c-quinquies. SAEO: observations + a draft checkpoint (infant/toddler) ──
+  let obsCount = 0;
+  let cpCount = 0;
+  const { data: fwRow } = await db
+    .from('frameworks')
+    .select('id')
+    .eq('is_system', true)
+    .is('center_id', null)
+    .eq('name', 'Head Start Early Learning Outcomes Framework')
+    .maybeSingle();
+  if (fwRow) {
+    const { data: doms } = await db
+      .from('framework_domains')
+      .select('framework_subdomains(framework_goals(id))')
+      .eq('framework_id', fwRow.id)
+      .eq('view', 'infant_toddler');
+    const itGoalIds: string[] = [];
+    for (const d of doms ?? [])
+      for (const s of (d.framework_subdomains ?? []) as { framework_goals?: { id: string }[] }[])
+        for (const g of s.framework_goals ?? []) itGoalIds.push(g.id);
+    const { data: levels } = await db.from('rating_levels').select('id').is('center_id', null).order('sort_order');
+    const levelIds = (levels ?? []).map((l) => l.id);
+
+    if (itGoalIds.length && levelIds.length) {
+      const OBS_TITLES = ['Stacked blocks', 'Comforted a friend', 'Named animals in a book', 'Tried a new food', 'Sang along at circle time'];
+      const OBS_BODIES = [
+        'Worked independently for several minutes and showed real focus.',
+        'Used words to ask for help from a familiar teacher.',
+        'Explored materials with curiosity and persistence.',
+        'Followed the routine with only a gentle reminder.',
+      ];
+      type ObsInsert = Database['public']['Tables']['observations']['Insert'];
+      type ObsGoalInsert = Database['public']['Tables']['observation_goals']['Insert'];
+      type CpInsert = Database['public']['Tables']['checkpoints']['Insert'];
+      type CpRatingInsert = Database['public']['Tables']['checkpoint_ratings']['Insert'];
+      const obsRows: ObsInsert[] = [];
+      const obsGoalRows: ObsGoalInsert[] = [];
+      const cpRows: CpInsert[] = [];
+      const cpRatingRows: CpRatingInsert[] = [];
+      const monthsOf = (bd: string) => Math.floor((Date.now() - new Date(`${bd}T00:00:00`).getTime()) / (30.44 * 86_400_000));
+
+      const itByCenter = new Map<string, ChildInsert[]>();
+      for (const c of childrenRows) {
+        if (monthsOf(c.birthdate as string) < 36) {
+          const a = itByCenter.get(c.center_id as string) ?? [];
+          a.push(c);
+          itByCenter.set(c.center_id as string, a);
+        }
+      }
+
+      for (const [cid, kids] of itByCenter) {
+        kids.slice(0, 3).forEach((c) => {
+          for (let o = 0; o < 2; o++) {
+            const oid = randomUUID();
+            obsRows.push({ id: oid, child_id: c.id as string, center_id: cid, classroom_id: (c.classroom_id as string) ?? null, observed_by: owner.id, observed_on: isoDate(daysAgo(rng.int(3, 40))), title: rng.pick(OBS_TITLES), body: rng.pick(OBS_BODIES) });
+            const picks = new Set<string>();
+            while (picks.size < rng.int(1, 2)) picks.add(rng.pick(itGoalIds));
+            for (const gid of picks) obsGoalRows.push({ observation_id: oid, goal_id: gid });
+          }
+          const cpId = randomUUID();
+          cpRows.push({ id: cpId, child_id: c.id as string, center_id: cid, framework_id: fwRow.id, view: 'infant_toddler', period_label: 'Fall 2026', period_start: isoDate(daysAgo(10)), period_end: isoDate(daysFromNow(80)), status: 'draft' });
+          for (const gid of itGoalIds.slice(0, 12)) cpRatingRows.push({ checkpoint_id: cpId, goal_id: gid, rating_level_id: rng.pick(levelIds), rated_at: new Date().toISOString() });
+        });
+      }
+
+      await insertChunked(db, 'observations', obsRows);
+      await insertChunked(db, 'observation_goals', obsGoalRows);
+      await insertChunked(db, 'checkpoints', cpRows);
+      await insertChunked(db, 'checkpoint_ratings', cpRatingRows);
+      obsCount = obsRows.length;
+      cpCount = cpRows.length;
+    }
+  }
+
   // ── 10. Time entries (weekday clock in/out history) ─────────────────────────
   type TimeEntry = Database['public']['Tables']['time_entries']['Insert'];
   const timeEntries: TimeEntry[] = [];
@@ -1298,6 +1372,8 @@ async function main(): Promise<void> {
   console.log(`   siblings (links):  ${siblingRows.length}`);
   console.log(`   about profiles:    ${aboutRows.length}`);
   console.log(`   schedules:         ${schedRows.length}`);
+  console.log(`   observations:      ${obsCount}`);
+  console.log(`   draft checkpoints: ${cpCount}`);
   console.log(`   attendance (today):${attendanceRows.length}`);
   console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
