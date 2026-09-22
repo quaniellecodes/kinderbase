@@ -81,7 +81,13 @@ export async function loadRoomInput(classroomId: string, clock: Clock, db?: Serv
   return { children, staff, napState, at };
 }
 
-/** The classroom whose assignment covers now for this user, or null. */
+/**
+ * The classroom this user is working in now: their live assignment if one covers
+ * the current time, otherwise their home room from the roster. The roster
+ * fallback keeps the app usable off-shift (and all day in the demo) — ratios
+ * still come from live assignments in loadRoomInput, so nothing is misreported.
+ * Returns null for staff with no roster (e.g. an unassigned float → "on call").
+ */
 export async function activeClassroomFor(userId: string, clock: Clock, db?: Service): Promise<string | null> {
   const service = db ?? createServiceClient();
   const nowISO = clock.now().toISOString();
@@ -94,5 +100,14 @@ export async function activeClassroomFor(userId: string, clock: Clock, db?: Serv
     .order('starts_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  return data?.classroom_id ?? null;
+  if (data?.classroom_id) return data.classroom_id;
+
+  const { data: roster } = await service
+    .from('classroom_staff')
+    .select('classroom_id')
+    .eq('user_id', userId)
+    .order('sort_order')
+    .limit(1)
+    .maybeSingle();
+  return roster?.classroom_id ?? null;
 }
