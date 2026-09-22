@@ -17,6 +17,23 @@ const CLOCKS = [
   { hhmm: '15:10', label: '3:10 PM' },
 ];
 
+type ScenarioRole = 'director' | 'lead_teacher' | 'assistant_teacher' | 'substitute';
+const SCENARIOS: { key: string; label: string; clock: string; role: ScenarioRole; blurb: string }[] = [
+  { key: 'ratio', label: 'Room out of ratio', clock: '09:12', role: 'director', blurb: 'The engine flags a room below COMAR and suggests a fix.' },
+  { key: 'float', label: 'Float reassignment', clock: '09:12', role: 'substitute', blurb: 'See the day from the floating teacher’s phone.' },
+  { key: 'nap', label: 'Nap-time breaks', clock: '12:05', role: 'director', blurb: 'Who can step out while children rest.' },
+  { key: 'plan', label: 'Lesson-plan review', clock: '09:12', role: 'director', blurb: 'A submitted plan waiting in the Inbox.' },
+  { key: 'families', label: 'Families & translation', clock: '09:12', role: 'lead_teacher', blurb: 'An unanswered thread and a Spanish family.' },
+];
+
+const STORIES: { n: number; title: string; body: string }[] = [
+  { n: 1, title: 'Morning check-in', body: 'Open as the Director at 9:12. The Home screen runs every room through the staffing engine and flags the one that’s out of ratio.' },
+  { n: 2, title: 'Fix the room', body: 'Tap the alert to assign a float or move a child — each option is simulated against COMAR before you commit.' },
+  { n: 3, title: 'The teacher’s phone', body: 'Switch to the Lead. Log a care update, post an observation, and see the day’s priorities and lesson plan.' },
+  { n: 4, title: 'Nap-time breaks', body: 'Jump the clock to 12:05. The app shows who can step out for a break while children are resting.' },
+  { n: 5, title: 'Families', body: 'Open Messages. A family message has gone unanswered for a day (it’s flagged red), and a Spanish thread translates both ways.' },
+];
+
 export function DemoStage({
   personas,
   currentUserId,
@@ -49,15 +66,30 @@ export function DemoStage({
     await fetch('/api/demo/login/', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ userId, centerId }) });
     location.reload();
   }
-  function setClock(hhmm: string) {
+  function writeClockCookie(hhmm: string) {
     const d = new Date();
     const [h, m] = hhmm.split(':').map(Number);
     d.setHours(h!, m!, 0, 0);
     document.cookie = `kb_demo_now=${encodeURIComponent(d.toISOString())}; path=/; max-age=86400`;
+  }
+  function setClock(hhmm: string) {
+    writeClockCookie(hhmm);
     location.reload();
   }
   function realTime() {
     document.cookie = 'kb_demo_now=; path=/; max-age=0';
+    location.reload();
+  }
+
+  // A scenario is a one-tap (clock + persona) preset over the seeded baseline.
+  async function runScenario(clock: string, role: ScenarioRole) {
+    if (busy) return;
+    setBusy(true);
+    writeClockCookie(clock);
+    const persona = personas.find((p) => p.role === role);
+    if (persona && persona.userId !== currentUserId) {
+      await fetch('/api/demo/login/', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ userId: persona.userId, centerId }) });
+    }
     location.reload();
   }
 
@@ -122,6 +154,38 @@ export function DemoStage({
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Scenarios</p>
+          <div className="flex flex-col gap-1.5">
+            {SCENARIOS.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => runScenario(s.clock, s.role)}
+                disabled={busy}
+                className="rounded-xl border border-gray-200 bg-white p-2.5 text-left disabled:opacity-50"
+              >
+                <div className="text-[12px] font-semibold text-gray-900">{s.label}</div>
+                <div className="text-[10px] text-gray-500 leading-snug">{s.blurb}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Stories to walk through</p>
+          <ol className="space-y-2">
+            {STORIES.map((s) => (
+              <li key={s.n} className="flex gap-2.5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand/10 text-brand text-[11px] font-bold flex items-center justify-center">{s.n}</span>
+                <div>
+                  <div className="text-[12px] font-semibold text-gray-900">{s.title}</div>
+                  <div className="text-[10px] text-gray-500 leading-snug">{s.body}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
 
         <Link href="/dashboard" className="inline-block text-xs font-semibold text-brand">← Back to desktop</Link>
