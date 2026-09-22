@@ -70,10 +70,7 @@ export function DemoStage({
       <div className="flex-shrink-0 mx-auto">
         <div className="bg-[#1a1a18] shadow-2xl" style={{ borderRadius: dev.radius, padding: dev.bezel, width: 'min(100%, ' + (dev.w + dev.bezel * 2) + 'px)' }}>
           <div className="bg-white overflow-hidden relative" style={{ borderRadius: dev.radius - dev.bezel, height: `min(${dev.h}px, 84vh)` }}>
-            <div className="absolute top-0 inset-x-0 z-10 bg-amber-50 text-amber-800 text-[10px] font-medium text-center py-1 border-b border-amber-100">
-              Sample data — no real children
-            </div>
-            <iframe ref={iframeRef} src="/m" title="KinderBase mobile" className="w-full h-full border-0 pt-[19px]" />
+            <iframe ref={iframeRef} src="/m" title="KinderBase mobile" className="w-full h-full border-0" />
           </div>
         </div>
       </div>
