@@ -158,7 +158,12 @@ A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both*
 - [x] Rooms list (`/m/admin/rooms`, All / Needs-attention filter → mode sheet); Inbox/People stubs.
 - Verified: tsc + production build (all /m/admin routes) + 60 core tests green. Reuses `cover_sessions` from migration 023 — no new migration.
 
-### Phase 4b — pending
-Approvals queue (`getApprovals`: time corrections w/ payroll impact, leave w/ engine coverage warning, schedule changes, lesson-plan Return/Review/Approve), the float-assignment sheet (per-candidate engine simulation: Fixes it / Still n short / Breaks <room>), the "Move them" age-mix action, People (staff + students), center switcher, admin ＋ sheet.
+### Phase 4b — approvals + float + age-mix + People (done)
+- [x] **Approvals** (`/m/admin/inbox`): `getApprovals` unifies pending `staff_requests` (time correction / leave / schedule) + submitted `lesson_plans`; leave flags a coverage note if the requester leads a room. Cards with Deny/Approve (requests) or **Return-with-comment**/Approve (plans). `resolveApproval` → request status or plan status (`returned` writes `review_comment` → shows in the lead's plan tab).
+- [x] **Float assignment** (`FloatSheet`): `getFloatCandidates` simulates each candidate through the engine → **Fixes it / Still n short / Breaks <room>** (blocked if pulling them drops their current room out of ratio) + Lead-qualified/Aide; `assignFloat` writes a `source='float'` assignment. Wired to the Home alert.
+- [x] **Age-mix "Move them"**: `applyAgeMixFix` runs `suggestAgeMixFix` across the center and moves the 2+ children to the compliant target room; Home alert button shows the mover names.
+- [x] **People** (`/m/admin/people`): staff (star score + role + Lead-qualified/Aide) and students (room · age + severe-allergy flag) segments.
+- Verified: tsc + production build + 60 core tests green. No new migration (reuses staff_requests/lesson_plans/staff_assignments).
+- **Phase 4 complete.** Deferred: time-correction payroll math + full engine coverage sim for a *future* leave day; center switcher + admin ＋ sheet (owner rollup) — light follow-ups.
 
 ## Phase 5–6 — pending (messaging, /demo partner sandbox)

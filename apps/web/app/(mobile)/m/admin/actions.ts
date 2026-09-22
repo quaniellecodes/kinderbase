@@ -1,10 +1,11 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { getClock } from '@/lib/clock';
 import { loadRoomInput } from '@/lib/staffing/room-state';
-import { evaluate, nextAgeTransition, suggestAgeMixFix, mixText, BAND_LABEL, type RoomInput, type Evaluation } from '@kinderbase/core';
+import { evaluate, nextAgeTransition, suggestAgeMixFix, isLeadFor, mixText, BAND_LABEL, type RoomInput, type Evaluation, type Staff } from '@kinderbase/core';
 import { isAdmin, computeCredentialStatus, childDisplayName } from '@kinderbase/types';
 
 type Service = ReturnType<typeof createServiceClient>;
@@ -136,4 +137,178 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     rooms: adminRooms,
     headsUp,
   };
+}
+
+// ── Float assignment (docs/sessions/04-ADMIN-MOBILE.md §5) ───────────────────
+export type FloatCandidate = { userId: string; name: string; roleLabel: string; pill: string; tone: 'ok' | 'warn' | 'bad'; blocked: boolean; currentRoom: string | null };
+
+export async function getFloatCandidates(classroomId: string): Promise<FloatCandidate[]> {
+  const ctx = await requireAdmin();
+  if (!ctx) return [];
+  const { service, centerId } = ctx;
+  const clock = getClock();
+  const nowISO = clock.now().toISOString();
+
+  const roomInput = await loadRoomInput(classroomId, clock, service);
+  if (!roomInput) return [];
+  const hasUnderTwo = evaluate(roomInput).rule.hasUnderTwo;
+  const present = new Set(roomInput.staff.map((s) => s.id));
+
+  const { data: members } = await service
+    .from('center_memberships')
+    .select('user_id, role, lead_qualified, infant_toddler_trained, users(full_name)')
+    .eq('center_id', centerId)
+    .is('left_at', null);
+
+  // Who is where, now.
+  const { data: assigns } = await service
+    .from('staff_assignments')
+    .select('user_id, classroom_id, classrooms(name)')
+    .eq('center_id', centerId)
+    .lte('starts_at', nowISO)
+    .gt('ends_at', nowISO);
+  const roomByUser = new Map<string, { id: string; name: string }>();
+  for (const a of assigns ?? []) {
+    const room = Array.isArray(a.classrooms) ? a.classrooms[0] : a.classrooms;
+    roomByUser.set(a.user_id, { id: a.classroom_id, name: (room as { name: string } | null)?.name ?? 'a room' });
+  }
+  const inputCache = new Map<string, RoomInput | null>();
+  const getInput = async (id: string) => {
+    if (!inputCache.has(id)) inputCache.set(id, await loadRoomInput(id, clock, service));
+    return inputCache.get(id) ?? null;
+  };
+
+  const out: FloatCandidate[] = [];
+  for (const m of members ?? []) {
+    if (present.has(m.user_id)) continue;
+    const u = Array.isArray(m.users) ? m.users[0] : m.users;
+    const cand: Staff = { id: m.user_id, leadQualified: m.lead_qualified, infantToddlerTrained: m.infant_toddler_trained };
+    const sim = evaluate({ ...roomInput, staff: [...roomInput.staff, cand] });
+    const cur = roomByUser.get(m.user_id) ?? null;
+
+    let blocked = false;
+    let pill: string;
+    let tone: FloatCandidate['tone'];
+    // Pulling them from a room that would then fall out of ratio blocks the move.
+    if (cur && cur.id !== classroomId) {
+      const src = await getInput(cur.id);
+      if (src && !evaluate({ ...src, staff: src.staff.filter((s) => s.id !== m.user_id) }).ok) {
+        blocked = true;
+        pill = `Breaks ${cur.name}`;
+        tone = 'bad';
+      } else {
+        pill = sim.ok ? 'Fixes it' : `Still ${Math.max(1, sim.requiredNow - (roomInput.staff.length + 1))} short`;
+        tone = sim.ok ? 'ok' : 'warn';
+      }
+    } else {
+      pill = sim.ok ? 'Fixes it' : `Still ${Math.max(1, sim.requiredNow - (roomInput.staff.length + 1))} short`;
+      tone = sim.ok ? 'ok' : 'warn';
+    }
+
+    out.push({
+      userId: m.user_id,
+      name: u?.full_name ?? 'Staff',
+      roleLabel: isLeadFor(cand, hasUnderTwo) ? 'Lead-qualified' : 'Aide',
+      pill,
+      tone,
+      blocked,
+      currentRoom: cur && cur.id !== classroomId ? cur.name : null,
+    });
+  }
+  // Fixers first, then still-short, blocked last.
+  const order = { ok: 0, warn: 1, bad: 2 } as const;
+  return out.sort((a, b) => order[a.tone] - order[b.tone]).slice(0, 8);
+}
+
+export async function assignFloat(classroomId: string, userId: string): Promise<void> {
+  const ctx = await requireAdmin();
+  if (!ctx) throw new Error('Forbidden');
+  const { service, centerId } = ctx;
+  const now = getClock().now();
+  const end = new Date(now);
+  end.setHours(23, 59, 0, 0);
+  await service.from('staff_assignments').insert({ center_id: centerId, classroom_id: classroomId, user_id: userId, starts_at: now.toISOString(), ends_at: end.toISOString(), source: 'float', assigned_by: ctx.userId });
+  revalidatePath('/m/admin');
+  revalidatePath('/m/admin/rooms');
+  revalidatePath(`/m/classroom/${classroomId}`);
+}
+
+export async function applyAgeMixFix(classroomId: string): Promise<{ moved: string[]; to: string } | null> {
+  const ctx = await requireAdmin();
+  if (!ctx) throw new Error('Forbidden');
+  const { service, centerId } = ctx;
+  const clock = getClock();
+  const { data: classrooms } = await service.from('classrooms').select('id, name').eq('center_id', centerId).is('deleted_at', null);
+  const rooms = classrooms ?? [];
+  const inputs = await Promise.all(rooms.map((r) => loadRoomInput(r.id, clock, service)));
+  const inputById: Record<string, RoomInput> = {};
+  rooms.forEach((r, i) => { if (inputs[i]) inputById[r.id] = inputs[i]!; });
+  const source = inputById[classroomId];
+  if (!source) return null;
+  const others = Object.fromEntries(Object.entries(inputById).filter(([id]) => id !== classroomId));
+  const fix = suggestAgeMixFix(source, others);
+  if (!fix) return null;
+  await service.from('children').update({ classroom_id: fix.to }).in('id', fix.move);
+  const { data: movers } = await service.from('children').select('first_name, last_name').in('id', fix.move);
+  const toName = rooms.find((r) => r.id === fix.to)?.name ?? 'another room';
+  revalidatePath('/m/admin');
+  revalidatePath('/m/admin/rooms');
+  return { moved: (movers ?? []).map((m) => childDisplayName(m)), to: toName };
+}
+
+// ── People (docs/sessions/04-ADMIN-MOBILE.md §7) ─────────────────────────────
+export type StaffPerson = { userId: string; name: string; roleLabel: string; score: number; lead: boolean };
+export type StudentPerson = { id: string; name: string; room: string; ageLabel: string; allergy: boolean };
+
+const ROLE_LABEL: Record<string, string> = { director: 'Director', admin: 'Admin', lead_teacher: 'Lead Teacher', assistant_teacher: 'Assistant', aide: 'Aide', substitute: 'Float' };
+
+export async function getPeople(): Promise<{ staff: StaffPerson[]; students: StudentPerson[] }> {
+  const ctx = await requireAdmin();
+  if (!ctx) return { staff: [], students: [] };
+  const { service, centerId } = ctx;
+
+  const { data: members } = await service
+    .from('center_memberships')
+    .select('user_id, role, lead_qualified, users(full_name)')
+    .eq('center_id', centerId)
+    .is('left_at', null);
+  const userIds = (members ?? []).map((m) => m.user_id);
+  const { data: scores } = userIds.length
+    ? await service.from('teacher_scores').select('user_id, teacher_visible_score, center_score').eq('center_id', centerId).in('user_id', userIds)
+    : { data: [] as { user_id: string; teacher_visible_score: number | null; center_score: number }[] };
+  const scoreByUser = new Map((scores ?? []).map((s) => [s.user_id, Number(s.teacher_visible_score ?? s.center_score ?? 0)]));
+  const staff: StaffPerson[] = (members ?? [])
+    .map((m) => {
+      const u = Array.isArray(m.users) ? m.users[0] : m.users;
+      return { userId: m.user_id, name: u?.full_name ?? 'Staff', roleLabel: ROLE_LABEL[m.role] ?? m.role, score: scoreByUser.get(m.user_id) ?? 0, lead: m.lead_qualified };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const { data: kids } = await service
+    .from('children')
+    .select('id, first_name, last_name, birthdate, classroom_id, classrooms(name)')
+    .eq('center_id', centerId)
+    .eq('status', 'enrolled')
+    .is('deleted_at', null)
+    .order('first_name');
+  const kidIds = (kids ?? []).map((k) => k.id);
+  const { data: sev } = kidIds.length
+    ? await service.from('student_health').select('child_id').eq('severity', 'severe').in('child_id', kidIds)
+    : { data: [] as { child_id: string }[] };
+  const allergySet = new Set((sev ?? []).map((h) => h.child_id));
+  const at = getClock().now();
+  const students: StudentPerson[] = (kids ?? []).map((k) => {
+    const room = Array.isArray(k.classrooms) ? k.classrooms[0] : k.classrooms;
+    let months = (at.getFullYear() - new Date(k.birthdate).getFullYear()) * 12 + (at.getMonth() - new Date(k.birthdate).getMonth());
+    if (months < 0) months = 0;
+    return {
+      id: k.id,
+      name: childDisplayName(k),
+      room: (room as { name: string } | null)?.name ?? 'Unassigned',
+      ageLabel: months < 24 ? `${months} mo` : `${Math.floor(months / 12)}y`,
+      allergy: allergySet.has(k.id),
+    };
+  });
+
+  return { staff, students };
 }

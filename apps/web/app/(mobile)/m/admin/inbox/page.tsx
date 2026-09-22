@@ -1,17 +1,12 @@
-import { Card, EmptyState } from '@/components/ui';
-import { Inbox } from 'lucide-react';
+import { redirect } from 'next/navigation';
+import { getActiveContextFromCookies } from '@/lib/session/active-context';
+import { isAdmin } from '@kinderbase/types';
+import { getApprovals } from '../approvals-actions';
+import { InboxClient } from './InboxClient';
 
-export default function AdminInboxPage() {
-  return (
-    <div className="p-4">
-      <h1 className="text-lg font-semibold text-gray-900 mb-3">Inbox</h1>
-      <Card padding="none">
-        <EmptyState
-          icon={<Inbox className="w-8 h-8" />}
-          title="Approvals arrive in Phase 4b"
-          description="Time corrections, leave, schedule changes, and lesson-plan review land here next."
-        />
-      </Card>
-    </div>
-  );
+export default async function AdminInboxPage() {
+  const active = getActiveContextFromCookies();
+  if (!active || !isAdmin(active.role)) redirect('/m/today');
+  const approvals = await getApprovals();
+  return <InboxClient approvals={approvals} />;
 }

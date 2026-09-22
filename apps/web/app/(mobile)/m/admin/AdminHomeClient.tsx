@@ -7,7 +7,9 @@ import { AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { Card, StatusDot, toast, type BadgeTone } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { enterRoomMode } from '../classroom/actions';
+import { applyAgeMixFix } from './actions';
 import { RoomModeSheet } from './RoomModeSheet';
+import { FloatSheet } from './FloatSheet';
 import type { AdminHome, AdminRoom } from './actions';
 
 const ratioColor: Record<AdminRoom['status'], string> = { ok: 'text-status-green', at_minimum: 'text-status-amber', out: 'text-status-red' };
@@ -17,12 +19,20 @@ const toneBg: Record<string, string> = { red: 'bg-red-50 text-red-800', amber: '
 export function AdminHomeClient({ data }: { data: AdminHome }) {
   const router = useRouter();
   const [modeRoom, setModeRoom] = useState<{ id: string; name: string } | null>(null);
+  const [floatRoom, setFloatRoom] = useState<{ id: string; name: string } | null>(null);
   const [pending, start] = useTransition();
 
   function cover(roomId: string) {
     start(async () => {
       await enterRoomMode(roomId, 'cover');
       router.push(`/m/classroom/${roomId}`);
+    });
+  }
+  function ageMix(roomId: string) {
+    start(async () => {
+      const res = await applyAgeMixFix(roomId);
+      router.refresh();
+      toast(res ? `Moved ${res.moved.map((n) => n.split(' ')[0]).join(' & ')} → ${res.to}` : 'No age-mix fix available');
     });
   }
 
@@ -47,10 +57,10 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-3">
-            <button onClick={() => toast('Float assignment arrives in Phase 4b')} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-status-red text-white">Assign float</button>
+            <button onClick={() => setFloatRoom({ id: data.alert!.roomId, name: data.alert!.name })} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-status-red text-white">Assign float</button>
             <button onClick={() => cover(data.alert!.roomId)} disabled={pending} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-white text-red-600 border border-red-200">Cover it myself</button>
             {data.alert.ageFix && (
-              <button onClick={() => toast(`Move ${data.alert!.ageFix!.names.map((n) => n.split(' ')[0]).join(' & ')} → ${data.alert!.ageFix!.toRoom} (Phase 4b)`)} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-white text-red-600 border border-red-200">Age-mix fix</button>
+              <button onClick={() => ageMix(data.alert!.roomId)} disabled={pending} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-white text-red-600 border border-red-200">Move {data.alert.ageFix.names.map((n) => n.split(' ')[0]).join(' & ')}</button>
             )}
           </div>
           {data.moreOut > 0 && <p className="text-[11px] text-gray-500 mt-2">{data.moreOut} more room{data.moreOut > 1 ? 's' : ''} also need attention.</p>}
@@ -113,6 +123,7 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
       )}
 
       <RoomModeSheet room={modeRoom} onClose={() => setModeRoom(null)} />
+      <FloatSheet room={floatRoom} onClose={() => setFloatRoom(null)} />
     </div>
   );
 }
