@@ -9,7 +9,7 @@ export type RatioRule = {
 const RATIO_RULES: Record<string, Record<AgeGroup, RatioRule>> = {
   MD: {
     infant:     { childrenPerStaff: 3,  maxGroupSize: 6  },
-    toddler:    { childrenPerStaff: 3,  maxGroupSize: 6  },
+    toddler:    { childrenPerStaff: 3,  maxGroupSize: 9  }, // §C toddlers: max group 9
     two_year:   { childrenPerStaff: 6,  maxGroupSize: 12 },
     preschool:  { childrenPerStaff: 10, maxGroupSize: 20 },
     school_age: { childrenPerStaff: 15, maxGroupSize: 30 },

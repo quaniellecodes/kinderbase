@@ -140,6 +140,8 @@ export type Database = {
           center_id: string;
           role: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center: boolean;
+          lead_qualified: boolean;
+          infant_toddler_trained: boolean;
           joined_at: string;
           left_at: string | null;
         };
@@ -149,6 +151,8 @@ export type Database = {
           center_id: string;
           role: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center?: boolean;
+          lead_qualified?: boolean;
+          infant_toddler_trained?: boolean;
           joined_at?: string;
           left_at?: string | null;
         };
@@ -158,6 +162,8 @@ export type Database = {
           center_id?: string;
           role?: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center?: boolean;
+          lead_qualified?: boolean;
+          infant_toddler_trained?: boolean;
           joined_at?: string;
           left_at?: string | null;
         };
@@ -2097,6 +2103,123 @@ export type Database = {
             referencedColumns: ['id'];
           }
         ];
+      };
+      staff_assignments: {
+        Row: {
+          id: string;
+          center_id: string;
+          classroom_id: string;
+          user_id: string;
+          starts_at: string;
+          ends_at: string;
+          source: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by: string | null;
+          note: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          classroom_id: string;
+          user_id: string;
+          starts_at: string;
+          ends_at: string;
+          source?: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by?: string | null;
+          note?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          source?: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by?: string | null;
+          note?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      classroom_nap_events: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          state: 'awake' | 'settling' | 'resting';
+          set_by: string;
+          set_at: string;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          state: 'awake' | 'settling' | 'resting';
+          set_by: string;
+          set_at?: string;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          state?: 'awake' | 'settling' | 'resting';
+          set_by?: string;
+          set_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_breaks: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          user_id: string;
+          started_at: string;
+          ended_at: string | null;
+          engine_snapshot: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          user_id: string;
+          started_at: string;
+          ended_at?: string | null;
+          engine_snapshot: Record<string, unknown>;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          started_at?: string;
+          ended_at?: string | null;
+          engine_snapshot?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
+      cover_sessions: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          user_id: string;
+          mode: 'preview' | 'cover';
+          started_at: string;
+          ended_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          user_id: string;
+          mode: 'preview' | 'cover';
+          started_at: string;
+          ended_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          mode?: 'preview' | 'cover';
+          started_at?: string;
+          ended_at?: string | null;
+        };
+        Relationships: [];
       };
     };
     Views: {};

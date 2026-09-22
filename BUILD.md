@@ -85,3 +85,26 @@ Deferred/notes: document file bytes aren't seeded (upload path is live); no noti
 - Students module is backed by the existing `children` table (not a new `students` table). Satellites use `child_id → children`.
 - Activity tab reuses `child_updates`; SAEO `observations` is a separate table.
 - Routes live under `app/(dashboard)/students` → URLs `/students/...` (route group invisible).
+
+---
+
+# Mobile track (branch `feat/mobile-engine`, stacked on `feat/students`)
+
+Spec: `docs/DECISIONS.md` + `docs/sessions/*` + `docs/prototypes/kb-full.html`. Six sessions: engine → classroom → today/me → admin → messaging → demo sandbox.
+
+## Phase 0 — artifacts + source of truth (done)
+- `docs/DECISIONS.md`, `docs/sessions/00–06`, `docs/prototypes/README.md`; CLAUDE.md "Source of truth" pointer. Locked mappings: students→children, activity_posts→child_updates(+observations), 18/24/36/60-mo bands, demo DB = sandbox, mobile `app/(mobile)/m`, `/demo` under DEMO_MODE.
+
+## Phase 1 — Staffing engine + clock (done; session 01)
+- [x] **Age band corrected to 18-month center cutoff** (`COMAR_AGE_BANDS` in packages/types; toddler max-group 6→9 in `computeRatio`). ⚠ Confirm 18-mo band + §D(1)=3-staff reading with an OCC licensing specialist before partner demos.
+- [x] `packages/core/clock.ts` (Clock/systemClock/fixedClock) + `apps/web/lib/clock.ts` `getClock()` (honors `kb_demo_now` cookie under DEMO_MODE). Note: getClock lives app-side (cookie needs next/headers); core stays framework-agnostic.
+- [x] `packages/core/comar-engine.ts` — `bandFor`, `governingRule` (§C same-age + §D(1)/§D(2) tables), `isLeadFor`, `evaluate` (size/staff/lead/nap checks), `canStepOut`, `nextAgeTransition`, `suggestAgeMixFix`, `COMAR_VERSION`. Legacy `computeRatio` shim kept for the desktop.
+- [x] `packages/core/comar-engine.test.ts` — **all 26 cases from 01-ENGINE.md green** (60 core tests total incl. existing).
+- [x] Migration `023_staffing_engine.sql` — `staff_assignments`, `classroom_nap_events`, `staff_breaks`, `cover_sessions`, `center_memberships.lead_qualified/infant_toddler_trained`; center-membership RLS. Applied to sandbox.
+- [x] `apps/web/lib/staffing/room-state.ts` — `loadRoomInput` (present children + assigned-minus-break staff + quals + latest nap event) and `activeClassroomFor`. (Lives app-side, not packages/core/queries, so core stays pure.)
+- [x] `/dev/staffing` debug page (DEMO_MODE-gated) + `DevClock` (sets `kb_demo_now`). Reads live data through the engine per room.
+- [x] Seed: qualification flags by role (assistants lead-qualified; substitutes = lead-qualified floats w/o IT course; aides neither), and `staff_assignments` for present staff (understaffed focus room reads OUT). `DEMO_MODE=true` added to `.env.local`.
+- Verified: 60 core tests + tsc + production build green; migration applied; sandbox reseeded; Infant Room shows 6 infants / 1 staff → engine OUT.
+- **Deferred to later phases:** explicit §D(1) "toddler+twos out" demo room → Phase 6 scenario system (06-DEMO §5); full-repo `new Date()` sweep beyond the engine path (remaining ones are display/seed, not compliance logic); the DEMO_MODE↔prod-URL safety assertion → Phase 6 §1.
+
+## Phase 2–6 — pending (classroom, today/me, admin, messaging, /demo sandbox)

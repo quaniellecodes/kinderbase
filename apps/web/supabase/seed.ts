@@ -666,6 +666,11 @@ async function main(): Promise<void> {
 
   // ── 6. Center memberships ───────────────────────────────────────────────────
   type Membership = Database['public']['Tables']['center_memberships']['Insert'];
+  // Qualification is separate from job title (COMAR / DECISIONS §2). Assistant
+  // teachers are treated as lead-qualified; substitutes act as lead-qualified
+  // floats but without the 9-hr infant/toddler course; aides are neither.
+  const leadQualRoles = new Set<CenterRole>(['director', 'admin', 'lead_teacher', 'assistant_teacher', 'substitute']);
+  const itTrainedRoles = new Set<CenterRole>(['director', 'admin', 'lead_teacher', 'assistant_teacher']);
   const memberships: Membership[] = [];
   for (const u of users) {
     if (u === owner) continue;
@@ -674,6 +679,8 @@ async function main(): Promise<void> {
       center_id: centerIds[u.centerIndex],
       role: u.centerRole,
       is_primary_center: true,
+      lead_qualified: leadQualRoles.has(u.centerRole),
+      infant_toddler_trained: itTrainedRoles.has(u.centerRole),
     });
   }
   // Owner is admin at every center.
@@ -683,6 +690,8 @@ async function main(): Promise<void> {
       center_id: cid,
       role: i === 0 ? 'director' : 'admin',
       is_primary_center: i === 0,
+      lead_qualified: true,
+      infant_toddler_trained: true,
     });
   });
   await insertChunked(db, 'center_memberships', memberships);
@@ -797,6 +806,14 @@ async function main(): Promise<void> {
   const today = localTodayISO();
   let boundaryPlaced = false;
 
+  // Live staff assignments (COMAR engine "who's on the floor now"). Cover today's
+  // operating window; we assign only the present staff, so the deliberately
+  // understaffed focus room reads OUT in the engine / /dev/staffing.
+  type AssignInsert = Database['public']['Tables']['staff_assignments']['Insert'];
+  const assignmentRows: AssignInsert[] = [];
+  const dayStart = new Date(); dayStart.setHours(6, 30, 0, 0);
+  const dayEnd = new Date(); dayEnd.setHours(18, 0, 0, 0);
+
   const ageDaysForBand = (g: AgeGroup): number => {
     switch (g) {
       case 'infant': return rng.int(60, 330);
@@ -859,7 +876,17 @@ async function main(): Promise<void> {
     const required = Math.max(1, Math.ceil(presentKids / cpr));
     let staffPresent = isFocus ? Math.max(0, required - 1) : required + (rng.chance(0.5) ? 1 : 0);
     staffPresent = Math.min(staffPresent, roster.length);
-    for (let i = 0; i < staffPresent; i++) presentRosterUserIds.add(roster[i]!.userId);
+    for (let i = 0; i < staffPresent; i++) {
+      presentRosterUserIds.add(roster[i]!.userId);
+      assignmentRows.push({
+        center_id: centerIds[room.centerIndex],
+        classroom_id: cid,
+        user_id: roster[i]!.userId,
+        starts_at: dayStart.toISOString(),
+        ends_at: dayEnd.toISOString(),
+        source: 'schedule',
+      });
+    }
   });
   // ── 9c-bis. Student-module detail: tags, enrollment status, health, docs ────
   type HealthInsert = Database['public']['Tables']['student_health']['Insert'];
@@ -1027,6 +1054,7 @@ async function main(): Promise<void> {
 
   await insertChunked(db, 'children', childrenRows);
   await insertChunked(db, 'child_attendance', attendanceRows);
+  await insertChunked(db, 'staff_assignments', assignmentRows);
   await insertChunked(db, 'student_health', healthRows);
   await insertChunked(db, 'student_physicians', physicianRows);
   await insertChunked(db, 'student_documents', docRows);
@@ -1456,6 +1484,7 @@ async function main(): Promise<void> {
   console.log(`   credentials:       ${credentials.length}`);
   console.log(`   employment rows:   ${employment.length}`);
   console.log(`   roster rows:       ${rosterRows.length}`);
+  console.log(`   staff assignments: ${assignmentRows.length}`);
   console.log(`   shift slots:       ${shiftRows.length}`);
   console.log(`   children:          ${childrenRows.length}`);
   console.log(`   student health:    ${healthRows.length}`);
