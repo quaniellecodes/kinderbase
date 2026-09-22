@@ -1548,6 +1548,33 @@ async function main(): Promise<void> {
   await insertChunked(db, 'staff_notes', notes);
   await insertChunked(db, 'staff_requests', requests);
 
+  // ── 12. Announcements, spotlights, assigned tasks (mobile Today) ─────────────
+  type AnnInsert = Database['public']['Tables']['announcements']['Insert'];
+  type SpotInsert = Database['public']['Tables']['spotlights']['Insert'];
+  type TaskInsert = Database['public']['Tables']['staff_tasks']['Insert'];
+  const annRows: AnnInsert[] = [];
+  const spotRows: SpotInsert[] = [];
+  const taskRows: TaskInsert[] = [];
+  const monthStart = isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const SPOT_CATS = ['Most observations', 'Lesson plan streak', 'Family engagement'];
+  centerIds.forEach((cid, ci) => {
+    annRows.push({ center_id: cid, author_id: owner.id, body: 'OCC licensing visit is Tuesday. Please make sure your staffing pattern is posted and credentials are current.', kind: 'announcement', created_at: daysAgo(0).toISOString() });
+    annRows.push({ center_id: cid, author_id: owner.id, body: 'Fall checkpoint opens Monday. Your observations pull in automatically as evidence.', kind: 'reminder', created_at: daysAgo(1).toISOString() });
+    const centerStaff = users.filter((u) => u.centerIndex === ci && u !== owner);
+    SPOT_CATS.forEach((cat, i) => {
+      const u = centerStaff[i % Math.max(1, centerStaff.length)];
+      if (u) spotRows.push({ center_id: cid, month: monthStart, category: cat, user_id: u.id });
+    });
+    if (ci === 0) {
+      const leads = centerStaff.filter((u) => u.centerRole === 'lead_teacher').slice(0, 2);
+      if (leads[0]) taskRows.push({ center_id: cid, assigned_to: leads[0].id, assigned_by: owner.id, title: "Review Amara's updated allergy plan", detail: 'New EpiPen location — confirm you’ve read it', source: 'assigned' });
+      if (leads[1]) taskRows.push({ center_id: cid, assigned_to: leads[1].id, assigned_by: owner.id, title: 'Post at least one family update today', detail: 'Nudge from your director', source: 'nudge' });
+    }
+  });
+  await insertChunked(db, 'announcements', annRows);
+  await insertChunked(db, 'spotlights', spotRows);
+  await insertChunked(db, 'staff_tasks', taskRows);
+
   // ── Summary ─────────────────────────────────────────────────────────────────
   console.log('\n✅ Seed complete');
   console.log(`   organization:      1 (${args.orgSlug})`);
@@ -1582,6 +1609,9 @@ async function main(): Promise<void> {
   console.log(`   teacher scores:    ${scores.length}`);
   console.log(`   staff profiles:    ${profiles.length}`);
   console.log(`   leave days:        ${leaveDays.length}`);
+  console.log(`   announcements:     ${annRows.length}`);
+  console.log(`   spotlights:        ${spotRows.length}`);
+  console.log(`   staff tasks:       ${taskRows.length}`);
   console.log(`   staff notes:       ${notes.length}`);
   console.log(`   staff requests:    ${requests.length}`);
   console.log(`\n   Owner login →  ${owner.email}  /  ${owner.password}`);
@@ -1624,6 +1654,10 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
     await db.from('staff_profiles').delete().in('center_id', centerIds);
     await db.from('time_entries').delete().in('center_id', centerIds);
     await db.from('activity_log').delete().in('center_id', centerIds);
+    await db.from('staff_tasks').delete().in('center_id', centerIds);
+    await db.from('announcements').delete().in('center_id', centerIds);
+    await db.from('spotlights').delete().in('center_id', centerIds);
+    await db.from('staff_assignments').delete().in('center_id', centerIds);
   }
   if (userIds.length) {
     const { data: credRows } = await db.from('credentials').select('id').in('user_id', userIds);

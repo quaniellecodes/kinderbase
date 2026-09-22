@@ -2332,6 +2332,93 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_tasks: {
+        Row: {
+          id: string;
+          center_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          title: string;
+          detail: string | null;
+          due_at: string | null;
+          source: 'assigned' | 'nudge' | 'idea';
+          completed_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          title: string;
+          detail?: string | null;
+          due_at?: string | null;
+          source?: 'assigned' | 'nudge' | 'idea';
+          completed_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          assigned_to?: string;
+          assigned_by?: string;
+          title?: string;
+          detail?: string | null;
+          due_at?: string | null;
+          source?: 'assigned' | 'nudge' | 'idea';
+          completed_at?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      announcements: {
+        Row: {
+          id: string;
+          center_id: string;
+          author_id: string;
+          body: string;
+          kind: 'announcement' | 'reminder';
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          author_id: string;
+          body: string;
+          kind?: 'announcement' | 'reminder';
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          author_id?: string;
+          body?: string;
+          kind?: 'announcement' | 'reminder';
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      spotlights: {
+        Row: {
+          center_id: string;
+          month: string;
+          category: string;
+          user_id: string;
+        };
+        Insert: {
+          center_id: string;
+          month: string;
+          category: string;
+          user_id: string;
+        };
+        Update: {
+          center_id?: string;
+          month?: string;
+          category?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
