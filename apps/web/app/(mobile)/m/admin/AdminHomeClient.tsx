@@ -112,12 +112,19 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
         <section>
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Heads up</p>
           <Card padding="none" className="divide-y divide-gray-50">
-            {data.headsUp.map((h) => (
-              <div key={h.key} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-1 min-w-0"><p className="text-[13px] font-medium text-gray-900">{h.title}</p><p className="text-[11px] text-gray-500">{h.sub}</p></div>
-                <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', toneBg[h.tone])}>{h.badge}</span>
-              </div>
-            ))}
+            {data.headsUp.map((h) => {
+              const inner = (
+                <>
+                  <div className="flex-1 min-w-0"><p className="text-[13px] font-medium text-gray-900">{h.title}</p><p className="text-[11px] text-gray-500">{h.sub}</p></div>
+                  <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', toneBg[h.tone])}>{h.badge}</span>
+                </>
+              );
+              return h.href ? (
+                <Link key={h.key} href={h.href} className="flex items-center gap-3 px-4 py-3 active:bg-gray-50">{inner}</Link>
+              ) : (
+                <div key={h.key} className="flex items-center gap-3 px-4 py-3">{inner}</div>
+              );
+            })}
           </Card>
         </section>
       )}

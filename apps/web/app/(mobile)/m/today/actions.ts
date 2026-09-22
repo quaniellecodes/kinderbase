@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { getClock } from '@/lib/clock';
 import { activeClassroomFor } from '@/lib/staffing/room-state';
+import { getAgingFamilyThreads } from '@/app/(mobile)/m/messages/actions';
 import { isAdmin, computeCredentialStatus, childDisplayName, type CenterRole } from '@kinderbase/types';
 
 type Service = ReturnType<typeof createServiceClient>;
@@ -156,6 +157,12 @@ export async function getToday(): Promise<TodayData | null> {
       priorities.push({ key: `cred-${c.credential_type}`, urgency: st === 'expired' ? 'red' : 'amber', title: `${c.custom_type_name ?? c.credential_type.replace(/_/g, ' ')} ${st === 'expired' ? 'expired' : 'expires soon'}`, sub: 'Upload your renewal', href: '/m/me' });
       break; // one is enough for the list
     }
+  }
+
+  // Unanswered family messages (>24h) in this teacher's rooms — jump the queue.
+  if (!isFloat) {
+    const aging = await getAgingFamilyThreads();
+    for (const a of aging) priorities.unshift({ key: `aging-${a.id}`, urgency: 'red', title: `${a.childName}'s family is waiting`, sub: `${a.hours}h unanswered · ${a.room}`, href: `/m/messages/${a.id}` });
   }
 
   // Assigned tasks.

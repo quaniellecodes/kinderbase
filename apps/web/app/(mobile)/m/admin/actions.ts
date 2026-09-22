@@ -6,6 +6,7 @@ import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { getClock } from '@/lib/clock';
 import { loadRoomInput } from '@/lib/staffing/room-state';
 import { evaluate, nextAgeTransition, suggestAgeMixFix, isLeadFor, mixText, BAND_LABEL, type RoomInput, type Evaluation, type Staff } from '@kinderbase/core';
+import { getAgingFamilyThreads } from '@/app/(mobile)/m/messages/actions';
 import { isAdmin, computeCredentialStatus, childDisplayName } from '@kinderbase/types';
 
 type Service = ReturnType<typeof createServiceClient>;
@@ -22,7 +23,7 @@ async function requireAdmin(): Promise<{ service: Service; centerId: string; cen
 }
 
 export type AdminRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out'; ratio: string; required: number; present: number; mixText: string };
-export type HeadsUp = { key: string; title: string; sub: string; badge: string; tone: 'red' | 'amber' | 'green' };
+export type HeadsUp = { key: string; title: string; sub: string; badge: string; tone: 'red' | 'amber' | 'green'; href?: string };
 export type AdminHome = {
   centerName: string;
   alert:
@@ -122,6 +123,9 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     ? await service.from('student_documents').select('child_id', { count: 'exact', head: true }).eq('is_required', true).eq('status', 'missing').is('superseded_by', null)
     : { count: 0 };
   if (missingDocs) headsUp.push({ key: 'docs', title: `${missingDocs} required document${missingDocs > 1 ? 's' : ''} missing`, sub: 'Across enrolled students', badge: String(missingDocs), tone: 'amber' });
+
+  const aging = await getAgingFamilyThreads();
+  if (aging.length) headsUp.unshift({ key: 'aging', title: `${aging.length} famil${aging.length > 1 ? 'ies are' : 'y is'} waiting on a reply`, sub: `Oldest ${aging[0]!.hours}h · ${aging[0]!.childName}`, badge: String(aging.length), tone: 'red', href: '/m/admin/inbox' });
 
   return {
     centerName,

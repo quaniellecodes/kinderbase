@@ -111,8 +111,8 @@ export async function getThreads(): Promise<ThreadGroups | null> {
   return { team, families, quiet: { start: center?.quiet_hours_start ?? '18:30', end: center?.quiet_hours_end ?? '07:00' } };
 }
 
-export type ThreadMessage = { id: string; author: string; mine: boolean; isGuardian: boolean; body: string; translated: string | null; at: string };
-export type ThreadDetail = { id: string; kind: string; name: string; sub: string; disclosure: string; canReply: boolean; lang: string | null; messages: ThreadMessage[] };
+export type ThreadMessage = { id: string; author: string; mine: boolean; isGuardian: boolean; body: string; translated: string | null; at: string; votes: number; voted: boolean };
+export type ThreadDetail = { id: string; kind: string; name: string; sub: string; disclosure: string; canReply: boolean; canPromote: boolean; lang: string | null; messages: ThreadMessage[] };
 
 export async function getThread(threadId: string): Promise<ThreadDetail | null> {
   const c = await ctx();
@@ -144,12 +144,23 @@ export async function getThread(threadId: string): Promise<ThreadDetail | null> 
   const { data: trans } = ids.length ? await service.from('message_translations').select('message_id, body').in('message_id', ids).eq('lang', 'en') : { data: [] as { message_id: string; body: string }[] };
   const enByMsg = new Map((trans ?? []).map((t2) => [t2.message_id, t2.body]));
 
+  // Idea Garden vote tallies.
+  const voteCount = new Map<string, number>();
+  const myVotes = new Set<string>();
+  if (t.kind === 'idea' && ids.length) {
+    const { data: votes } = await service.from('idea_votes').select('message_id, user_id').in('message_id', ids);
+    for (const v of votes ?? []) {
+      voteCount.set(v.message_id, (voteCount.get(v.message_id) ?? 0) + 1);
+      if (v.user_id === userId) myVotes.add(v.message_id);
+    }
+  }
+
   const messages: ThreadMessage[] = (msgs ?? []).map((m) => {
     const u = Array.isArray(m.users) ? m.users[0] : m.users;
     const isGuardian = roleByUser.get(m.author_id) === 'guardian';
     // Show the English translation beneath non-English guardian messages.
     const translated = m.lang !== 'en' ? enByMsg.get(m.id) ?? null : null;
-    return { id: m.id, author: u?.full_name ?? 'User', mine: m.author_id === userId, isGuardian, body: m.body, translated, at: m.created_at ?? '' };
+    return { id: m.id, author: u?.full_name ?? 'User', mine: m.author_id === userId, isGuardian, body: m.body, translated, at: m.created_at ?? '', votes: voteCount.get(m.id) ?? 0, voted: myVotes.has(m.id) };
   });
 
   await service.from('thread_members').upsert({ thread_id: threadId, user_id: userId, last_read_at: getClock().now().toISOString() }, { onConflict: 'thread_id,user_id' });
@@ -171,7 +182,82 @@ export async function getThread(threadId: string): Promise<ThreadDetail | null> 
             : 'Internal staff channel — families cannot see this.';
   const lang = t.kind === 'family' && t.student_id ? await familyLang(service, t.student_id) : null;
 
-  return { id: t.id, kind: t.kind, name, sub: t.kind === 'family' ? ((room as { name: string } | null)?.name ?? '') : '', disclosure, canReply, lang, messages };
+  return { id: t.id, kind: t.kind, name, sub: t.kind === 'family' ? ((room as { name: string } | null)?.name ?? '') : '', disclosure, canReply, canPromote: t.kind === 'idea' && admin, lang, messages };
+}
+
+/** Toggle the current user's upvote on an Idea Garden message. */
+export async function toggleIdeaVote(messageId: string): Promise<void> {
+  const c = await ctx();
+  if (!c) throw new Error('Forbidden');
+  const { service, userId, centerId } = c;
+  // Confirm the message belongs to an idea thread at this center.
+  const { data: m } = await service.from('messages').select('thread_id, threads(kind, center_id)').eq('id', messageId).maybeSingle();
+  const thr = m ? (Array.isArray(m.threads) ? m.threads[0] : m.threads) : null;
+  if (!thr || thr.kind !== 'idea' || thr.center_id !== centerId) throw new Error('Forbidden');
+  const { data: existing } = await service.from('idea_votes').select('user_id').eq('message_id', messageId).eq('user_id', userId).maybeSingle();
+  if (existing) await service.from('idea_votes').delete().eq('message_id', messageId).eq('user_id', userId);
+  else await service.from('idea_votes').insert({ message_id: messageId, user_id: userId });
+  revalidatePath(`/m/messages/${m!.thread_id}`);
+}
+
+/** Admin promotes an idea into an assigned task (Idea Garden → action). */
+export async function promoteIdeaToTask(messageId: string): Promise<void> {
+  const c = await ctx();
+  if (!c) throw new Error('Forbidden');
+  const { service, userId, centerId, admin } = c;
+  if (!admin) throw new Error('Only management can promote an idea.');
+  const { data: m } = await service.from('messages').select('body, thread_id, threads(kind, center_id)').eq('id', messageId).maybeSingle();
+  const thr = m ? (Array.isArray(m.threads) ? m.threads[0] : m.threads) : null;
+  if (!thr || thr.kind !== 'idea' || thr.center_id !== centerId) throw new Error('Forbidden');
+  const title = m!.body.length > 80 ? `${m!.body.slice(0, 77)}…` : m!.body;
+  await service.from('staff_tasks').insert({ center_id: centerId, assigned_to: userId, assigned_by: userId, title, detail: 'Promoted from the Idea Garden', source: 'assigned' });
+  revalidatePath(`/m/messages/${m!.thread_id}`);
+  revalidatePath('/m/admin/inbox');
+}
+
+export type AgingThread = { id: string; childName: string; room: string; hours: number; snippet: string };
+
+/**
+ * Family threads whose latest message is from a guardian and has gone
+ * unanswered for over 24h. Scoped to the caller's rooms (all center rooms for
+ * admins). Powers the red aging tags on teacher Today, admin Home, and Inbox.
+ */
+export async function getAgingFamilyThreads(): Promise<AgingThread[]> {
+  const c = await ctx();
+  if (!c) return [];
+  const { service, userId, centerId, admin } = c;
+  const rooms = await myRoomIds(service, userId, centerId, admin);
+  if (!rooms.length) return [];
+  const { data: threads } = await service
+    .from('threads')
+    .select('id, student_id, classroom_id, children(first_name, last_name), classrooms(name)')
+    .eq('center_id', centerId)
+    .eq('kind', 'family')
+    .in('classroom_id', rooms);
+  if (!threads?.length) return [];
+  const ids = threads.map((t) => t.id);
+  const { data: msgs } = await service.from('messages').select('thread_id, author_id, body, created_at').in('thread_id', ids).order('created_at', { ascending: false });
+  const { data: guardianMembers } = await service.from('thread_members').select('thread_id, user_id').in('thread_id', ids).eq('role', 'guardian');
+  const guardianByThread = new Map<string, Set<string>>();
+  for (const g of guardianMembers ?? []) {
+    if (!guardianByThread.has(g.thread_id)) guardianByThread.set(g.thread_id, new Set());
+    guardianByThread.get(g.thread_id)!.add(g.user_id);
+  }
+  const latest = new Map<string, { author_id: string; body: string; created_at: string }>();
+  for (const m of msgs ?? []) if (!latest.has(m.thread_id)) latest.set(m.thread_id, { author_id: m.author_id, body: m.body, created_at: m.created_at ?? '' });
+
+  const now = getClock().now().getTime();
+  const out: AgingThread[] = [];
+  for (const t of threads) {
+    const last = latest.get(t.id);
+    if (!last || !guardianByThread.get(t.id)?.has(last.author_id)) continue;
+    const hours = (now - new Date(last.created_at).getTime()) / 3_600_000;
+    if (hours <= 24) continue;
+    const child = Array.isArray(t.children) ? t.children[0] : t.children;
+    const room = Array.isArray(t.classrooms) ? t.classrooms[0] : t.classrooms;
+    out.push({ id: t.id, childName: child ? childDisplayName(child) : 'Family', room: (room as { name: string } | null)?.name ?? '', hours: Math.round(hours), snippet: last.body.length > 60 ? `${last.body.slice(0, 57)}…` : last.body });
+  }
+  return out.sort((a, b) => b.hours - a.hours);
 }
 
 async function familyLang(service: Service, childId: string): Promise<string | null> {

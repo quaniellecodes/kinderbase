@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Card, EmptyState, Button, type BadgeTone } from '@/components/ui';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { cn } from '@/lib/utils';
-import { Inbox } from 'lucide-react';
+import { Inbox, MessageSquare, ChevronRight } from 'lucide-react';
 import { resolveApproval, type Approval } from '../approvals-actions';
+import type { AgingThread } from '../../messages/actions';
 
 const KIND: Record<Approval['kind'], { label: string; tone: BadgeTone }> = {
   time: { label: 'Time correction', tone: 'green' },
@@ -19,11 +21,31 @@ const toneCls: Record<BadgeTone, string> = {
   neutral: 'bg-gray-100 text-gray-600', red: 'bg-red-50 text-red-700', indigo: 'bg-indigo-50 text-indigo-700', sky: 'bg-sky-50 text-sky-700',
 };
 
-export function InboxClient({ approvals }: { approvals: Approval[] }) {
+export function InboxClient({ approvals, aging = [] }: { approvals: Approval[]; aging?: AgingThread[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [returnFor, setReturnFor] = useState<Approval | null>(null);
   const [comment, setComment] = useState('');
+  const total = approvals.length + aging.length;
+
+  const familySection = aging.length > 0 && (
+    <section className="mb-4">
+      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Families waiting</p>
+      <Card padding="none" className="divide-y divide-gray-50">
+        {aging.map((a) => (
+          <Link key={a.id} href={`/m/messages/${a.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-gray-50">
+            <div className="w-8 h-8 rounded-full bg-red-50 text-status-red flex items-center justify-center flex-shrink-0"><MessageSquare className="w-4 h-4" /></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-gray-900 truncate">{a.childName}'s family · {a.room}</p>
+              <p className="text-[11px] text-gray-500 truncate">{a.snippet}</p>
+            </div>
+            <span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-red-50 text-status-red flex-shrink-0">{a.hours}h</span>
+            <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+          </Link>
+        ))}
+      </Card>
+    </section>
+  );
 
   function act(id: string, decision: 'approved' | 'rejected') {
     start(async () => {
@@ -41,7 +63,7 @@ export function InboxClient({ approvals }: { approvals: Approval[] }) {
     });
   }
 
-  if (approvals.length === 0) {
+  if (total === 0) {
     return (
       <div className="p-4">
         <h1 className="text-lg font-semibold text-gray-900 mb-3">Inbox</h1>
@@ -52,7 +74,9 @@ export function InboxClient({ approvals }: { approvals: Approval[] }) {
 
   return (
     <div className="p-4">
-      <h1 className="text-lg font-semibold text-gray-900 mb-3">Inbox <span className="text-sm text-gray-400">· {approvals.length}</span></h1>
+      <h1 className="text-lg font-semibold text-gray-900 mb-3">Inbox <span className="text-sm text-gray-400">· {total}</span></h1>
+      {familySection}
+      {approvals.length > 0 && <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Approvals</p>}
       <div className="space-y-2.5">
         {approvals.map((a) => {
           const k = KIND[a.kind];

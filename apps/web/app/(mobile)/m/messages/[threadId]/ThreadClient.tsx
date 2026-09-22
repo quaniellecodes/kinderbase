@@ -3,19 +3,47 @@
 import { useState, useRef, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Send, Languages, Lock } from 'lucide-react';
+import { ChevronLeft, Send, Languages, Lock, ThumbsUp, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { sendMessage, type ThreadDetail, type ThreadMessage } from '../actions';
+import { createClient } from '@/lib/supabase/client';
+import { sendMessage, toggleIdeaVote, promoteIdeaToTask, type ThreadDetail, type ThreadMessage } from '../actions';
 
 export function ThreadClient({ thread }: { thread: ThreadDetail }) {
   const router = useRouter();
   const [draft, setDraft] = useState('');
   const [pending, start] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
+  const isIdea = thread.kind === 'idea';
 
   useEffect(() => {
     endRef.current?.scrollIntoView();
   }, [thread.messages.length]);
+
+  // Live updates: refresh when a new message lands in this thread. RLS governs
+  // the socket too, so DMs never leak to non-members.
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`thread:${thread.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `thread_id=eq.${thread.id}` }, () => router.refresh())
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [thread.id, router]);
+
+  function vote(messageId: string) {
+    start(async () => {
+      await toggleIdeaVote(messageId);
+      router.refresh();
+    });
+  }
+  function promote(messageId: string) {
+    start(async () => {
+      await promoteIdeaToTask(messageId);
+      router.refresh();
+    });
+  }
 
   function send() {
     const body = draft.trim();
@@ -50,7 +78,7 @@ export function ThreadClient({ thread }: { thread: ThreadDetail }) {
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
         {thread.messages.length === 0 && <p className="text-center text-xs text-gray-400 mt-8">No messages yet. Say hello.</p>}
         {thread.messages.map((m) => (
-          <Bubble key={m.id} m={m} />
+          <Bubble key={m.id} m={m} isIdea={isIdea} canPromote={thread.canPromote} pending={pending} onVote={vote} onPromote={promote} />
         ))}
         <div ref={endRef} />
       </div>
@@ -89,8 +117,32 @@ export function ThreadClient({ thread }: { thread: ThreadDetail }) {
   );
 }
 
-function Bubble({ m }: { m: ThreadMessage }) {
+function Bubble({ m, isIdea, canPromote, pending, onVote, onPromote }: { m: ThreadMessage; isIdea: boolean; canPromote: boolean; pending: boolean; onVote: (id: string) => void; onPromote: (id: string) => void }) {
   const time = m.at ? new Date(m.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+
+  // Idea Garden posts render as full-width cards with an upvote + promote action.
+  if (isIdea) {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white px-3.5 py-2.5">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-[11px] font-semibold text-gray-700">{m.author}</span>
+          <span className="text-[9px] text-gray-300 ml-auto">{time}</span>
+        </div>
+        <p className="text-[13px] text-gray-800 leading-snug">{m.body}</p>
+        <div className="flex items-center gap-2 mt-2">
+          <button onClick={() => onVote(m.id)} disabled={pending} className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold', m.voted ? 'bg-brand/10 text-brand' : 'bg-gray-100 text-gray-500')}>
+            <ThumbsUp className="w-3 h-3" /> {m.votes || 0}
+          </button>
+          {canPromote && (
+            <button onClick={() => onPromote(m.id)} disabled={pending} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-status-green/10 text-status-green ml-auto">
+              <ArrowUpRight className="w-3 h-3" /> Promote to task
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('flex flex-col max-w-[80%]', m.mine ? 'ml-auto items-end' : 'items-start')}>
       {!m.mine && <span className="text-[10px] font-medium text-gray-400 mb-0.5 px-1">{m.author}{m.isGuardian ? ' · family' : ''}</span>}
