@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Input, Button } from '@/components/ui';
 
 // Passcode / invite gate shown before the demo stage (docs/sessions/06 §6).
 export function DemoGate({ invite }: { invite?: string }) {
@@ -41,22 +42,11 @@ export function DemoGate({ invite }: { invite?: string }) {
             if (passcode.trim() && !busy) void submit({ passcode });
           }}
         >
-          <input
-            autoFocus
-            type="password"
-            value={passcode}
-            onChange={(e) => setPasscode(e.target.value)}
-            placeholder="Passcode"
-            className="w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
-          />
+          <Input autoFocus type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} placeholder="Passcode" className="py-2.5" />
           {error && <p className="text-[12px] text-status-red mt-2">{error}</p>}
-          <button
-            type="submit"
-            disabled={!passcode.trim() || busy}
-            className="w-full mt-3 rounded-lg bg-brand text-white text-sm font-semibold py-2.5 disabled:opacity-40"
-          >
+          <Button type="submit" size="lg" disabled={!passcode.trim() || busy} className="w-full mt-3 font-semibold">
             {busy ? 'Checking…' : 'Enter demo'}
-          </button>
+          </Button>
         </form>
 
         <p className="text-[11px] text-gray-400 mt-4">Sample data only — no real children, families, or staff.</p>
