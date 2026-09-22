@@ -20,9 +20,24 @@ Living document. Update after every session.
 
 ---
 
+## Session end state (2026-09-22) — Mobile track complete (Phases 1–6)
+
+**Current branch: `feat/mobile-engine`** (stacked on `feat/students`). The phone apps + real COMAR engine + partner `/demo` are built through **Phase 6**. See [BUILD.md](BUILD.md) for the full phase log.
+
+- **Engine** (`packages/core/comar-engine.ts`, 26 tests): COMAR 13A.16 bands **18/24/36/60 mo**, §C same-age + §D(1/2) mixed-age min-staff, lead-qualified vs aide, nap reduction, `canStepOut` (breaks), `nextAgeTransition`, `suggestAgeMixFix`. Clock abstraction (`packages/core/clock.ts` + `apps/web/lib/clock.ts`, honors `kb_demo_now` under `DEMO_MODE`). `translate()`/`transcribe()` demo stubs.
+- **Phone app** (`app/(mobile)/m`, role-aware nav): teacher **Today** (priorities, announcements, shift, spotlights, float hero) · **Classroom** (Overview/Lesson-plan/Schedule/Feed, Preview/Cover modes, server-enforced `assertNotPreview`) · **Me** (score/schedule/leave) · **Messages** (see below). Admin: **Home** (per-room engine eval, compliance alert + age-mix fix, heads-up) · **Rooms** · **Inbox** (approvals + families-waiting) · **People**.
+- **Messaging** (migrations 027/028): team channels (announcement/room/idea/DM) + per-child family threads; **DM privacy** (RLS: admins can't read staff DMs) · quiet-hours delivery · two-way translation · Idea-Garden upvote→task · **family aging >24h** red-flagged on teacher Today + admin Home + Inbox · Supabase Realtime on `messages`.
+- **Partner `/demo`** (`DEMO_MODE`, `assertNotProd()`): passcode/invite **gate** (`lib/demo-gate.ts`, HMAC 7-day cookie) → phone/tablet frame around `/m` + one-tap **persona/clock/scenario** presets + **stories** + **reset**. Nightly reseed via `.github/workflows/demo-nightly-reset.yml`. Local passcode in `.env.local` (`DEMO_PASSCODE`, default `kinderbase`).
+
+⚠️ **Before any partner demo:** confirm the 18-month COMAR bands + §D(1) staffing readings with an OCC licensing specialist — the engine tells staff whether a break is *legal*.
+
+**Mobile-track deferred (6c+):** demo persona names don't match the prototype (representative seeded users, not Maria Torres et al.); scenario data-mutations approximated by clock+persona; no real push/email delivery; teacher-score nightly job still Session 9.
+
+---
+
 ## Session end state (2026-09-20)
 
-**Current branch: `feat/students`** (off reconciled `main`) — the **Students module**, all phases A–G complete and pushed. See [BUILD.md](BUILD.md) for the phase-by-phase log. Latest commit is the Phase G wizard.
+**Branch: `feat/students`** (off reconciled `main`) — the **Students module**, all phases A–G complete and pushed. See [BUILD.md](BUILD.md) for the phase-by-phase log. Latest commit is the Phase G wizard.
 
 **Students module (this session):** directory `/students` (search/filters/grid-list, alert icons) → profile `/students/[id]` with hero + About/Schedule rail + tabs: **Info & Family** (inline `PencilField` + batched save + beforeunload), **Health** (allergies/meds/diet/conditions + physicians), **Documents** (status/required/confidential, signed-URL download route `/api/students/[id]/documents/[docId]`, upload with supersede), **Activity** (child_updates + attendance timeline), **SAEO** (Assessment checkpoints → rating screen `/students/[id]/checkpoint/[cpId]` with domain rail + age-band progressions + autosave + submit-lock; Observations; Screening; Evaluation with Part C/B + turning-3 banner). Add-student wizard `/students/new`. Backed by the existing `children` table; migrations 020–022; **ELOF seeded verbatim for all ages** — Infant/Toddler (5 domains/21 sub/59 goals/177 progressions) + Preschool (7 domains/24 sub/59 goals/134 progressions; Literacy, Mathematics, Scientific Reasoning split out from Cognition). New UI primitives: `StatusDot`, `ProgressBar`, `EmptyState`, `Toast`, `DayToggleRow`, `MultiSelectField`, `PencilField`.
 
