@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { getOrgIconPublicUrl } from '@/lib/storage/org-icons';
 import { Toaster } from '@/components/ui';
+import { DemoBarMount } from '@/components/demo/DemoBarMount';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { ResizableSidebar } from '@/components/shell/ResizableSidebar';
 import { BottomNav } from '@/components/shell/BottomNav';
@@ -114,6 +115,7 @@ export default async function DashboardLayout({
       </main>
       <BottomNav memberships={memberships} active={active} />
       <Toaster />
+      <DemoBarMount surface="desktop" />
     </div>
   );
 }

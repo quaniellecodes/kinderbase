@@ -132,4 +132,12 @@ Spec: `docs/DECISIONS.md` + `docs/sessions/*` + `docs/prototypes/kb-full.html`. 
 - Verified: tsc + production build + 60 core tests green (no migration/seed change — reads existing ELOF goals).
 - **Phase 2 complete** (Classroom tab: Overview · Lesson plan · Schedule · Feed, all live). Deferred: extra log types (diaper/mood/photo) need a widened `child_updates` CHECK; real audio capture (native, Session-13 `speech.ts`) — the demo uses a canned transcript.
 
+## Demo / testing bar (done — brought forward from Phase 6)
+A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both** desktop (`/dashboard`) and mobile (`/m`), matching the user's mock: `VIEWING AS` persona chips (Director / Lead / Assistant / Float, active = orange) + `CLOCK` presets (9:12 / 12:05 / 3:10 + Real) + a `Mobile ↗` / `Desktop ↗` toggle.
+- `lib/demo.ts` — `isDemo`, `assertNotProd` (crashes if DEMO_MODE ever points at prod), `getDemoPersonas` (representative seeded users by role at the active center).
+- `POST /api/demo/login` — one-tap sign-in as a seeded persona (looks up email, `signInWithPassword` with `DEMO_USER_PASSWORD` = sandbox password, sets the persona's active context). DEMO_MODE-gated (404 else). **Verified end-to-end (200 + session cookie).**
+- `components/demo/DemoBar` (client) + `DemoBarMount` (server) mounted in both layouts; clock reuses the app-wide `kb_demo_now` cookie.
+- `.env.local`: `DEMO_MODE=true`, `DEMO_USER_PASSWORD`. Prod never sets these.
+- The full Claude-style **`/demo` phone-frame simulator + control panel + stories** for partners remains **Phase 6** (see [[project-demo-vision]] / 06-DEMO-SANDBOX.md).
+
 ## Phase 3–6 — pending (today/me, admin, messaging, /demo sandbox)

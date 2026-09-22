@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { Toaster } from '@/components/ui';
+import { DemoBarMount } from '@/components/demo/DemoBarMount';
 import { MobileNav } from './MobileNav';
 
 // Mobile shell (docs/DECISIONS.md §12, docs/sessions/02-CLASSROOM.md §1). Phone-first:
@@ -21,6 +22,7 @@ export default async function MobileLayout({ children }: { children: React.React
       <main className="flex-1 min-w-0 pb-[68px]">{children}</main>
       <MobileNav />
       <Toaster />
+      <DemoBarMount surface="mobile" />
     </div>
   );
 }
