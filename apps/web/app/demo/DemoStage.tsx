@@ -81,6 +81,13 @@ export function DemoStage({
     location.reload();
   }
 
+  async function resetDemo() {
+    if (busy || !confirm('Reset the demo to the Director at 9:12?')) return;
+    setBusy(true);
+    await fetch('/api/demo/reset/', { method: 'POST' });
+    location.reload();
+  }
+
   // A scenario is a one-tap (clock + persona) preset over the seeded baseline.
   async function runScenario(clock: string, role: ScenarioRole) {
     if (busy) return;
@@ -188,7 +195,10 @@ export function DemoStage({
           </ol>
         </div>
 
-        <Link href="/dashboard" className="inline-block text-xs font-semibold text-brand">← Back to desktop</Link>
+        <div className="flex items-center justify-between pt-1">
+          <Link href="/dashboard" className="text-xs font-semibold text-brand">← Back to desktop</Link>
+          <button onClick={resetDemo} disabled={busy} className="text-xs font-semibold text-gray-500 disabled:opacity-50">Reset demo</button>
+        </div>
       </div>
     </div>
   );

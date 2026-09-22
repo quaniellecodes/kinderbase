@@ -1,0 +1,41 @@
+name: Demo nightly reset
+
+# Reseeds the demo (sandbox) Supabase project every night so partner sessions
+# start clean (docs/sessions/06 §7). The spec suggested a scheduled Edge
+# Function, but the seeder is a Node/tsx script (auth-admin calls, ELOF import),
+# so CI runs the real thing rather than a Deno reimplementation.
+#
+# Required repo secrets:
+#   DEMO_SUPABASE_URL          → the SANDBOX project URL (never prod)
+#   DEMO_SUPABASE_SERVICE_KEY  → the SANDBOX service role key
+# The seed refuses to run against the prod ref, but keep these pointed at
+# sandbox regardless.
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # ~03:00 America/New_York (EDT); 08:00 UTC under EST
+  workflow_dispatch: {} # manual "reset now" from the Actions tab
+
+concurrency:
+  group: demo-reset
+  cancel-in-progress: false
+
+jobs:
+  reseed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Reseed sandbox
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.DEMO_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEMO_SUPABASE_SERVICE_KEY }}
+        run: pnpm --filter @kinderbase/web seed:reset

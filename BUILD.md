@@ -182,5 +182,19 @@ A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both*
 - Verified: tsc + production build (messages/today/admin/inbox routes) + 60 core tests green; migrations 027/028 applied to sandbox; reseeded; confirmed DM has only its two staff members (owner absent), Spanish thread carries `en→es`+`es→en`, aging thread at 26h, art-wall idea at 2 votes.
 - **Reminder:** the 18-month COMAR bands / §D(1) staffing readings must be confirmed with an OCC licensing specialist before partner demos — the engine tells staff whether a break is legal.
 
-## Phase 6 — pending (/demo partner sandbox)
-- Partner-facing polish: access passcode/invite gate, "stories to walk through", one-tap scenario presets, nightly reset, separate deploy (06-DEMO-SANDBOX.md).
+## Phase 6 — partner /demo sandbox (session 06)
+
+### Phase 6a — access gate + stories + scenarios (done)
+- [x] **Access gate** (§6): `/demo` sits behind a passcode or signed invite. `lib/demo-gate.ts` mints an HMAC-signed 7-day `kb_demo_gate` cookie (unforgeable), validates `DEMO_PASSCODE` / `?invite=<token>` (HMAC + expiry). `/api/demo/gate` sets the cookie and auto-signs-in the Director persona when there's no session — a partner is one passcode from a working phone. `DemoGate` screen (passcode form; a valid invite link logs straight in). In-memory rate limiter (`lib/rate-limit.ts`). Non-demo builds still 404 everywhere.
+- [x] **Scenarios** (§5): one-tap (clock + persona) presets over the seeded baseline — out-of-ratio room · float view · nap breaks · lesson-plan review · families & translation. (Baseline already carries the out-of-ratio focus room, submitted plans, and the Spanish/aging threads, so no data mutation needed.)
+- [x] **Stories to walk through** (§4): the five numbered stories as static panel copy.
+- Local passcode: `DEMO_PASSCODE` in `.env.local` (uncommitted; falls back to `kinderbase` if unset).
+
+### Phase 6b — reset + nightly reseed (done)
+- [x] **Reset demo** button → `/api/demo/reset`: clock → 9:12, persona → Director (Story 1 baseline). Gated + rate-limited. (View reset; data is refreshed nightly — a route handler can't safely run the full seed.)
+- [x] **Nightly reseed**: `.github/workflows/demo-nightly-reset.yml` runs the real `seed:reset` at ~03:00 ET (cron `0 7 * * *`) + manual `workflow_dispatch`. Secrets `DEMO_SUPABASE_URL` / `DEMO_SUPABASE_SERVICE_KEY` (sandbox). Diverges from the spec's Edge Function — the seeder is a Node/tsx script, so CI runs it directly rather than a Deno rewrite.
+- Verified: tsc + production build (`/demo`, `/api/demo/{gate,login,reset}`) + 60 core tests green.
+
+**Deploy (§8):** a separate Vercel project/env (e.g. `demo.kinderbase.com`) with `DEMO_MODE=true`, the sandbox Supabase keys, `DEMO_USER_PASSWORD` (matching the seeded `Sandbox!23456`), `DEMO_PASSCODE`, and `DEMO_INVITE_SECRET`. **Production never sets any `DEMO_*`.** Add the two `DEMO_SUPABASE_*` secrets to the GitHub repo for the nightly job.
+
+**Deferred (6c, optional):** persona names don't match the prototype (Maria Torres / Soo Kim / Laura Rivera) — the switcher shows representative seeded users by role; aligning needs deterministic demo personas in the seed. Scenario data-mutations (nap `settling` flags, Laura pre-assigned to Toddler B) are approximated by clock+persona; deeper per-scenario state would need a lightweight scenario applier.
