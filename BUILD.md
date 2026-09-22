@@ -166,4 +166,21 @@ A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both*
 - Verified: tsc + production build + 60 core tests green. No new migration (reuses staff_requests/lesson_plans/staff_assignments).
 - **Phase 4 complete.** Deferred: time-correction payroll math + full engine coverage sim for a *future* leave day; center switcher + admin ＋ sheet (owner rollup) — light follow-ups.
 
-## Phase 5–6 — pending (messaging, /demo partner sandbox)
+## Phase 5 — Messaging (session 05; done)
+
+### Phase 5a — team channels + family threads (done)
+- [x] Migration `027` — `threads` (announcement/room/idea/dm/family, `student_id` → `children`), `thread_members` (role member/guardian), `messages` (`lang`, `deliver_at`), `message_translations`, `idea_votes`; `centers.quiet_hours_{start,end}`; `guardians.preferred_lang`. RLS is the DB backstop; the one invariant it holds: **an admin can never read a staff DM** (no admin override on `dm`).
+- [x] Core stubs: `translate()` (canned-Spanish demo — real provider drops in later) + `transcribe()` speech stub (`packages/core/translate.ts`, `speech.ts`).
+- [x] Actions (`m/messages/actions.ts`, service client, app-enforced): `getThreads` (Team = announcement/room/idea/DM · Families = per-child; DM privacy, unread + family-language + 26h aging flags, quiet-hours window), `getThread` (access check — DMs members-only; guardian vs staff authorship; inline EN translation under non-English messages; marks read), `sendMessage` (quiet-hours `deliver_at` → next 7 AM to families; outbound `translate()` stored alongside the original).
+- [x] UI: `/m/messages` (Team/Families segments, aging/lang chips, quiet-hours banner) + `/m/messages/[threadId]` (bubbles, translation footer, read-only float/announcement, composer).
+- [x] Seed: 12 threads / 22 messages incl. a **Spanish family** (two-way translation) + a **26-hour-unanswered** thread; mints guardian users for inbound authorship; reset clears `threads` before centers (center_id has no cascade).
+
+### Phase 5b — idea votes → task, aging escalation, realtime (done)
+- [x] **Idea Garden**: per-message upvotes (`toggleIdeaVote`) + admin **promote-to-task** (`promoteIdeaToTask` → `staff_tasks`); idea posts render as full-width cards with a vote pill.
+- [x] **Family-thread aging** (`getAgingFamilyThreads`, scoped to caller's rooms / all center rooms for admins): red priority on teacher **Today** · tappable red heads-up on admin **Home** (optional `href`) · "Families waiting" section atop admin **Inbox**.
+- [x] **Realtime**: migration `028` adds `messages` to `supabase_realtime` (RLS governs the socket → DMs stay private); `ThreadClient` subscribes to inserts on the open thread and refreshes live.
+- Verified: tsc + production build (messages/today/admin/inbox routes) + 60 core tests green; migrations 027/028 applied to sandbox; reseeded; confirmed DM has only its two staff members (owner absent), Spanish thread carries `en→es`+`es→en`, aging thread at 26h, art-wall idea at 2 votes.
+- **Reminder:** the 18-month COMAR bands / §D(1) staffing readings must be confirmed with an OCC licensing specialist before partner demos — the engine tells staff whether a break is legal.
+
+## Phase 6 — pending (/demo partner sandbox)
+- Partner-facing polish: access passcode/invite gate, "stories to walk through", one-tap scenario presets, nightly reset, separate deploy (06-DEMO-SANDBOX.md).
