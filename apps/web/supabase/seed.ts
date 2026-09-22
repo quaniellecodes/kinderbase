@@ -1075,6 +1075,11 @@ async function main(): Promise<void> {
   const guardianRows: GuardianInsert[] = [];
   const pickupRows: PickupInsert[] = [];
   const phone = () => `410-555-${String(rng.int(1000, 9999))}`;
+  // The first child of center 0 is our Spanish-preferring family (messaging demo:
+  // two-way auto-translation). Every guardian sets preferred_lang so the batch
+  // insert stays homogeneous (PostgREST fills omitted keys with NULL, not the
+  // column default).
+  const spanishChildId = childrenRows.find((c) => c.center_id === centerIds[0])?.id as string | undefined;
 
   for (const c of childrenRows) {
     const last = c.last_name as string;
@@ -1090,6 +1095,7 @@ async function main(): Promise<void> {
       is_emergency: true,
       is_pickup_restricted: false,
       sort_order: 0,
+      preferred_lang: c.id === spanishChildId ? 'es' : 'en',
     });
     if (rng.chance(0.6)) {
       const dad = rng.pick(DAD_NAMES);
@@ -1104,6 +1110,7 @@ async function main(): Promise<void> {
         is_emergency: true,
         is_pickup_restricted: false,
         sort_order: 1,
+        preferred_lang: 'en',
       });
     }
     if (rng.chance(0.2)) {
@@ -1575,6 +1582,137 @@ async function main(): Promise<void> {
   await insertChunked(db, 'spotlights', spotRows);
   await insertChunked(db, 'staff_tasks', taskRows);
 
+  // ── 13. Messaging (threads, members, messages, translations, idea votes) ─────
+  // Team channels (announcement / idea / per-room / a private DM) plus per-child
+  // family threads on center 0 — one Spanish-preferring family (two-way
+  // translation) and one 26-hour-unanswered thread (aging red flag). Family
+  // threads need a guardian in `users` to author inbound messages, so we mint a
+  // few guardian auth accounts (no center membership — they never appear as staff).
+  type ThreadInsert = Database['public']['Tables']['threads']['Insert'];
+  type ThreadMemberInsert = Database['public']['Tables']['thread_members']['Insert'];
+  type MessageInsert = Database['public']['Tables']['messages']['Insert'];
+  type TranslationInsert = Database['public']['Tables']['message_translations']['Insert'];
+  type IdeaVoteInsert = Database['public']['Tables']['idea_votes']['Insert'];
+  const threadRows: ThreadInsert[] = [];
+  const threadMemberRows: ThreadMemberInsert[] = [];
+  const messageRows: MessageInsert[] = [];
+  const translationRows: TranslationInsert[] = [];
+  const ideaVoteRows: IdeaVoteInsert[] = [];
+  const hoursAgo = (h: number): Date => new Date(Date.now() - h * 3_600_000);
+  const addMsg = (threadId: string, authorId: string, body: string, at: Date, lang = 'en'): string => {
+    const id = randomUUID();
+    messageRows.push({ id, thread_id: threadId, author_id: authorId, body, lang, created_at: at.toISOString(), deliver_at: at.toISOString() });
+    return id;
+  };
+
+  centerIds.forEach((cid, ci) => {
+    const centerStaff = users.filter((u) => u.centerIndex === ci && u !== owner);
+    const director = centerStaff.find((u) => u.centerRole === 'director') ?? owner;
+    const leads = centerStaff.filter((u) => u.centerRole === 'lead_teacher');
+
+    // Announcement channel (broadcast — no member rows; RLS opens it to staff).
+    const annThreadId = randomUUID();
+    threadRows.push({ id: annThreadId, center_id: cid, kind: 'announcement', title: 'Announcements' });
+    addMsg(annThreadId, owner.id, 'Welcome to the new KinderBase app — log care, post to families, and message your team all in one place.', daysAgo(2));
+    addMsg(annThreadId, owner.id, 'Fall checkpoint opens Monday. Your observations pull in automatically as evidence.', hoursAgo(20));
+
+    // Idea Garden (broadcast) with a couple upvotes.
+    const ideaThreadId = randomUUID();
+    threadRows.push({ id: ideaThreadId, center_id: cid, kind: 'idea', title: 'Idea Garden' });
+    const idea1 = addMsg(ideaThreadId, (leads[0] ?? director).id, 'Could we do a Friday “family art wall” — each room posts one photo a week?', daysAgo(3));
+    if (leads[1]) addMsg(ideaThreadId, leads[1].id, 'Love this. The toddlers would be so proud to see their work up. +1', daysAgo(2));
+    for (const u of [leads[1], director, leads[0]].filter(Boolean).slice(0, 2)) ideaVoteRows.push({ message_id: idea1, user_id: u!.id });
+
+    // Per-room channels (first 3 rooms of the center).
+    classrooms
+      .filter((r) => r.centerIndex === ci)
+      .slice(0, 3)
+      .forEach((room) => {
+        const roster = rosterByRoom.get(room.key) ?? [];
+        if (roster.length === 0) return;
+        const roomThreadId = randomUUID();
+        threadRows.push({ id: roomThreadId, center_id: cid, kind: 'room', classroom_id: classroomIds.get(room.key)!, title: room.name });
+        roster.forEach((r) => threadMemberRows.push({ thread_id: roomThreadId, user_id: r.userId, role: 'member', last_read_at: hoursAgo(4).toISOString() }));
+        addMsg(roomThreadId, roster[0]!.userId, 'Sensory bins are refilled and the cots are sanitized for nap. All set for tomorrow. 🌙', hoursAgo(6));
+        if (roster[1]) addMsg(roomThreadId, roster[1].userId, 'Thank you! I’ll bring the new books for circle time.', hoursAgo(5));
+      });
+
+    // A private DM (director ↔ a lead). Owner is admin everywhere but is NOT a
+    // member, so the DM-privacy rule keeps it out of every admin view.
+    const dmPartner = leads[0] ?? centerStaff[0];
+    if (dmPartner && dmPartner.id !== director.id) {
+      const dmThreadId = randomUUID();
+      threadRows.push({ id: dmThreadId, center_id: cid, kind: 'dm', title: null });
+      threadMemberRows.push(
+        { thread_id: dmThreadId, user_id: director.id, role: 'member', last_read_at: hoursAgo(2).toISOString() },
+        { thread_id: dmThreadId, user_id: dmPartner.id, role: 'member', last_read_at: null },
+      );
+      addMsg(dmThreadId, director.id, `Hi ${dmPartner.fullName.split(' ')[0]} — are you open to covering the 2s room Thursday afternoon? I’ll adjust your ratio credit.`, hoursAgo(3));
+      addMsg(dmThreadId, dmPartner.id, 'Sure, I can do that. Thanks for asking!', hoursAgo(2));
+    }
+  });
+
+  // Family threads (center 0). Mint a guardian user per thread.
+  const familyChildren = childrenRows.filter((c) => c.center_id === centerIds[0]).slice(0, 6);
+  type GuardianUser = { childId: string; classroomId: string; name: string; email: string; lang: string; id: string };
+  const guardianUsers: GuardianUser[] = familyChildren.map((c, idx) => {
+    const g = guardianRows.find((gr) => gr.child_id === c.id && gr.is_primary);
+    return {
+      childId: c.id as string,
+      classroomId: c.classroom_id as string,
+      name: (g?.full_name as string) ?? 'Parent',
+      email: `family.${idx}@${domain}`,
+      lang: (g?.preferred_lang as string) ?? 'en',
+      id: '',
+    };
+  });
+  await mapPool(guardianUsers, 8, async (gu) => {
+    const { data, error } = await db.auth.admin.createUser({ email: gu.email, password: 'Sandbox!23456', email_confirm: true, user_metadata: { full_name: gu.name } });
+    if (error || !data.user) throw new Error(`createUser(${gu.email}) failed: ${error?.message}`);
+    gu.id = data.user.id;
+  });
+  await insertChunked(
+    db,
+    'users',
+    guardianUsers.map((gu) => ({ id: gu.id, email: gu.email, full_name: gu.name, role: 'staff' as const, profile_public: false })),
+  );
+
+  const classroomKeyById = new Map<string, string>();
+  classroomIds.forEach((id, key) => classroomKeyById.set(id, key));
+  guardianUsers.forEach((gu, idx) => {
+    const roomKey = classroomKeyById.get(gu.classroomId);
+    const roster = roomKey ? rosterByRoom.get(roomKey) ?? [] : [];
+    const teacherId = roster[0]?.userId ?? owner.id;
+    const threadId = randomUUID();
+    threadRows.push({ id: threadId, center_id: centerIds[0], kind: 'family', classroom_id: gu.classroomId, student_id: gu.childId, title: null });
+    threadMemberRows.push({ thread_id: threadId, user_id: gu.id, role: 'guardian', last_read_at: null });
+    roster.forEach((r) => threadMemberRows.push({ thread_id: threadId, user_id: r.userId, role: 'member', last_read_at: hoursAgo(1).toISOString() }));
+
+    if (gu.lang === 'es') {
+      // Two-way translation: teacher writes EN (stored ES for the family), the
+      // family replies in ES (stored EN for staff).
+      const en1 = 'He took 4oz at 8:05 — a bit less than usual. He may be teething. I will watch him at lunch.';
+      const m1 = addMsg(threadId, teacherId, en1, hoursAgo(5), 'en');
+      translationRows.push({ message_id: m1, lang: 'es', body: 'Tomó 4oz a las 8:05 — un poco menos de lo habitual. Puede que le estén saliendo los dientes. Lo vigilaré en el almuerzo.' });
+      const es1 = '¡Muchas gracias!';
+      const m2 = addMsg(threadId, gu.id, es1, hoursAgo(3), 'es');
+      translationRows.push({ message_id: m2, lang: 'en', body: 'Thank you so much!' });
+    } else if (idx === 1) {
+      // The 26-hour-unanswered thread: the family's message is the last one.
+      addMsg(threadId, teacherId, 'She napped well and ate all her fruit. Great day!', hoursAgo(30), 'en');
+      addMsg(threadId, gu.id, 'Thank you! Quick question — did she finish the antibiotics at noon? Want to make sure before tonight’s dose.', hoursAgo(26), 'en');
+    } else {
+      addMsg(threadId, teacherId, 'Great day today — lots of block building and a big appetite at lunch. 🧱', hoursAgo(7), 'en');
+      if (idx % 2 === 0) addMsg(threadId, gu.id, 'Love to hear it, thank you!', hoursAgo(6), 'en');
+    }
+  });
+
+  await insertChunked(db, 'threads', threadRows);
+  await insertChunked(db, 'thread_members', threadMemberRows);
+  await insertChunked(db, 'messages', messageRows);
+  await insertChunked(db, 'message_translations', translationRows);
+  await insertChunked(db, 'idea_votes', ideaVoteRows);
+
   // ── Summary ─────────────────────────────────────────────────────────────────
   console.log('\n✅ Seed complete');
   console.log(`   organization:      1 (${args.orgSlug})`);
@@ -1614,6 +1752,8 @@ async function main(): Promise<void> {
   console.log(`   staff tasks:       ${taskRows.length}`);
   console.log(`   staff notes:       ${notes.length}`);
   console.log(`   staff requests:    ${requests.length}`);
+  console.log(`   threads:           ${threadRows.length} (+${guardianUsers.length} guardian users)`);
+  console.log(`   messages:          ${messageRows.length} (${translationRows.length} translations)`);
   console.log(`\n   Owner login →  ${owner.email}  /  ${owner.password}`);
   console.log(`   Staff logins →  <name>@${domain}  /  Sandbox!23456`);
   console.log(`   Reset later  →  pnpm dlx tsx apps/web/supabase/seed.ts --org-slug ${args.orgSlug} --reset --yes\n`);
@@ -1658,6 +1798,9 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
     await db.from('announcements').delete().in('center_id', centerIds);
     await db.from('spotlights').delete().in('center_id', centerIds);
     await db.from('staff_assignments').delete().in('center_id', centerIds);
+    // Threads restrict center deletion (center_id has no cascade); messages,
+    // members, translations, and idea votes all cascade from the thread.
+    await db.from('threads').delete().in('center_id', centerIds);
   }
   if (userIds.length) {
     const { data: credRows } = await db.from('credentials').select('id').in('user_id', userIds);
