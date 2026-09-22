@@ -195,6 +195,189 @@ export async function getRoomFeed(classroomId: string, query?: string): Promise<
     .filter((f) => !q || f.body.toLowerCase().includes(q) || f.children.some((c) => c.toLowerCase().includes(q)));
 }
 
+export async function getRoomOptions(classroomId: string): Promise<{ id: string; name: string }[]> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx) return [];
+  const { data } = await ctx.service.from('classrooms').select('id, name').eq('center_id', ctx.centerId).is('deleted_at', null).order('name');
+  return data ?? [];
+}
+
+// ── lesson plan ──────────────────────────────────────────────────────────────
+export type PlanDay = { day: string; question: string; circleParts: string[]; circleNotes: string; outdoor: string; stations: string[] };
+export type LessonPlan = {
+  classroomId: string;
+  weekOf: string;
+  theme: string;
+  letter: string;
+  number: string;
+  shape: string;
+  status: 'draft' | 'submitted' | 'returned' | 'approved';
+  reviewComment: string;
+  canEdit: boolean;
+  days: PlanDay[];
+  filled: number;
+  total: number;
+};
+const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
+const CIRCLE_PARTS = ['Greeting', 'Songs', 'Read Aloud', 'Music & Movement'];
+
+function mondayOf(at: Date): string {
+  const d = new Date(at);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function dayFill(d: PlanDay): number {
+  return (d.question ? 1 : 0) + (d.circleNotes || d.circleParts.length ? 1 : 0) + (d.outdoor ? 1 : 0) + (d.stations.some((s) => s) ? 1 : 0);
+}
+async function isRoomLead(service: Service, classroomId: string, userId: string, role: CenterRole): Promise<boolean> {
+  if (isAdmin(role)) return true;
+  const { data } = await service.from('classroom_staff').select('user_id').eq('classroom_id', classroomId).eq('user_id', userId).maybeSingle();
+  if (!data) return false;
+  const { data: m } = await service.from('center_memberships').select('lead_qualified').eq('user_id', userId).is('left_at', null).maybeSingle();
+  return !!m?.lead_qualified;
+}
+
+async function ensurePlan(service: Service, classroomId: string, weekOf: string): Promise<string> {
+  const { data: existing } = await service.from('lesson_plans').select('id').eq('classroom_id', classroomId).eq('week_of', weekOf).maybeSingle();
+  if (existing) return existing.id;
+  const { data: created } = await service.from('lesson_plans').insert({ classroom_id: classroomId, week_of: weekOf, status: 'draft' }).select('id').single();
+  await service.from('lesson_plan_days').insert(DAYS.map((day) => ({ plan_id: created!.id, day })));
+  return created!.id;
+}
+
+export async function getLessonPlan(classroomId: string): Promise<LessonPlan | null> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx) return null;
+  const { service, userId, role } = ctx;
+  const weekOf = mondayOf(getClock().now());
+
+  const { data: plan } = await service
+    .from('lesson_plans')
+    .select('id, theme, letter, number, shape, status, review_comment, lesson_plan_days(day, question, circle_parts, circle_notes, outdoor, stations)')
+    .eq('classroom_id', classroomId)
+    .eq('week_of', weekOf)
+    .maybeSingle();
+
+  const rawDays = (plan?.lesson_plan_days ?? []) as { day: string; question: string | null; circle_parts: string[]; circle_notes: string | null; outdoor: string | null; stations: string[] }[];
+  const byDay = new Map(rawDays.map((d) => [d.day, d]));
+  const days: PlanDay[] = DAYS.map((day) => {
+    const d = byDay.get(day);
+    return {
+      day,
+      question: d?.question ?? '',
+      circleParts: d?.circle_parts ?? [],
+      circleNotes: d?.circle_notes ?? '',
+      outdoor: d?.outdoor ?? '',
+      stations: d?.stations?.length ? d.stations : ['', '', '', ''],
+    };
+  });
+  const filled = days.reduce((a, d) => a + dayFill(d), 0);
+  const status = (plan?.status ?? 'draft') as LessonPlan['status'];
+  const canEdit = (status === 'draft' || status === 'returned') && (await isRoomLead(service, classroomId, userId, role));
+
+  return {
+    classroomId,
+    weekOf,
+    theme: plan?.theme ?? '',
+    letter: plan?.letter ?? '',
+    number: plan?.number ?? '',
+    shape: plan?.shape ?? '',
+    status,
+    reviewComment: plan?.review_comment ?? '',
+    canEdit,
+    days,
+    filled,
+    total: 20,
+  };
+}
+
+export async function savePlanDay(classroomId: string, day: string, patch: Partial<PlanDay>): Promise<void> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx || !(await isRoomLead(ctx.service, classroomId, ctx.userId, ctx.role))) throw new Error('Forbidden');
+  const { service } = ctx;
+  const weekOf = mondayOf(getClock().now());
+  const planId = await ensurePlan(service, classroomId, weekOf);
+  const row: Record<string, unknown> = {};
+  if (patch.question !== undefined) row.question = patch.question.trim() || null;
+  if (patch.circleParts !== undefined) row.circle_parts = patch.circleParts;
+  if (patch.circleNotes !== undefined) row.circle_notes = patch.circleNotes.trim() || null;
+  if (patch.outdoor !== undefined) row.outdoor = patch.outdoor.trim() || null;
+  if (patch.stations !== undefined) row.stations = patch.stations;
+  await service.from('lesson_plan_days').update(row as never).eq('plan_id', planId).eq('day', day as 'mon' | 'tue' | 'wed' | 'thu' | 'fri');
+  revalidatePath(`/m/classroom/${classroomId}`);
+}
+
+export async function copyLastWeek(classroomId: string): Promise<void> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx || !(await isRoomLead(ctx.service, classroomId, ctx.userId, ctx.role))) throw new Error('Forbidden');
+  const plan = await getLessonPlan(classroomId);
+  if (!plan) return;
+  const weekOf = plan.weekOf;
+  const planId = await ensurePlan(ctx.service, classroomId, weekOf);
+  const qs = ['What do you notice today?', 'What sound does it make?', 'How many can you count?', 'What is your favorite part?', 'What did we learn this week?'];
+  for (let i = 0; i < DAYS.length; i++) {
+    const d = plan.days[i]!;
+    if (dayFill(d) >= 4) continue;
+    await ctx.service
+      .from('lesson_plan_days')
+      .update({
+        question: d.question || qs[i % qs.length],
+        circle_parts: d.circleParts.length ? d.circleParts : CIRCLE_PARTS,
+        circle_notes: d.circleNotes || `Read aloud tied to "${plan.theme}" · movement game`,
+        outdoor: d.outdoor || 'Nature walk and gross motor play',
+        stations: d.stations.some((s) => s) ? d.stations : ['Sensory bin', 'Art table', `Letter ${plan.letter} tray`, `Counting to ${plan.number}`],
+      } as never)
+      .eq('plan_id', planId)
+      .eq('day', DAYS[i]);
+  }
+  revalidatePath(`/m/classroom/${classroomId}`);
+}
+
+export async function submitPlan(classroomId: string): Promise<{ ok: boolean; message?: string }> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx || !(await isRoomLead(ctx.service, classroomId, ctx.userId, ctx.role))) throw new Error('Forbidden');
+  const plan = await getLessonPlan(classroomId);
+  if (!plan) return { ok: false, message: 'No plan' };
+  if (plan.filled < plan.total) return { ok: false, message: `${plan.filled} of 20 blocks filled — finish before submitting` };
+  const weekOf = plan.weekOf;
+  await ctx.service.from('lesson_plans').update({ status: 'submitted', submitted_by: ctx.userId, submitted_at: getClock().now().toISOString() }).eq('classroom_id', classroomId).eq('week_of', weekOf);
+  revalidatePath(`/m/classroom/${classroomId}`);
+  return { ok: true };
+}
+
+// ── schedule / routine ───────────────────────────────────────────────────────
+export type RoutineBlock = { startsAt: string; title: string; detail: string; isNow: boolean; upcoming: boolean; staff: string[] };
+export async function getRoutine(classroomId: string): Promise<RoutineBlock[]> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx) return [];
+  const { service } = ctx;
+  const { data: blocks } = await service.from('classroom_routines').select('starts_at, title, detail, sort_order').eq('classroom_id', classroomId).order('sort_order');
+  const rows = blocks ?? [];
+  const at = getClock().now();
+  const nowMin = at.getHours() * 60 + at.getMinutes();
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  let nowIdx = 0;
+  rows.forEach((b, i) => { if (toMin(b.starts_at) <= nowMin) nowIdx = i; });
+
+  const staffNames = ctx ? (await (async () => {
+    const nowISO = at.toISOString();
+    const { data: a } = await service.from('staff_assignments').select('user_id').eq('classroom_id', classroomId).lte('starts_at', nowISO).gt('ends_at', nowISO);
+    const ids = [...new Set((a ?? []).map((x) => x.user_id))];
+    if (!ids.length) return [] as string[];
+    const { data: u } = await service.from('users').select('full_name').in('id', ids);
+    return (u ?? []).map((x) => x.full_name);
+  })()) : [];
+
+  return rows.map((b, i) => ({
+    startsAt: b.starts_at.slice(0, 5),
+    title: b.title,
+    detail: b.detail ?? '',
+    isNow: i === nowIdx,
+    upcoming: i >= nowIdx && i < nowIdx + 3,
+    staff: i >= nowIdx && i < nowIdx + 3 ? staffNames : [],
+  }));
+}
+
 // ── mutations ────────────────────────────────────────────────────────────────
 export async function logChildUpdate(classroomId: string, input: { childIds: string[]; type: UpdateType; body: string }): Promise<void> {
   const ctx = await requireRoomMember(classroomId);

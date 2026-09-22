@@ -118,7 +118,15 @@ Spec: `docs/DECISIONS.md` + `docs/sessions/*` + `docs/prototypes/kb-full.html`. 
 - [x] Navigable stubs: `/m/today` (greeting + open-classroom), `/m/me` (profile link), `/m/messages` (Session-5 placeholder).
 - Verified: tsc + production build (all /m routes) + 60 core tests green; migration applied. `DEMO_MODE` served on :3000 (desktop) and :3001 (mobile/demo).
 
-### Phase 2b — pending
-Lesson-plan tab (migrations `lesson_plans`/`lesson_plan_days`, OMH template, copy-last-week, submit → approval) + Schedule tab (`classroom_routines` + seed) + voice observation (goal-tagged, `goal_codes`) + room briefing sheet on active-room change + classroom picker sheet. Log types beyond the current 4 (diaper/mood/photo).
+### Phase 2b — Lesson plan + Schedule tabs + picker (done)
+- [x] Migration `025_lesson_plans_routines.sql` — `lesson_plans`, `lesson_plan_days` (OMH template: question / circle parts+notes / outdoor / 4 stations), `classroom_routines`; center-member RLS. Applied; database.ts updated.
+- [x] Lesson plan tab: week + status pill, theme/letter/number/shape, 20-block progress, MonâFri day chips (n/4), four section cards; **lead-only editing** via section sheets (Circle Time part toggles), **Copy last week** (fills incomplete days), **Submit** (blocked until 20/20; returned→Resubmit with reviewer comment), read-only banner for non-leads. Actions: `getLessonPlan`/`savePlanDay`/`copyLastWeek`/`submitPlan` (`isRoomLead` gate).
+- [x] Schedule tab: `classroom_routines` timeline with the current block marked **NOW**, past dimmed, staff avatars on the current + next two blocks. Action: `getRoutine`.
+- [x] Classroom **picker** sheet (header room name → switch rooms) via `getRoomOptions`.
+- [x] Seed: 11-block daily routine per room + a current-week lesson plan per room (first room draft/partial, second returned-with-comment, rest submitted).
+- Verified: tsc + build + 60 core tests green; migration applied; sandbox reseeded (88 routines, 8 plans).
+
+### Phase 2c — pending
+Voice observation (record → transcript sheet → tag children + ELOF goal chips → post one `child_updates` per child with `goal_codes`), room-briefing sheet on active-room change, extra log types (diaper/mood/photo).
 
 ## Phase 3–6 — pending (today/me, admin, messaging, /demo sandbox)

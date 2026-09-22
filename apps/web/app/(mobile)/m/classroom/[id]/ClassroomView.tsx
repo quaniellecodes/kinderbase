@@ -2,13 +2,15 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Check, Coffee, Moon, Utensils, Camera, Mic, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
+import { Check, Coffee, Moon, Utensils, Camera, Mic, ChevronDown } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { Badge, Button, StatusDot, type BadgeTone } from '@/components/ui';
-import { toast } from '@/components/ui';
+import { Badge, Button, StatusDot, toast, type BadgeTone } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import type { UpdateType } from '@kinderbase/types';
-import { logChildUpdate, setNapState, startBreak, endBreak, type MobileRoom, type FeedItem } from '../actions';
+import { logChildUpdate, setNapState, startBreak, endBreak, type MobileRoom, type FeedItem, type LessonPlan, type RoutineBlock } from '../actions';
+import { LessonPlanTab } from './LessonPlanTab';
+import { ScheduleTab } from './ScheduleTab';
 
 const STATUS: Record<MobileRoom['evaluation']['status'], { label: string; tone: BadgeTone; dot: 'green' | 'amber' | 'red' }> = {
   ok: { label: 'In ratio', tone: 'green', dot: 'green' },
@@ -27,9 +29,22 @@ const NAP_STATES: { key: 'settling' | 'resting' | 'awake'; label: string }[] = [
   { key: 'awake', label: 'Nap over' },
 ];
 
-export function ClassroomView({ room, feed }: { room: MobileRoom; feed: FeedItem[] }) {
+export function ClassroomView({
+  room,
+  feed,
+  plan,
+  routine,
+  rooms,
+}: {
+  room: MobileRoom;
+  feed: FeedItem[];
+  plan: LessonPlan | null;
+  routine: RoutineBlock[];
+  rooms: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [tab, setTab] = useState<'overview' | 'plan' | 'schedule' | 'feed'>('overview');
+  const [picker, setPicker] = useState(false);
   const [why, setWhy] = useState<{ blocked?: { reasons: string[]; hint: string } } | null>(null);
   const [log, setLog] = useState<{ childIds: string[]; type: UpdateType; note: string } | null>(null);
   const [selMode, setSelMode] = useState(false);
@@ -98,12 +113,15 @@ export function ClassroomView({ room, feed }: { room: MobileRoom; feed: FeedItem
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-0">
         <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="text-[17px] font-semibold text-gray-900 truncate">{room.name}</h1>
+          <button className="min-w-0 text-left" onClick={() => rooms.length > 1 && setPicker(true)}>
+            <h1 className="text-[17px] font-semibold text-gray-900 truncate flex items-center gap-1">
+              {room.name}
+              {rooms.length > 1 && <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+            </h1>
             <p className="text-xs text-gray-500 truncate">
               {room.staff.filter((s) => !s.onBreak).map((s) => s.name.split(' ')[0]).join(' · ') || 'No staff on floor'}
             </p>
-          </div>
+          </button>
           <button
             onClick={() => setWhy({})}
             className={cn('inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0',
@@ -243,15 +261,24 @@ export function ClassroomView({ room, feed }: { room: MobileRoom; feed: FeedItem
         </div>
       )}
 
-      {(tab === 'plan' || tab === 'schedule') && (
-        <div className="p-4">
-          <div className="rounded-card border border-gray-100 bg-white p-8 text-center">
-            <MessageSquare className="w-7 h-7 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-900">{tab === 'plan' ? 'Lesson plan' : 'Schedule'} — coming next</p>
-            <p className="text-xs text-gray-400 mt-1">Built in Phase 2b (lesson-plan template + daily routine).</p>
-          </div>
+      {tab === 'plan' && (plan ? <LessonPlanTab plan={plan} /> : <div className="p-4 text-sm text-gray-400 text-center py-10">No lesson plan.</div>)}
+      {tab === 'schedule' && <ScheduleTab blocks={routine} />}
+
+      {/* Classroom picker */}
+      <BottomSheet open={picker} onClose={() => setPicker(false)} title="Switch classroom">
+        <div className="space-y-1 pb-2">
+          {rooms.map((r) => (
+            <Link
+              key={r.id}
+              href={`/m/classroom/${r.id}`}
+              onClick={() => setPicker(false)}
+              className={cn('flex items-center px-3 py-3 rounded-lg text-sm', r.id === room.id ? 'bg-brand/5 text-brand font-medium' : 'text-gray-700')}
+            >
+              {r.name}
+            </Link>
+          ))}
         </div>
-      )}
+      </BottomSheet>
 
       {/* Select bar */}
       {selMode && !log && (

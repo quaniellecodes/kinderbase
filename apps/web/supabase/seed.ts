@@ -796,6 +796,80 @@ async function main(): Promise<void> {
   await insertChunked(db, 'classroom_staff', rosterRows);
   await insertChunked(db, 'staff_shift_slots', shiftRows);
 
+  // ── 8b. Daily routines + lesson plans (mobile Classroom tab) ────────────────
+  type RoutineInsert = Database['public']['Tables']['classroom_routines']['Insert'];
+  type PlanInsert = Database['public']['Tables']['lesson_plans']['Insert'];
+  type PlanDayInsert = Database['public']['Tables']['lesson_plan_days']['Insert'];
+  const ROUTINE: [string, string, string][] = [
+    ['06:30', 'Arrival & free play', 'Greet families, health check'],
+    ['07:30', 'Breakfast', 'CACFP breakfast'],
+    ['08:30', 'Circle time', 'Greeting, songs, read aloud, movement'],
+    ['09:00', 'Small group stations', 'Four rotations'],
+    ['10:00', 'Outdoor / gross motor', 'Weather permitting'],
+    ['11:00', 'Lunch', 'CACFP lunch'],
+    ['12:00', 'Nap / quiet rest', 'Mark "all resting quietly" once settled'],
+    ['14:00', 'Wake & snack', 'CACFP PM snack'],
+    ['14:30', 'Centers & free choice', ''],
+    ['16:00', 'Outdoor', ''],
+    ['17:00', 'Quiet activities & pickup', 'Family handoff'],
+  ];
+  const routineRows: RoutineInsert[] = [];
+  classrooms.forEach((room) => {
+    const cid = classroomIds.get(room.key)!;
+    ROUTINE.forEach(([t, title, detail], i) => routineRows.push({ classroom_id: cid, starts_at: t, title, detail: detail || null, sort_order: i }));
+  });
+  await insertChunked(db, 'classroom_routines', routineRows);
+
+  const monday = new Date();
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const weekOf = isoDate(monday);
+  const THEMES: [string, string, string, string][] = [
+    ['Fall & Falling Leaves', 'L', '5', '●'],
+    ['Colors All Around', 'C', '3', '▲'],
+    ['Community Helpers', 'H', '8', '■'],
+    ['All About Me', 'M', '4', '★'],
+    ['Weather & Seasons', 'W', '7', '◆'],
+  ];
+  const CIRCLE = ['Greeting', 'Songs', 'Read Aloud', 'Music & Movement'];
+  const planRows: PlanInsert[] = [];
+  const planDayRows: PlanDayInsert[] = [];
+  classrooms.forEach((room, idx) => {
+    const cid = classroomIds.get(room.key)!;
+    const pid = randomUUID();
+    const th = THEMES[idx % THEMES.length]!;
+    // First room a draft (partly filled), second returned-with-comment, rest submitted.
+    const status: PlanInsert['status'] = idx === 0 ? 'draft' : idx === 1 ? 'returned' : 'submitted';
+    const submitted = status === 'submitted' || status === 'returned';
+    planRows.push({
+      id: pid,
+      classroom_id: cid,
+      week_of: weekOf,
+      theme: th[0],
+      letter: th[1],
+      number: th[2],
+      shape: th[3],
+      status,
+      review_comment: status === 'returned' ? 'Add a sensory option to Thursday’s stations.' : null,
+      submitted_by: submitted ? owner.id : null,
+      submitted_at: submitted ? daysAgo(2).toISOString() : null,
+    });
+    const fillDays = status === 'draft' ? 2 : 5;
+    (['mon', 'tue', 'wed', 'thu', 'fri'] as const).forEach((d, di) => {
+      const filled = di < fillDays;
+      planDayRows.push({
+        plan_id: pid,
+        day: d,
+        question: filled ? `What ${th[0].split(' ')[0].toLowerCase()} things do you see?` : null,
+        circle_parts: filled ? CIRCLE : [],
+        circle_notes: filled ? `Read aloud tied to "${th[0]}" · movement game` : null,
+        outdoor: filled ? 'Nature walk and gross motor play' : null,
+        stations: filled ? ['Sensory bin', 'Art table', `Letter ${th[1]} tray`, `Counting to ${th[2]}`] : ['', '', '', ''],
+      });
+    });
+  });
+  await insertChunked(db, 'lesson_plans', planRows);
+  await insertChunked(db, 'lesson_plan_days', planDayRows);
+
   // ── 9c. Children, today's attendance, and a per-room presence plan ──────────
   type ChildInsert = Database['public']['Tables']['children']['Insert'];
   type AttInsert = Database['public']['Tables']['child_attendance']['Insert'];
@@ -1485,6 +1559,8 @@ async function main(): Promise<void> {
   console.log(`   employment rows:   ${employment.length}`);
   console.log(`   roster rows:       ${rosterRows.length}`);
   console.log(`   staff assignments: ${assignmentRows.length}`);
+  console.log(`   routines:          ${routineRows.length}`);
+  console.log(`   lesson plans:      ${planRows.length}`);
   console.log(`   shift slots:       ${shiftRows.length}`);
   console.log(`   children:          ${childrenRows.length}`);
   console.log(`   student health:    ${healthRows.length}`);

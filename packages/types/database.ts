@@ -2227,6 +2227,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      lesson_plans: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          week_of: string;
+          theme: string | null;
+          letter: string | null;
+          number: string | null;
+          shape: string | null;
+          status: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by: string | null;
+          submitted_at: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_comment: string | null;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          week_of: string;
+          theme?: string | null;
+          letter?: string | null;
+          number?: string | null;
+          shape?: string | null;
+          status?: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_comment?: string | null;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          week_of?: string;
+          theme?: string | null;
+          letter?: string | null;
+          number?: string | null;
+          shape?: string | null;
+          status?: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_comment?: string | null;
+        };
+        Relationships: [];
+      };
+      lesson_plan_days: {
+        Row: {
+          plan_id: string;
+          day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question: string | null;
+          circle_parts: string[];
+          circle_notes: string | null;
+          outdoor: string | null;
+          stations: string[];
+        };
+        Insert: {
+          plan_id: string;
+          day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question?: string | null;
+          circle_parts?: string[];
+          circle_notes?: string | null;
+          outdoor?: string | null;
+          stations?: string[];
+        };
+        Update: {
+          plan_id?: string;
+          day?: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question?: string | null;
+          circle_parts?: string[];
+          circle_notes?: string | null;
+          outdoor?: string | null;
+          stations?: string[];
+        };
+        Relationships: [];
+      };
+      classroom_routines: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          starts_at: string;
+          title: string;
+          detail: string | null;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          starts_at: string;
+          title: string;
+          detail?: string | null;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          starts_at?: string;
+          title?: string;
+          detail?: string | null;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
