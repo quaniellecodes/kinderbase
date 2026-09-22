@@ -1,0 +1,134 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import type { DemoPersona } from '@/lib/demo';
+
+const DEVICES = {
+  phone: { label: 'Phone', w: 390, h: 844, radius: 44, bezel: 12 },
+  tablet: { label: 'Tablet', w: 800, h: 1040, radius: 26, bezel: 14 },
+};
+type Device = keyof typeof DEVICES;
+
+const CLOCKS = [
+  { hhmm: '09:12', label: '9:12 AM' },
+  { hhmm: '12:05', label: '12:05 · nap' },
+  { hhmm: '15:10', label: '3:10 PM' },
+];
+
+export function DemoStage({
+  personas,
+  currentUserId,
+  centerId,
+  nowHHmm,
+  overrideActive,
+}: {
+  personas: DemoPersona[];
+  currentUserId: string;
+  centerId: string;
+  nowHHmm: string;
+  overrideActive: boolean;
+}) {
+  const [device, setDevice] = useState<Device>('phone');
+  const [busy, setBusy] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('kb_demo_device') as Device | null;
+    if (saved && DEVICES[saved]) setDevice(saved);
+  }, []);
+  function pickDevice(d: Device) {
+    setDevice(d);
+    localStorage.setItem('kb_demo_device', d);
+  }
+
+  async function loginAs(userId: string) {
+    if (userId === currentUserId || busy) return;
+    setBusy(true);
+    await fetch('/api/demo/login/', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ userId, centerId }) });
+    location.reload();
+  }
+  function setClock(hhmm: string) {
+    const d = new Date();
+    const [h, m] = hhmm.split(':').map(Number);
+    d.setHours(h!, m!, 0, 0);
+    document.cookie = `kb_demo_now=${encodeURIComponent(d.toISOString())}; path=/; max-age=86400`;
+    location.reload();
+  }
+  function realTime() {
+    document.cookie = 'kb_demo_now=; path=/; max-age=0';
+    location.reload();
+  }
+
+  const dev = DEVICES[device];
+  const chip = 'text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors text-left';
+
+  return (
+    <div className="min-h-screen bg-[#eceae4] flex flex-col lg:flex-row items-start justify-center gap-6 p-4 lg:p-8">
+      {/* Device frame */}
+      <div className="flex-shrink-0 mx-auto">
+        <div className="bg-[#1a1a18] shadow-2xl" style={{ borderRadius: dev.radius, padding: dev.bezel, width: 'min(100%, ' + (dev.w + dev.bezel * 2) + 'px)' }}>
+          <div className="bg-white overflow-hidden relative" style={{ borderRadius: dev.radius - dev.bezel, height: `min(${dev.h}px, 84vh)` }}>
+            <div className="absolute top-0 inset-x-0 z-10 bg-amber-50 text-amber-800 text-[10px] font-medium text-center py-1 border-b border-amber-100">
+              Sample data — no real children
+            </div>
+            <iframe ref={iframeRef} src="/m" title="KinderBase mobile" className="w-full h-full border-0 pt-[19px]" />
+          </div>
+        </div>
+      </div>
+
+      {/* Control panel */}
+      <div className="w-full lg:w-[300px] flex-shrink-0 space-y-5">
+        <div>
+          <h1 className="text-[15px] font-semibold text-gray-900">KinderBase — mobile</h1>
+          <p className="text-xs text-gray-500">Live app in a phone. Switch persona, time, and device.</p>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Who's holding the phone</p>
+          <div className="grid grid-cols-2 gap-2">
+            {personas.map((p) => (
+              <button
+                key={p.userId}
+                onClick={() => loginAs(p.userId)}
+                className={cn('rounded-xl border p-2.5 text-left', p.userId === currentUserId ? 'border-brand bg-[#FFF8F2]' : 'border-gray-200 bg-white')}
+              >
+                <div className="text-[13px] font-semibold text-gray-900">{p.roleLabel === 'Director' ? 'Director' : p.label}</div>
+                <div className="text-[10px] text-gray-500">{p.roleLabel}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Time of day</p>
+          <div className="flex flex-col gap-1.5">
+            {CLOCKS.map((c) => {
+              const active = overrideActive && nowHHmm === c.hhmm;
+              return (
+                <button key={c.hhmm} onClick={() => setClock(c.hhmm)} className={cn(chip, 'border', active ? 'bg-brand text-white border-brand' : 'bg-white text-gray-700 border-gray-200')}>
+                  {c.label}
+                </button>
+              );
+            })}
+            {overrideActive && <button onClick={realTime} className={cn(chip, 'border bg-white text-gray-500 border-gray-200')}>Real time</button>}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Device</p>
+          <div className="flex bg-white border border-gray-200 rounded-lg p-1">
+            {(Object.keys(DEVICES) as Device[]).map((d) => (
+              <button key={d} onClick={() => pickDevice(d)} className={cn('flex-1 text-xs font-semibold py-1.5 rounded-md', device === d ? 'bg-brand text-white' : 'text-gray-500')}>
+                {DEVICES[d].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Link href="/dashboard" className="inline-block text-xs font-semibold text-brand">← Back to desktop</Link>
+      </div>
+    </div>
+  );
+}

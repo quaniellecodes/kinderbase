@@ -136,8 +136,9 @@ Spec: `docs/DECISIONS.md` + `docs/sessions/*` + `docs/prototypes/kb-full.html`. 
 A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both** desktop (`/dashboard`) and mobile (`/m`), matching the user's mock: `VIEWING AS` persona chips (Director / Lead / Assistant / Float, active = orange) + `CLOCK` presets (9:12 / 12:05 / 3:10 + Real) + a `Mobile ↗` / `Desktop ↗` toggle.
 - `lib/demo.ts` — `isDemo`, `assertNotProd` (crashes if DEMO_MODE ever points at prod), `getDemoPersonas` (representative seeded users by role at the active center).
 - `POST /api/demo/login` — one-tap sign-in as a seeded persona (looks up email, `signInWithPassword` with `DEMO_USER_PASSWORD` = sandbox password, sets the persona's active context). DEMO_MODE-gated (404 else). **Verified end-to-end (200 + session cookie).**
-- `components/demo/DemoBar` (client) + `DemoBarMount` (server) mounted in both layouts; clock reuses the app-wide `kb_demo_now` cookie.
+- `components/demo/DemoBar` (client) + `DemoBarMount` (server) mounted in both layouts; clock reuses the app-wide `kb_demo_now` cookie. The bar hides itself when inside the `/demo` frame.
+- **`/demo` phone/tablet simulator** (`app/demo`, DEMO_MODE-gated): renders `/m` inside a real device frame (`<iframe>`, so the app's fixed nav + safe areas work) with a **Phone ⇄ Tablet** toggle and a side control panel (persona cards + clock presets) — no devtools needed. The floating bar's "Mobile ↗" points here. `force-dynamic` (needs request cookies).
 - `.env.local`: `DEMO_MODE=true`, `DEMO_USER_PASSWORD`. Prod never sets these.
-- The full Claude-style **`/demo` phone-frame simulator + control panel + stories** for partners remains **Phase 6** (see [[project-demo-vision]] / 06-DEMO-SANDBOX.md).
+- Still Phase 6: the full partner-facing polish — access passcode/invite gate, "stories to walk through", one-tap scenarios, nightly reset, separate deploy (see [[project-demo-vision]] / 06-DEMO-SANDBOX.md).
 
 ## Phase 3–6 — pending (today/me, admin, messaging, /demo sandbox)

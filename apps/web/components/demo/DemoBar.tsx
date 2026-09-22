@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { DemoPersona } from '@/lib/demo';
@@ -33,6 +33,10 @@ export function DemoBar({
 }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(true);
+  const [framed, setFramed] = useState(false);
+  // Hide inside the /demo phone frame — that page provides its own controls.
+  useEffect(() => setFramed(window.self !== window.top), []);
+  if (framed) return null;
 
   async function loginAs(userId: string) {
     if (userId === currentUserId || busy) return;
@@ -91,7 +95,7 @@ export function DemoBar({
       )}
 
       <span className="w-px h-4 bg-white/15 flex-shrink-0" />
-      <Link href={surface === 'desktop' ? '/m' : '/dashboard'} className={cn(chip, 'bg-white/10 text-white/80 hover:bg-white/20')}>
+      <Link href={surface === 'desktop' ? '/demo' : '/dashboard'} className={cn(chip, 'bg-white/10 text-white/80 hover:bg-white/20')}>
         {surface === 'desktop' ? 'Mobile ↗' : 'Desktop ↗'}
       </Link>
       <button onClick={() => setOpen(false)} aria-label="Hide demo bar" className="text-white/40 hover:text-white/70 text-sm px-1 flex-shrink-0">×</button>
