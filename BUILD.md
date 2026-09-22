@@ -126,7 +126,10 @@ Spec: `docs/DECISIONS.md` + `docs/sessions/*` + `docs/prototypes/kb-full.html`. 
 - [x] Seed: 11-block daily routine per room + a current-week lesson plan per room (first room draft/partial, second returned-with-comment, rest submitted).
 - Verified: tsc + build + 60 core tests green; migration applied; sandbox reseeded (88 routines, 8 plans).
 
-### Phase 2c — pending
-Voice observation (record → transcript sheet → tag children + ELOF goal chips → post one `child_updates` per child with `goal_codes`), room-briefing sheet on active-room change, extra log types (diaper/mood/photo).
+### Phase 2c — Voice observation + room briefing (done)
+- [x] Voice observation: Overview "Observation" quick-button + a voice card open a review sheet — editable (canned) transcript, child chips (default first present child), **ELOF goal chips** suggested from the room's dominant age view (`goalSuggestions` on `getMobileRoom`, IT vs preschool by present-child bands). Posts one goal-tagged `child_updates` (type milestone, `goal_codes`, `covering` for admins) to every tagged child via `postObservation`; shows in Feed.
+- [x] Room briefing sheet (ⓘ in the header): children/staff counts, severe-allergy alert, now → next routine block, and your role (Lead/Aide/Admin).
+- Verified: tsc + production build + 60 core tests green (no migration/seed change — reads existing ELOF goals).
+- **Phase 2 complete** (Classroom tab: Overview · Lesson plan · Schedule · Feed, all live). Deferred: extra log types (diaper/mood/photo) need a widened `child_updates` CHECK; real audio capture (native, Session-13 `speech.ts`) — the demo uses a canned transcript.
 
 ## Phase 3–6 — pending (today/me, admin, messaging, /demo sandbox)

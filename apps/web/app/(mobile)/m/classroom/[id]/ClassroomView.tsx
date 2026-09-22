@@ -3,12 +3,12 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Check, Coffee, Moon, Utensils, Camera, Mic, ChevronDown } from 'lucide-react';
+import { Check, Coffee, Moon, Utensils, Camera, Mic, ChevronDown, Info, AlertTriangle } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Badge, Button, StatusDot, toast, type BadgeTone } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import type { UpdateType } from '@kinderbase/types';
-import { logChildUpdate, setNapState, startBreak, endBreak, type MobileRoom, type FeedItem, type LessonPlan, type RoutineBlock } from '../actions';
+import { logChildUpdate, postObservation, setNapState, startBreak, endBreak, type MobileRoom, type FeedItem, type LessonPlan, type RoutineBlock } from '../actions';
 import { LessonPlanTab } from './LessonPlanTab';
 import { ScheduleTab } from './ScheduleTab';
 
@@ -47,6 +47,8 @@ export function ClassroomView({
   const [picker, setPicker] = useState(false);
   const [why, setWhy] = useState<{ blocked?: { reasons: string[]; hint: string } } | null>(null);
   const [log, setLog] = useState<{ childIds: string[]; type: UpdateType; note: string } | null>(null);
+  const [obs, setObs] = useState<{ body: string; childIds: Set<string>; goals: Set<string> } | null>(null);
+  const [briefing, setBriefing] = useState(false);
   const [selMode, setSelMode] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
@@ -79,6 +81,24 @@ export function ClassroomView({
       setSel(new Set());
       refresh();
       toast('Update posted');
+    });
+  }
+  function openObs() {
+    const isPreschool = room.goalSuggestions.some((g) => g.startsWith('P-'));
+    const canned = isPreschool
+      ? 'During circle time the group named four community helpers and acted out what each one does.'
+      : 'Stacked blocks for several minutes, counted to eight, and self-corrected from six to seven without prompting.';
+    const first = present[0]?.id;
+    setObs({ body: canned, childIds: new Set(first ? [first] : []), goals: new Set(room.goalSuggestions.slice(0, 1)) });
+  }
+  function postObs() {
+    if (!obs) return;
+    if (!obs.childIds.size) return toast('Tag at least one child');
+    start(async () => {
+      await postObservation(room.id, { childIds: [...obs.childIds], body: obs.body, goalCodes: [...obs.goals] });
+      setObs(null);
+      refresh();
+      toast('Observation posted');
     });
   }
   function toggleBreak(staffId: string, onBreak: boolean, isSelf: boolean) {
@@ -122,13 +142,18 @@ export function ClassroomView({
               {room.staff.filter((s) => !s.onBreak).map((s) => s.name.split(' ')[0]).join(' · ') || 'No staff on floor'}
             </p>
           </button>
-          <button
-            onClick={() => setWhy({})}
-            className={cn('inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0',
-              st.tone === 'green' ? 'bg-green-50 text-green-700' : st.tone === 'amber' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700')}
-          >
-            <StatusDot tone={st.dot} /> {st.label}
-          </button>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button onClick={() => setBriefing(true)} aria-label="Room briefing" className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-400">
+              <Info className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setWhy({})}
+              className={cn('inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full',
+                st.tone === 'green' ? 'bg-green-50 text-green-700' : st.tone === 'amber' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700')}
+            >
+              <StatusDot tone={st.dot} /> {st.label}
+            </button>
+          </div>
         </div>
         <div className="flex gap-5 mt-3 overflow-x-auto">
           {(['overview', 'plan', 'schedule', 'feed'] as const).map((k) => (
@@ -176,8 +201,16 @@ export function ClassroomView({
               <QuickBtn icon={<Moon className="w-4 h-4" />} label="Batch nap" onClick={() => { setSelMode(true); setSel(new Set(present.map((c) => c.id))); openLogFor(present.map((c) => c.id), 'nap'); }} />
               <QuickBtn icon={<Utensils className="w-4 h-4" />} label="Batch meal" onClick={() => { setSelMode(true); setSel(new Set(present.map((c) => c.id))); openLogFor(present.map((c) => c.id), 'meal'); }} />
               <QuickBtn icon={<Camera className="w-4 h-4" />} label="Photo post" onClick={() => toast('Photo capture arrives in Phase 2b')} />
-              <QuickBtn icon={<Mic className="w-4 h-4" />} label="Observation" onClick={() => toast('Voice observation arrives in Phase 2b')} />
+              <QuickBtn icon={<Mic className="w-4 h-4" />} label="Observation" onClick={openObs} />
             </div>
+            {/* Voice card */}
+            <button onClick={openObs} className="w-full mt-2 flex items-center gap-3 rounded-card bg-gradient-to-br from-violet-900 to-purple-800 text-white px-3.5 py-3 text-left">
+              <span className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0"><Mic className="w-4 h-4" /></span>
+              <span className="flex-1">
+                <span className="block text-[13px] font-semibold">Speak an observation</span>
+                <span className="block text-[11px] text-white/70">20 seconds of talking beats a paragraph. Tag an ELOF goal.</span>
+              </span>
+            </button>
           </div>
 
           {/* In the room */}
@@ -337,6 +370,78 @@ export function ClassroomView({
             </Button>
           </div>
         )}
+      </BottomSheet>
+
+      {/* Voice observation sheet */}
+      <BottomSheet open={!!obs} onClose={() => setObs(null)} title="Observation">
+        {obs && (
+          <div className="space-y-3 pb-2">
+            <div className="flex items-center gap-2 text-[11px] text-gray-400"><Mic className="w-3.5 h-3.5" /> Transcribed · edit before posting</div>
+            <textarea value={obs.body} rows={4} onChange={(e) => setObs({ ...obs, body: e.target.value })}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30" />
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Who was this about</p>
+              <div className="flex flex-wrap gap-1.5">
+                {present.map((c) => {
+                  const on = obs.childIds.has(c.id);
+                  return (
+                    <button key={c.id} onClick={() => { const n = new Set(obs.childIds); on ? n.delete(c.id) : n.add(c.id); setObs({ ...obs, childIds: n }); }}
+                      className={cn('text-[11px] px-2.5 py-1 rounded-full border', on ? 'bg-brand text-white border-brand' : 'border-gray-200 text-gray-600')}>
+                      {c.name.split(' ')[0]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Evidence for (ELOF goals)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {room.goalSuggestions.map((g) => {
+                  const on = obs.goals.has(g);
+                  return (
+                    <button key={g} onClick={() => { const n = new Set(obs.goals); on ? n.delete(g) : n.add(g); setObs({ ...obs, goals: n }); }}
+                      className={cn('text-[10px] px-2 py-1 rounded-full border font-mono', on ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 text-gray-600')}>
+                      {g}
+                    </button>
+                  );
+                })}
+                {room.goalSuggestions.length === 0 && <span className="text-[11px] text-gray-400">No framework goals for this room’s age view.</span>}
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400">{room.me.isAdmin ? 'Posts as you · covering — not counted toward any teacher score' : 'Posts as you'}</p>
+            <Button className="w-full gap-1.5" onClick={postObs} disabled={pending}><Check className="w-4 h-4" /> {pending ? 'Posting…' : 'Post observation'}</Button>
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* Room briefing sheet */}
+      <BottomSheet open={briefing} onClose={() => setBriefing(false)} title={room.name}>
+        <div className="space-y-2 pb-2">
+          <p className="text-[13px] text-gray-700">
+            {present.length} children · {room.staff.filter((s) => !s.onBreak).length} staff on the floor
+          </p>
+          {room.children.filter((c) => c.allergy).length > 0 && (
+            <div className="rounded-lg bg-red-50 text-red-800 text-[12px] px-3 py-2 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span><b>Severe allergy:</b> {room.children.filter((c) => c.allergy).map((c) => c.name).join(', ')}</span>
+            </div>
+          )}
+          {(() => {
+            const now = routine.find((b) => b.isNow);
+            const idx = now ? routine.indexOf(now) : -1;
+            const next = idx >= 0 ? routine[idx + 1] : undefined;
+            return now ? (
+              <div className="rounded-lg bg-gray-50 text-gray-700 text-[12px] px-3 py-2">
+                <b>Now:</b> {now.title}
+                {next ? ` → ${next.title} at ${next.startsAt}` : ''}
+              </div>
+            ) : null;
+          })()}
+          <div className="rounded-lg bg-indigo-50 text-indigo-900 text-[12px] px-3 py-2">
+            Your role here: <b>{room.me.isAdmin ? 'Admin' : room.staff.find((s) => s.isSelf)?.leadForGroup ? 'Lead' : 'Aide'}</b>
+          </div>
+          <Button variant="secondary" className="w-full" onClick={() => setBriefing(false)}>Close</Button>
+        </div>
       </BottomSheet>
     </div>
   );

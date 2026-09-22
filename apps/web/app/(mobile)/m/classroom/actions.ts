@@ -69,6 +69,7 @@ export type MobileRoom = {
   };
   staff: MobileStaff[];
   children: MobileChild[];
+  goalSuggestions: string[]; // ELOF goal codes for the room's dominant view
   me: { staffId: string | null; onBreak: boolean; isAdmin: boolean; role: CenterRole };
 };
 
@@ -150,6 +151,18 @@ export async function getMobileRoom(classroomId: string): Promise<MobileRoom | n
     };
   });
 
+  // ELOF goal suggestions for voice observations — the room's dominant view.
+  const under36 = children.filter((c) => c.band === 'infant' || c.band === 'toddler' || c.band === 'two').length;
+  const view = children.length && under36 < children.length / 2 ? 'preschool' : 'infant_toddler';
+  let goalSuggestions: string[] = [];
+  const { data: fw } = await service.from('frameworks').select('id').eq('is_system', true).is('center_id', null).eq('name', 'Head Start Early Learning Outcomes Framework').maybeSingle();
+  if (fw) {
+    const { data: doms } = await service.from('framework_domains').select('framework_subdomains(framework_goals(code))').eq('framework_id', fw.id).eq('view', view);
+    const codes: string[] = [];
+    for (const d of doms ?? []) for (const s of (d.framework_subdomains ?? []) as { framework_goals?: { code: string }[] }[]) for (const g of s.framework_goals ?? []) codes.push(g.code);
+    goalSuggestions = codes.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).slice(0, 8);
+  }
+
   return {
     id: classroomId,
     name: ctx.roomName,
@@ -167,6 +180,7 @@ export async function getMobileRoom(classroomId: string): Promise<MobileRoom | n
     },
     staff,
     children,
+    goalSuggestions,
     me: { staffId: assignedIds.includes(userId) ? userId : null, onBreak: onBreak.has(userId), isAdmin: isAdmin(role), role },
   };
 }
@@ -393,6 +407,23 @@ export async function logChildUpdate(classroomId: string, input: { childIds: str
   if (input.childIds.length) {
     await service.from('child_update_children').insert(input.childIds.map((child_id) => ({ update_id: update.id, child_id })));
   }
+  revalidatePath(`/m/classroom/${classroomId}`);
+}
+
+/** Voice observation: one goal-tagged update posted to every tagged child's feed. */
+export async function postObservation(classroomId: string, input: { childIds: string[]; body: string; goalCodes: string[] }): Promise<void> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx) throw new Error('Forbidden');
+  const { service, userId, role } = ctx;
+  if (!input.body.trim()) throw new Error('Observation text required');
+  if (!input.childIds.length) throw new Error('Tag at least one child');
+  const { data: update, error } = await service
+    .from('child_updates')
+    .insert({ classroom_id: classroomId, author_id: userId, update_type: 'milestone', body: input.body.trim(), covering: isAdmin(role), goal_codes: input.goalCodes })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+  await service.from('child_update_children').insert(input.childIds.map((child_id) => ({ update_id: update.id, child_id })));
   revalidatePath(`/m/classroom/${classroomId}`);
 }
 
