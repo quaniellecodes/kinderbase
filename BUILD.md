@@ -141,4 +141,12 @@ A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both*
 - `.env.local`: `DEMO_MODE=true`, `DEMO_USER_PASSWORD`. Prod never sets these.
 - Still Phase 6: the full partner-facing polish — access passcode/invite gate, "stories to walk through", one-tap scenarios, nightly reset, separate deploy (see [[project-demo-vision]] / 06-DEMO-SANDBOX.md).
 
-## Phase 3–6 — pending (today/me, admin, messaging, /demo sandbox)
+## Phase 3 — Teacher Today + Me (session 03; done)
+- [x] Migration `026` — `staff_tasks` (assigned/nudge/idea), `announcements`, `spotlights`; center-member RLS.
+- [x] **Today** (`/m/today`): `getToday` merges computed priorities (children needing an update in the active room with tappable faces · lesson-plan due/returned for room leads · own credential expiring ≤30d) with assigned `staff_tasks` (complete checkbox), + latest announcements, today's shift (assignments + kiosk clock-in), monthly spotlights, and a float "you're in now / on call" hero + day timeline. `completeTask`.
+- [x] **Me** (`/m/me`): `getMe` — hero (avatar/role/star score + since + attendance/tenure/expiring stats), growth card (5 signal bars + closest-win) + growth sheet (weights + definitions, **float reweighting: no lesson plans, posts/floor-hour**, lifetime), schedule (availability week strip + sick/vacation/personal balances), employment list (full profile link + credentials/training/time/requests), coaching empty state. Reads `teacher_scores`/`staff_profiles`/`credentials`.
+- [x] Seed: announcements + spotlights + assigned/nudge tasks per center; reset clears the new center-scoped tables.
+- Verified: tsc + production build + 60 core tests green; migration applied; reseeded.
+- Deferred: teacher-score nightly recompute is still display-only (Session 9); requests/credentials/training deep screens are toasts on mobile (full versions live on the desktop profile).
+
+## Phase 4–6 — pending (admin mobile, messaging, /demo partner sandbox)
