@@ -149,4 +149,16 @@ A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both*
 - Verified: tsc + production build + 60 core tests green; migration applied; reseeded.
 - Deferred: teacher-score nightly recompute is still display-only (Session 9); requests/credentials/training deep screens are toasts on mobile (full versions live on the desktop profile).
 
-## Phase 4–6 — pending (admin mobile, messaging, /demo partner sandbox)
+## Phase 4 — Admin mobile + Preview/Cover (session 04)
+
+### Phase 4a — admin shell + Home + Preview/Cover (done)
+- [x] Role-aware `MobileNav` (admin: Home · Rooms · ＋ · Inbox · People); `/m` redirects admins → `/m/admin`.
+- [x] **Admin Home** (`/m/admin`): `getAdminHome` runs every room through the engine — worst-room **compliance alert** (mix · citation · required/present · missing lead · **age-mix fix** via `suggestAgeMixFix` with mover names + target room), stats (staff on floor · children · compliant/total), approvals count (pending `staff_requests` + submitted lesson plans), rooms-right-now list, and heads-up (soonest `nextAgeTransition`, expiring credentials, missing required docs).
+- [x] **Preview / Cover** (docs §2): `RoomModeSheet` (Preview vs Cover) → `enterRoomMode` writes a `cover_sessions` row (+ a `source='cover'` `staff_assignments` row for Cover so the engine counts the admin); `exitRoomMode` closes both. `ClassroomView` shows a purple **Preview** (read-only) / orange **Covering** banner + Exit; every write action is guarded client-side and **server-enforced** (`assertNotPreview` throws "Preview is read-only" in log/observation/nap/break). Covering posts carry the admin's name tagged `covering`.
+- [x] Rooms list (`/m/admin/rooms`, All / Needs-attention filter → mode sheet); Inbox/People stubs.
+- Verified: tsc + production build (all /m/admin routes) + 60 core tests green. Reuses `cover_sessions` from migration 023 — no new migration.
+
+### Phase 4b — pending
+Approvals queue (`getApprovals`: time corrections w/ payroll impact, leave w/ engine coverage warning, schedule changes, lesson-plan Return/Review/Approve), the float-assignment sheet (per-candidate engine simulation: Fixes it / Still n short / Breaks <room>), the "Move them" age-mix action, People (staff + students), center switcher, admin ＋ sheet.
+
+## Phase 5–6 — pending (messaging, /demo partner sandbox)

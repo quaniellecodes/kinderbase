@@ -70,7 +70,7 @@ export type MobileRoom = {
   staff: MobileStaff[];
   children: MobileChild[];
   goalSuggestions: string[]; // ELOF goal codes for the room's dominant view
-  me: { staffId: string | null; onBreak: boolean; isAdmin: boolean; role: CenterRole };
+  me: { staffId: string | null; onBreak: boolean; isAdmin: boolean; role: CenterRole; mode: 'preview' | 'cover' | null };
 };
 
 export async function getMobileRoom(classroomId: string): Promise<MobileRoom | null> {
@@ -163,6 +163,16 @@ export async function getMobileRoom(classroomId: string): Promise<MobileRoom | n
     goalSuggestions = codes.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).slice(0, 8);
   }
 
+  const { data: session } = await service
+    .from('cover_sessions')
+    .select('mode')
+    .eq('classroom_id', classroomId)
+    .eq('user_id', userId)
+    .is('ended_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   return {
     id: classroomId,
     name: ctx.roomName,
@@ -181,8 +191,39 @@ export async function getMobileRoom(classroomId: string): Promise<MobileRoom | n
     staff,
     children,
     goalSuggestions,
-    me: { staffId: assignedIds.includes(userId) ? userId : null, onBreak: onBreak.has(userId), isAdmin: isAdmin(role), role },
+    me: { staffId: assignedIds.includes(userId) ? userId : null, onBreak: onBreak.has(userId), isAdmin: isAdmin(role), role, mode: (session?.mode ?? null) as 'preview' | 'cover' | null },
   };
+}
+
+// ── Preview / Cover (docs/sessions/04-ADMIN-MOBILE.md §1) ────────────────────
+async function assertNotPreview(service: Service, classroomId: string, userId: string): Promise<void> {
+  const { data } = await service.from('cover_sessions').select('id').eq('classroom_id', classroomId).eq('user_id', userId).eq('mode', 'preview').is('ended_at', null).maybeSingle();
+  if (data) throw new Error('Preview is read-only');
+}
+
+export async function enterRoomMode(classroomId: string, mode: 'preview' | 'cover'): Promise<void> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx || !isAdmin(ctx.role)) throw new Error('Forbidden');
+  const { service, userId, centerId } = ctx;
+  const now = getClock().now().toISOString();
+  await service.from('cover_sessions').update({ ended_at: now }).eq('classroom_id', classroomId).eq('user_id', userId).is('ended_at', null);
+  await service.from('cover_sessions').insert({ classroom_id: classroomId, user_id: userId, mode, started_at: now });
+  if (mode === 'cover') {
+    const end = new Date(getClock().now());
+    end.setHours(23, 59, 0, 0);
+    await service.from('staff_assignments').insert({ center_id: centerId, classroom_id: classroomId, user_id: userId, starts_at: now, ends_at: end.toISOString(), source: 'cover', assigned_by: userId });
+  }
+  revalidatePath(`/m/classroom/${classroomId}`);
+}
+
+export async function exitRoomMode(classroomId: string): Promise<void> {
+  const ctx = await requireRoomMember(classroomId);
+  if (!ctx) throw new Error('Forbidden');
+  const { service, userId } = ctx;
+  const now = getClock().now().toISOString();
+  await service.from('cover_sessions').update({ ended_at: now }).eq('classroom_id', classroomId).eq('user_id', userId).is('ended_at', null);
+  await service.from('staff_assignments').delete().eq('classroom_id', classroomId).eq('user_id', userId).eq('source', 'cover');
+  revalidatePath(`/m/classroom/${classroomId}`);
 }
 
 export type FeedItem = { id: string; type: UpdateType; body: string; author: string; at: string; covering: boolean; children: string[] };
@@ -397,6 +438,7 @@ export async function logChildUpdate(classroomId: string, input: { childIds: str
   const ctx = await requireRoomMember(classroomId);
   if (!ctx) throw new Error('Forbidden');
   const { service, userId, role } = ctx;
+  await assertNotPreview(service, classroomId, userId);
   const body = input.body.trim() || `${input.type} logged`;
   const { data: update, error } = await service
     .from('child_updates')
@@ -415,6 +457,7 @@ export async function postObservation(classroomId: string, input: { childIds: st
   const ctx = await requireRoomMember(classroomId);
   if (!ctx) throw new Error('Forbidden');
   const { service, userId, role } = ctx;
+  await assertNotPreview(service, classroomId, userId);
   if (!input.body.trim()) throw new Error('Observation text required');
   if (!input.childIds.length) throw new Error('Tag at least one child');
   const { data: update, error } = await service
@@ -430,6 +473,7 @@ export async function postObservation(classroomId: string, input: { childIds: st
 export async function setNapState(classroomId: string, state: 'awake' | 'settling' | 'resting'): Promise<void> {
   const ctx = await requireRoomMember(classroomId);
   if (!ctx) throw new Error('Forbidden');
+  await assertNotPreview(ctx.service, classroomId, ctx.userId);
   const { error } = await ctx.service.from('classroom_nap_events').insert({ classroom_id: classroomId, state, set_by: ctx.userId });
   if (error) throw new Error(error.message);
   revalidatePath(`/m/classroom/${classroomId}`);
@@ -440,6 +484,7 @@ export async function startBreak(classroomId: string, staffId?: string): Promise
   const ctx = await requireRoomMember(classroomId);
   if (!ctx) throw new Error('Forbidden');
   const { service, userId, role } = ctx;
+  await assertNotPreview(service, classroomId, userId);
   const target = staffId && isAdmin(role) ? staffId : userId; // teachers only break themselves
   const clock = getClock();
   const input = await loadRoomInput(classroomId, clock, service);

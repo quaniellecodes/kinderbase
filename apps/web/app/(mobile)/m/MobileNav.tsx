@@ -3,15 +3,22 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Home, DoorOpen, MessageSquare, User, Plus } from 'lucide-react';
+import { Home, DoorOpen, MessageSquare, User, Plus, LayoutGrid, Inbox, Users } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
+import { isAdmin, type CenterRole } from '@kinderbase/types';
 import { cn } from '@/lib/utils';
 
-const TABS = [
+const TEACHER_TABS = [
   { href: '/m/today', label: 'Today', icon: Home, match: (p: string) => p === '/m/today' || p === '/m' },
   { href: '/m/classroom', label: 'Classroom', icon: DoorOpen, match: (p: string) => p.startsWith('/m/classroom') },
   { href: '/m/messages', label: 'Messages', icon: MessageSquare, match: (p: string) => p.startsWith('/m/messages') },
   { href: '/m/me', label: 'Me', icon: User, match: (p: string) => p.startsWith('/m/me') },
+];
+const ADMIN_TABS = [
+  { href: '/m/admin', label: 'Home', icon: Home, match: (p: string) => p === '/m/admin' || p === '/m' },
+  { href: '/m/admin/rooms', label: 'Rooms', icon: LayoutGrid, match: (p: string) => p.startsWith('/m/admin/rooms') || p.startsWith('/m/classroom') },
+  { href: '/m/admin/inbox', label: 'Inbox', icon: Inbox, match: (p: string) => p.startsWith('/m/admin/inbox') },
+  { href: '/m/admin/people', label: 'People', icon: Users, match: (p: string) => p.startsWith('/m/admin/people') },
 ];
 
 const QUICK = [
@@ -23,9 +30,10 @@ const QUICK = [
   ['⚠️', 'Incident'],
 ] as const;
 
-export function MobileNav() {
+export function MobileNav({ role }: { role: CenterRole }) {
   const pathname = usePathname();
   const [add, setAdd] = useState(false);
+  const TABS = isAdmin(role) ? ADMIN_TABS : TEACHER_TABS;
 
   return (
     <>

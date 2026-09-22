@@ -8,7 +8,7 @@ import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Badge, Button, StatusDot, toast, type BadgeTone } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import type { UpdateType } from '@kinderbase/types';
-import { logChildUpdate, postObservation, setNapState, startBreak, endBreak, type MobileRoom, type FeedItem, type LessonPlan, type RoutineBlock } from '../actions';
+import { logChildUpdate, postObservation, setNapState, startBreak, endBreak, exitRoomMode, type MobileRoom, type FeedItem, type LessonPlan, type RoutineBlock } from '../actions';
 import { LessonPlanTab } from './LessonPlanTab';
 import { ScheduleTab } from './ScheduleTab';
 
@@ -56,11 +56,27 @@ export function ClassroomView({
   const st = STATUS[room.evaluation.status];
   const present = room.children.filter((c) => c.present);
   const needUpdate = present.filter((c) => c.updatesToday === 0).length;
+  const mode = room.me.mode;
+  const readOnly = mode === 'preview';
 
+  function guardWrite(): boolean {
+    if (readOnly) {
+      toast('Preview is read-only — switch to Cover to act');
+      return true;
+    }
+    return false;
+  }
+  function exitMode() {
+    start(async () => {
+      await exitRoomMode(room.id);
+      router.push('/m/admin/rooms');
+    });
+  }
   function refresh() {
     router.refresh();
   }
   function openLogFor(childIds: string[], type: UpdateType = 'meal') {
+    if (guardWrite()) return;
     setLog({ childIds, type, note: '' });
   }
   function tapChild(id: string) {
@@ -84,6 +100,7 @@ export function ClassroomView({
     });
   }
   function openObs() {
+    if (guardWrite()) return;
     const isPreschool = room.goalSuggestions.some((g) => g.startsWith('P-'));
     const canned = isPreschool
       ? 'During circle time the group named four community helpers and acted out what each one does.'
@@ -103,6 +120,7 @@ export function ClassroomView({
   }
   function toggleBreak(staffId: string, onBreak: boolean, isSelf: boolean) {
     if (!isSelf && !room.me.isAdmin) return;
+    if (guardWrite()) return;
     start(async () => {
       if (onBreak) {
         await endBreak(room.id, isSelf ? undefined : staffId);
@@ -115,6 +133,7 @@ export function ClassroomView({
     });
   }
   function nap(state: 'settling' | 'resting' | 'awake') {
+    if (guardWrite()) return;
     start(async () => {
       await setNapState(room.id, state);
       refresh();
@@ -130,6 +149,16 @@ export function ClassroomView({
 
   return (
     <div className="pb-4">
+      {/* Preview / Cover banner */}
+      {mode && (
+        <div className={cn('flex items-center gap-2 px-4 py-2 text-white text-[12px] font-medium', mode === 'preview' ? 'bg-violet-700' : 'bg-brand')}>
+          <span className="flex-1">
+            {mode === 'preview' ? 'Preview · read-only, not counted in ratio' : 'Covering · you count toward ratio, posts carry your name'}
+          </span>
+          <button onClick={exitMode} disabled={pending} className="text-[11px] font-semibold bg-white/20 rounded-lg px-2.5 py-1">Exit</button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-0">
         <div className="flex items-center justify-between gap-2">

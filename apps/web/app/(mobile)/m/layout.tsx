@@ -20,7 +20,7 @@ export default async function MobileLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 min-w-0 pb-[68px]">{children}</main>
-      <MobileNav />
+      <MobileNav role={active.role} />
       <Toaster />
       <DemoBarMount surface="mobile" />
     </div>
