@@ -4,6 +4,22 @@ Living document. Update after every session.
 
 ---
 
+## Source of truth
+- `docs/DECISIONS.md` overrides the original brief wherever they conflict.
+- `docs/prototypes/kb-full.html` is the executable spec for the **mobile app** (`/m` routes).
+  Open it in a browser and match its layout, copy, states, and interactions. Use the persona
+  switcher and clock on the right to see every role. Its inline `band()` uses a 12-month cutoff —
+  a known prototype bug; DECISIONS §3 (18-month center band) wins.
+- Session prompts live in `docs/sessions/` (01 engine → 06 demo sandbox). Do one at a time.
+- **Mobile track (in progress on `feat/mobile-engine`, stacked on `feat/students`):** the phone
+  apps (teacher/float/director) + real COMAR staffing engine + `/demo` phone simulator. Doc↔repo
+  mappings adopted: `students→children`, `activity_posts→child_updates` (+ SAEO `observations`),
+  age bands corrected to **18/24/36/60 mo**, demo DB = the existing sandbox, mobile at
+  `app/(mobile)/m`, `/demo` runs under `DEMO_MODE` (a second dev instance on :3001 locally).
+- Update `BUILD.md` at the end of every session.
+
+---
+
 ## Session end state (2026-09-20)
 
 **Current branch: `feat/students`** (off reconciled `main`) — the **Students module**, all phases A–G complete and pushed. See [BUILD.md](BUILD.md) for the phase-by-phase log. Latest commit is the Phase G wizard.
