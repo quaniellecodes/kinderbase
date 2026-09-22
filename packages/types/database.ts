@@ -779,6 +779,8 @@ export type Database = {
           update_type: 'meal' | 'nap' | 'milestone' | 'incident';
           body: string;
           created_at: string;
+          covering: boolean;
+          goal_codes: string[];
         };
         Insert: {
           id?: string;
@@ -787,6 +789,8 @@ export type Database = {
           update_type: 'meal' | 'nap' | 'milestone' | 'incident';
           body: string;
           created_at?: string;
+          covering?: boolean;
+          goal_codes?: string[];
         };
         Update: {
           id?: string;
@@ -795,6 +799,8 @@ export type Database = {
           update_type?: 'meal' | 'nap' | 'milestone' | 'incident';
           body?: string;
           created_at?: string;
+          covering?: boolean;
+          goal_codes?: string[];
         };
         Relationships: [
           {

@@ -107,4 +107,18 @@ Spec: `docs/DECISIONS.md` + `docs/sessions/*` + `docs/prototypes/kb-full.html`. 
 - Verified: 60 core tests + tsc + production build green; migration applied; sandbox reseeded; Infant Room shows 6 infants / 1 staff → engine OUT.
 - **Deferred to later phases:** explicit §D(1) "toddler+twos out" demo room → Phase 6 scenario system (06-DEMO §5); full-repo `new Date()` sweep beyond the engine path (remaining ones are display/seed, not compliance logic); the DEMO_MODE↔prod-URL safety assertion → Phase 6 §1.
 
-## Phase 2–6 — pending (classroom, today/me, admin, messaging, /demo sandbox)
+## Phase 2 — Mobile shell + Classroom (session 02)
+
+### Phase 2a — shell + Classroom Overview wired to the live engine (done)
+- [x] `app/(mobile)/m/layout.tsx` (auth + active-context gate, phone shell), `MobileNav` (Today · Classroom · ＋ · Messages · Me, raised center ＋ with quick-add sheet), reusable `components/mobile/BottomSheet` (drag handle, backdrop close, safe-area).
+- [x] Active-room resolution: `/m` → `/m/today`; `/m/classroom` resolves assignment-now → `kb_active_room` override → admin default → `/m/classroom/[id]` (via `activeClassroomFor`).
+- [x] Migration `024_child_updates_mobile.sql` — `child_updates.covering` + `goal_codes` (our activity_posts). Applied to sandbox; database.ts updated.
+- [x] `/m/classroom/[id]` — header (room, staff-on-floor, live compliance pill → why sheet) + tabs (Overview · Lesson plan · Schedule · Feed). **Overview is fully wired to the COMAR engine**: Here/Staff/Required/Need-update numbers, compliance strip + why sheet (per-check pass/fail, rule + citation, mix), In-the-room staff with Lead/Aide pills + **Break/Back enforced by `canStepOut`** (blocked break opens the why sheet with plain-English reasons + hint), nap control (Settling/Resting/Nap-over), children grid (tap → log sheet, Select-multiple → batch), Quick-log (Batch nap/meal open a preset log). **Feed** tab live (child_updates). Lesson-plan/Schedule tabs are "coming next" placeholders.
+- [x] `classroom/actions.ts` — `getMobileRoom` (loadRoomInput + evaluate + roster/staff/allergy), `getRoomFeed`, `logChildUpdate` (covering flag for admins), `setNapState`, `startBreak` (engine-enforced, snapshots the evaluation), `endBreak`.
+- [x] Navigable stubs: `/m/today` (greeting + open-classroom), `/m/me` (profile link), `/m/messages` (Session-5 placeholder).
+- Verified: tsc + production build (all /m routes) + 60 core tests green; migration applied. `DEMO_MODE` served on :3000 (desktop) and :3001 (mobile/demo).
+
+### Phase 2b — pending
+Lesson-plan tab (migrations `lesson_plans`/`lesson_plan_days`, OMH template, copy-last-week, submit → approval) + Schedule tab (`classroom_routines` + seed) + voice observation (goal-tagged, `goal_codes`) + room briefing sheet on active-room change + classroom picker sheet. Log types beyond the current 4 (diaper/mood/photo).
+
+## Phase 3–6 — pending (today/me, admin, messaging, /demo sandbox)
