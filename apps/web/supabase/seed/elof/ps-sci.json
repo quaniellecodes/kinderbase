@@ -1,0 +1,116 @@
+{
+  "view": "preschool",
+  "domain": { "code": "P-SCI", "name": "Scientific Reasoning" },
+  "subdomains": [
+    {
+      "name": "Scientific Inquiry",
+      "goals": [
+        {
+          "code": "P-SCI 1",
+          "text": "Child observes and describes observable phenomena (objects, materials, organisms, and events).",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Uses the five senses to observe objects, materials, organisms, and events. Provides simple verbal or signed descriptions. With adult support, represents observable phenomena, such as draws a picture.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Makes increasingly complex observations of objects, materials, organisms, and events. Provides greater detail in descriptions. Represents observable phenomena in more complex ways, such as pictures that include more detail.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SCI 2",
+          "text": "Child engages in scientific talk.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Begins to use scientific vocabulary words with modeling and support from an adult. Sometimes repeats new words offered by adults.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Uses a greater number of scientific vocabulary words. Repeats new words offered by adults and may ask questions about unfamiliar words.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SCI 3",
+          "text": "Child compares and categorizes observable phenomena.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Sorts objects into groups based on simple attributes, such as color. With support, uses measurement tools to quantify similarities and differences of observable phenomena, such as when a child scoops sand into two containers and with adult assistance, determines which container holds more scoops.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "With increasing independence, sorts objects into groups based on more complex attributes, such as weight, sound, or texture. Uses measurement tools to assess the properties of and compare observable phenomena.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reasoning and Problem-Solving",
+      "goals": [
+        {
+          "code": "P-SCI 4",
+          "text": "Child asks a question, gathers information, and makes predictions.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Asks simple questions. Uses adults as primary resources to gather information about questions. With adult support and modeling, makes simple predictions, such as “I think that the golf ball will be heavier than the ping pong ball.”",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Asks more complex questions. Uses other sources besides adults to gather information, such as books, or other experts. Uses background knowledge and experiences to make predictions.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SCI 5",
+          "text": "Child plans and conducts investigations and experiments.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "With adult support, engages in simple investigations and experiments, such as building a “bridge” out of classroom materials and seeing how many dolls it will hold before it collapses. Records data with teacher assistance, mostly using pictures and marks on a page.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "With increasing independence, engages in some parts of conducting complex investigations or experiments. Increasingly able to articulate the steps that need to be taken to conduct an investigation. Uses more complex ways to gather and record data, such as with adult support, makes a graph that shows children’s favorite snacks.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-SCI 6",
+          "text": "Child analyzes results, draws conclusions, and communicates results.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "With adult assistance, analyzes and interprets data. Draws conclusions and provides simple descriptions of results. For example, an adult suggests counting how many dolls can be supported by a bridge before it breaks and along with the children counts, “One, two, three dolls. What happened when we put on the next doll?” A child says, “The bridge broke!”",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "With increasing independence, analyzes and interprets data and draws conclusions. With adult support, compares results to initial prediction and generates new questions or designs. For example, after putting multiple magnets together to create one magnet that is not strong enough to lift 10 paperclips, builds another and tries again. Communicates results, solutions, and conclusions in increasingly complex ways through multiple methods.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://eclkc.ohs.acf.hhs.gov/sites/default/files/pdf/elof-ohs-framework.pdf"
+  ]
+}

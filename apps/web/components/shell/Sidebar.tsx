@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
+  Baby,
   DoorOpen,
   FileCheck,
   Calendar,
@@ -52,6 +53,7 @@ async function getMemberships(): Promise<Membership[]> {
 
 const adminNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/students', label: 'Students', icon: Baby },
   { href: '/staff', label: 'Staff', icon: Users },
   { href: '/classrooms', label: 'Classrooms', icon: DoorOpen },
   { href: '/requests', label: 'Requests', icon: ClipboardList },
@@ -61,6 +63,7 @@ const adminNav = [
 
 const teacherNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/students', label: 'Students', icon: Baby },
   { href: '/credentials', label: 'Credentials', icon: FileCheck },
   { href: '/schedule', label: 'Schedule', icon: Calendar },
   { href: '/time', label: 'Time', icon: Clock },

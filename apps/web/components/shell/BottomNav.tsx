@@ -6,6 +6,7 @@ import { useState } from 'react';
 import {
   LayoutDashboard,
   Users,
+  Baby,
   DoorOpen,
   FileCheck,
   Calendar,
@@ -31,16 +32,16 @@ type Props = {
 
 const adminTabs = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { href: '/students', label: 'Students', icon: Baby },
   { href: '/staff', label: 'Staff', icon: Users },
   { href: '/classrooms', label: 'Rooms', icon: DoorOpen },
-  { href: '/requests', label: 'Requests', icon: ClipboardList },
 ];
 
 const teacherTabs = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { href: '/students', label: 'Students', icon: Baby },
   { href: '/credentials', label: 'Credentials', icon: FileCheck },
   { href: '/time', label: 'Time', icon: Clock },
-  { href: '/requests', label: 'Requests', icon: ClipboardList },
 ];
 
 export function BottomNav({ memberships, active }: Props) {

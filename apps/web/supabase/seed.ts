@@ -28,6 +28,7 @@ import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@kinderbase/types/database';
+import { seedElof } from './seed-elof';
 
 // ── Local mirrors of shared unions (types are erased at runtime; kept here so the
 //    script is self-contained and never resolves workspace code at runtime) ──────
@@ -496,6 +497,14 @@ async function main(): Promise<void> {
     await resetSandbox(db, args.orgSlug, domain, ownerEmail);
   }
 
+  // ── 0. ELOF framework (system reference data; idempotent, not org-scoped) ──
+  const elof = await seedElof(db);
+  console.log(
+    `Seeded ELOF framework: ${elof.domains} domains, ${elof.subdomains} sub-domains, ` +
+      `${elof.goals} goals, ${elof.progressions} progressions, ${elof.ratingLevels} rating levels, ` +
+      `${elof.descriptors} descriptors.`,
+  );
+
   // ── 1. Organization ──────────────────────────────────────────────────────
   const orgId = randomUUID();
   const { error: orgErr } = await db.from('organizations').insert({
@@ -657,6 +666,11 @@ async function main(): Promise<void> {
 
   // ── 6. Center memberships ───────────────────────────────────────────────────
   type Membership = Database['public']['Tables']['center_memberships']['Insert'];
+  // Qualification is separate from job title (COMAR / DECISIONS §2). Assistant
+  // teachers are treated as lead-qualified; substitutes act as lead-qualified
+  // floats but without the 9-hr infant/toddler course; aides are neither.
+  const leadQualRoles = new Set<CenterRole>(['director', 'admin', 'lead_teacher', 'assistant_teacher', 'substitute']);
+  const itTrainedRoles = new Set<CenterRole>(['director', 'admin', 'lead_teacher', 'assistant_teacher']);
   const memberships: Membership[] = [];
   for (const u of users) {
     if (u === owner) continue;
@@ -665,6 +679,8 @@ async function main(): Promise<void> {
       center_id: centerIds[u.centerIndex],
       role: u.centerRole,
       is_primary_center: true,
+      lead_qualified: leadQualRoles.has(u.centerRole),
+      infant_toddler_trained: itTrainedRoles.has(u.centerRole),
     });
   }
   // Owner is admin at every center.
@@ -674,6 +690,8 @@ async function main(): Promise<void> {
       center_id: cid,
       role: i === 0 ? 'director' : 'admin',
       is_primary_center: i === 0,
+      lead_qualified: true,
+      infant_toddler_trained: true,
     });
   });
   await insertChunked(db, 'center_memberships', memberships);
@@ -778,6 +796,80 @@ async function main(): Promise<void> {
   await insertChunked(db, 'classroom_staff', rosterRows);
   await insertChunked(db, 'staff_shift_slots', shiftRows);
 
+  // ── 8b. Daily routines + lesson plans (mobile Classroom tab) ────────────────
+  type RoutineInsert = Database['public']['Tables']['classroom_routines']['Insert'];
+  type PlanInsert = Database['public']['Tables']['lesson_plans']['Insert'];
+  type PlanDayInsert = Database['public']['Tables']['lesson_plan_days']['Insert'];
+  const ROUTINE: [string, string, string][] = [
+    ['06:30', 'Arrival & free play', 'Greet families, health check'],
+    ['07:30', 'Breakfast', 'CACFP breakfast'],
+    ['08:30', 'Circle time', 'Greeting, songs, read aloud, movement'],
+    ['09:00', 'Small group stations', 'Four rotations'],
+    ['10:00', 'Outdoor / gross motor', 'Weather permitting'],
+    ['11:00', 'Lunch', 'CACFP lunch'],
+    ['12:00', 'Nap / quiet rest', 'Mark "all resting quietly" once settled'],
+    ['14:00', 'Wake & snack', 'CACFP PM snack'],
+    ['14:30', 'Centers & free choice', ''],
+    ['16:00', 'Outdoor', ''],
+    ['17:00', 'Quiet activities & pickup', 'Family handoff'],
+  ];
+  const routineRows: RoutineInsert[] = [];
+  classrooms.forEach((room) => {
+    const cid = classroomIds.get(room.key)!;
+    ROUTINE.forEach(([t, title, detail], i) => routineRows.push({ classroom_id: cid, starts_at: t, title, detail: detail || null, sort_order: i }));
+  });
+  await insertChunked(db, 'classroom_routines', routineRows);
+
+  const monday = new Date();
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const weekOf = isoDate(monday);
+  const THEMES: [string, string, string, string][] = [
+    ['Fall & Falling Leaves', 'L', '5', '●'],
+    ['Colors All Around', 'C', '3', '▲'],
+    ['Community Helpers', 'H', '8', '■'],
+    ['All About Me', 'M', '4', '★'],
+    ['Weather & Seasons', 'W', '7', '◆'],
+  ];
+  const CIRCLE = ['Greeting', 'Songs', 'Read Aloud', 'Music & Movement'];
+  const planRows: PlanInsert[] = [];
+  const planDayRows: PlanDayInsert[] = [];
+  classrooms.forEach((room, idx) => {
+    const cid = classroomIds.get(room.key)!;
+    const pid = randomUUID();
+    const th = THEMES[idx % THEMES.length]!;
+    // First room a draft (partly filled), second returned-with-comment, rest submitted.
+    const status: PlanInsert['status'] = idx === 0 ? 'draft' : idx === 1 ? 'returned' : 'submitted';
+    const submitted = status === 'submitted' || status === 'returned';
+    planRows.push({
+      id: pid,
+      classroom_id: cid,
+      week_of: weekOf,
+      theme: th[0],
+      letter: th[1],
+      number: th[2],
+      shape: th[3],
+      status,
+      review_comment: status === 'returned' ? 'Add a sensory option to Thursday’s stations.' : null,
+      submitted_by: submitted ? owner.id : null,
+      submitted_at: submitted ? daysAgo(2).toISOString() : null,
+    });
+    const fillDays = status === 'draft' ? 2 : 5;
+    (['mon', 'tue', 'wed', 'thu', 'fri'] as const).forEach((d, di) => {
+      const filled = di < fillDays;
+      planDayRows.push({
+        plan_id: pid,
+        day: d,
+        question: filled ? `What ${th[0].split(' ')[0].toLowerCase()} things do you see?` : null,
+        circle_parts: filled ? CIRCLE : [],
+        circle_notes: filled ? `Read aloud tied to "${th[0]}" · movement game` : null,
+        outdoor: filled ? 'Nature walk and gross motor play' : null,
+        stations: filled ? ['Sensory bin', 'Art table', `Letter ${th[1]} tray`, `Counting to ${th[2]}`] : ['', '', '', ''],
+      });
+    });
+  });
+  await insertChunked(db, 'lesson_plans', planRows);
+  await insertChunked(db, 'lesson_plan_days', planDayRows);
+
   // ── 9c. Children, today's attendance, and a per-room presence plan ──────────
   type ChildInsert = Database['public']['Tables']['children']['Insert'];
   type AttInsert = Database['public']['Tables']['child_attendance']['Insert'];
@@ -787,6 +879,14 @@ async function main(): Promise<void> {
   const presentRosterUserIds = new Set<string>();
   const today = localTodayISO();
   let boundaryPlaced = false;
+
+  // Live staff assignments (COMAR engine "who's on the floor now"). Cover today's
+  // operating window; we assign only the present staff, so the deliberately
+  // understaffed focus room reads OUT in the engine / /dev/staffing.
+  type AssignInsert = Database['public']['Tables']['staff_assignments']['Insert'];
+  const assignmentRows: AssignInsert[] = [];
+  const dayStart = new Date(); dayStart.setHours(6, 30, 0, 0);
+  const dayEnd = new Date(); dayEnd.setHours(18, 0, 0, 0);
 
   const ageDaysForBand = (g: AgeGroup): number => {
     switch (g) {
@@ -827,6 +927,11 @@ async function main(): Promise<void> {
         birthdate: isoDate(bd),
         enrolled_at: isoDate(daysAgo(rng.int(30, 400))),
         status: 'enrolled',
+        // Student-module columns are NOT NULL; set on every row so the batch
+        // insert is homogeneous (PostgREST fills omitted keys with NULL, not the
+        // column default, once any row in the batch sets them). Enriched below.
+        enrollment_status: 'active',
+        tags: [],
       });
       kids.push({ id, present: false });
     }
@@ -845,10 +950,395 @@ async function main(): Promise<void> {
     const required = Math.max(1, Math.ceil(presentKids / cpr));
     let staffPresent = isFocus ? Math.max(0, required - 1) : required + (rng.chance(0.5) ? 1 : 0);
     staffPresent = Math.min(staffPresent, roster.length);
-    for (let i = 0; i < staffPresent; i++) presentRosterUserIds.add(roster[i]!.userId);
+    for (let i = 0; i < staffPresent; i++) {
+      presentRosterUserIds.add(roster[i]!.userId);
+      assignmentRows.push({
+        center_id: centerIds[room.centerIndex],
+        classroom_id: cid,
+        user_id: roster[i]!.userId,
+        starts_at: dayStart.toISOString(),
+        ends_at: dayEnd.toISOString(),
+        source: 'schedule',
+      });
+    }
   });
+  // ── 9c-bis. Student-module detail: tags, enrollment status, health, docs ────
+  type HealthInsert = Database['public']['Tables']['student_health']['Insert'];
+  type DocInsert = Database['public']['Tables']['student_documents']['Insert'];
+  const STUDENT_TAGS = ['Scholarship', 'IEP', 'Bilingual', 'New this year'];
+  const REQUIRED_DOCS = [
+    { doc_type: 'immunization', label: 'Immunization record (DHMH 896)' },
+    { doc_type: 'emergency', label: 'Emergency contact & authorization' },
+    { doc_type: 'health_inventory', label: 'Health inventory / physical' },
+  ];
+  type PhysInsert = Database['public']['Tables']['student_physicians']['Insert'];
+  const healthRows: HealthInsert[] = [];
+  const docRows: DocInsert[] = [];
+  const physicianRows: PhysInsert[] = [];
+  const PHYS_NAMES = ['Dr. Adeyemi', 'Dr. Okafor', 'Dr. Washington', 'Dr. Brooks', 'Dr. Mensah'];
+  const PRACTICES = ['Harbor Pediatrics', 'Charm City Kids Health', 'Green Spring Pediatrics'];
+
+  const kidsByCenter = new Map<string, ChildInsert[]>();
+  for (const c of childrenRows) {
+    const arr = kidsByCenter.get(c.center_id as string) ?? [];
+    arr.push(c);
+    kidsByCenter.set(c.center_id as string, arr);
+  }
+
+  for (const [, kids] of kidsByCenter) {
+    kids.forEach((c, i) => {
+      // Tags on ~1/3 of students so the tag filter has something to show.
+      if (i % 3 === 0) c.tags = [rng.pick(STUDENT_TAGS)];
+      // A couple of non-active statuses per center to exercise the status filter.
+      if (i === kids.length - 1 && kids.length > 3) c.enrollment_status = 'waitlist';
+      else if (i === kids.length - 2 && kids.length > 4) c.enrollment_status = 'inactive';
+
+      // Required documents: mostly current; leave one required doc missing on ~1 in 4;
+      // occasionally flag one as review-due with a date.
+      const missingIdx = i % 4 === 2 ? rng.int(0, REQUIRED_DOCS.length - 1) : -1;
+      const reviewIdx = i % 5 === 1 ? rng.int(0, REQUIRED_DOCS.length - 1) : -1;
+      REQUIRED_DOCS.forEach((d, di) => {
+        const missing = di === missingIdx;
+        const review = !missing && di === reviewIdx;
+        docRows.push({
+          child_id: c.id as string,
+          doc_type: d.doc_type,
+          label: d.label,
+          status: missing ? 'missing' : review ? 'review_due' : 'current',
+          is_required: true,
+          is_confidential: false,
+          review_due: review ? isoDate(daysFromNow(rng.int(10, 60))) : null,
+          uploaded_at: missing ? null : new Date(`${isoDate(daysAgo(rng.int(20, 300)))}T12:00:00`).toISOString(),
+        });
+      });
+
+      // A confidential document on ~1 in 6 (admin-only visibility demo).
+      if (i % 6 === 4) {
+        docRows.push({
+          child_id: c.id as string,
+          doc_type: 'custody',
+          label: 'Custody agreement',
+          status: 'current',
+          is_required: false,
+          is_confidential: true,
+          review_due: null,
+          uploaded_at: new Date(`${isoDate(daysAgo(rng.int(30, 400)))}T12:00:00`).toISOString(),
+        });
+      }
+
+      // Physician on file for most children.
+      if (i % 5 !== 0) {
+        physicianRows.push({
+          child_id: c.id as string,
+          name: rng.pick(PHYS_NAMES),
+          practice: rng.pick(PRACTICES),
+          phone: `410-555-${String(rng.int(1000, 9999))}`,
+          last_visit: isoDate(daysAgo(rng.int(20, 360))),
+        });
+      }
+
+      // Extra health variety beyond the per-center severe allergy.
+      if (i % 3 === 1) {
+        healthRows.push({ child_id: c.id as string, kind: 'medication', name: 'Albuterol inhaler', detail: 'For wheezing episodes.', severity: 'prn', rescue_med: 'Albuterol', rescue_med_location: 'Classroom med bag', rescue_med_expires: isoDate(daysFromNow(rng.int(60, 300))) });
+      }
+      if (i % 5 === 2) {
+        healthRows.push({ child_id: c.id as string, kind: 'diet', name: 'Dairy-free', detail: 'Lactose intolerant — soy milk provided by family.', severity: 'moderate', rescue_med: null, rescue_med_location: null, rescue_med_expires: null });
+      }
+      if (i % 6 === 3) {
+        healthRows.push({ child_id: c.id as string, kind: 'condition', name: 'Asthma', detail: 'Mild, exercise-induced.', severity: 'mild', rescue_med: null, rescue_med_location: null, rescue_med_expires: null });
+      }
+    });
+
+    // One severe allergy per center, on the first (present, active) child.
+    const first = kids[0];
+    if (first) {
+      healthRows.push({
+        child_id: first.id as string,
+        kind: 'allergy',
+        name: 'Peanuts',
+        detail: 'Anaphylaxis risk. Avoid all tree nuts and peanut products.',
+        severity: 'severe',
+        rescue_med: 'EpiPen Jr.',
+        rescue_med_location: 'Front office medication cabinet',
+        rescue_med_expires: isoDate(daysFromNow(rng.int(120, 320))),
+      });
+    }
+  }
+
+  // ── 9c-ter. Guardians, authorized pickups, siblings ─────────────────────────
+  type GuardianInsert = Database['public']['Tables']['guardians']['Insert'];
+  type PickupInsert = Database['public']['Tables']['authorized_pickups']['Insert'];
+  type SiblingInsert = Database['public']['Tables']['student_siblings']['Insert'];
+  const MOM_NAMES = ['Denise', 'Latoya', 'Yolanda', 'Fatima', 'Renee', 'Crystal', 'Angela', 'Tanya', 'Nia', 'Simone'];
+  const DAD_NAMES = ['Marcus', 'Andre', 'Terrence', 'Malik', 'Jerome', 'Darnell', 'Kevin', 'Reginald', 'Curtis', 'Elijah'];
+  const EMPLOYERS = ['Johns Hopkins', 'MedStar Health', 'Baltimore City Schools', 'Under Armour', 'City of Baltimore', 'T. Rowe Price'];
+  const guardianRows: GuardianInsert[] = [];
+  const pickupRows: PickupInsert[] = [];
+  const phone = () => `410-555-${String(rng.int(1000, 9999))}`;
+  // The first child of center 0 is our Spanish-preferring family (messaging demo:
+  // two-way auto-translation). Every guardian sets preferred_lang so the batch
+  // insert stays homogeneous (PostgREST fills omitted keys with NULL, not the
+  // column default).
+  const spanishChildId = childrenRows.find((c) => c.center_id === centerIds[0])?.id as string | undefined;
+
+  for (const c of childrenRows) {
+    const last = c.last_name as string;
+    const mom = rng.pick(MOM_NAMES);
+    guardianRows.push({
+      child_id: c.id as string,
+      full_name: `${mom} ${last}`,
+      relationship: 'mother',
+      email: `${mom.toLowerCase()}.${last.toLowerCase()}@example.com`,
+      mobile_phone: phone(),
+      employer: rng.chance(0.7) ? rng.pick(EMPLOYERS) : null,
+      is_primary: true,
+      is_emergency: true,
+      is_pickup_restricted: false,
+      sort_order: 0,
+      preferred_lang: c.id === spanishChildId ? 'es' : 'en',
+    });
+    if (rng.chance(0.6)) {
+      const dad = rng.pick(DAD_NAMES);
+      guardianRows.push({
+        child_id: c.id as string,
+        full_name: `${dad} ${last}`,
+        relationship: 'father',
+        email: `${dad.toLowerCase()}.${last.toLowerCase()}@example.com`,
+        mobile_phone: phone(),
+        employer: rng.chance(0.7) ? rng.pick(EMPLOYERS) : null,
+        is_primary: false,
+        is_emergency: true,
+        is_pickup_restricted: false,
+        sort_order: 1,
+        preferred_lang: 'en',
+      });
+    }
+    if (rng.chance(0.2)) {
+      pickupRows.push({ child_id: c.id as string, full_name: `${rng.pick(MOM_NAMES)} ${last}`, relationship: 'Grandmother', phone: phone() });
+    }
+  }
+
+  // Siblings: children sharing a last name within a center are linked (both ways).
+  const siblingRows: SiblingInsert[] = [];
+  const byLast = new Map<string, string[]>();
+  for (const c of childrenRows) {
+    const k = `${c.center_id}|${c.last_name}`;
+    const arr = byLast.get(k) ?? [];
+    arr.push(c.id as string);
+    byLast.set(k, arr);
+  }
+  for (const ids of byLast.values()) {
+    if (ids.length < 2) continue;
+    for (let i = 0; i < ids.length; i++)
+      for (let j = 0; j < ids.length; j++) if (i !== j) siblingRows.push({ child_id: ids[i]!, sibling_id: ids[j]! });
+  }
+
   await insertChunked(db, 'children', childrenRows);
   await insertChunked(db, 'child_attendance', attendanceRows);
+  await insertChunked(db, 'staff_assignments', assignmentRows);
+  await insertChunked(db, 'student_health', healthRows);
+  await insertChunked(db, 'student_physicians', physicianRows);
+  await insertChunked(db, 'student_documents', docRows);
+  await insertChunked(db, 'guardians', guardianRows);
+  await insertChunked(db, 'authorized_pickups', pickupRows);
+  await insertChunked(db, 'student_siblings', siblingRows);
+
+  // ── 9c-quater. "All About Me" + attendance schedule ─────────────────────────
+  type AboutInsert = Database['public']['Tables']['student_about']['Insert'];
+  type SchedInsert = Database['public']['Tables']['student_schedule']['Insert'];
+  // Labels below must exist among the seeded default descriptors (seed-elof.ts).
+  const ABOUT_SAMPLES: Record<string, string[]>[] = [
+    { loves: ['Music & singing', 'Books & stories'], comfort: ['Favorite blanket'], sleep: ['Naps after lunch'] },
+    { loves: ['Outdoor play', 'Animals'], eating: ['Good eater'], routines: ['Song before nap'] },
+    { loves: ['Blocks', 'Art & drawing'], dislikes: ['Loud noises'], friends: ['Very social'] },
+  ];
+  const aboutRows: AboutInsert[] = [];
+  const schedRows: SchedInsert[] = [];
+  childrenRows.forEach((c, i) => {
+    if (i % 2 === 0) {
+      aboutRows.push({
+        child_id: c.id as string,
+        selections: ABOUT_SAMPLES[i % ABOUT_SAMPLES.length] as AboutInsert['selections'],
+        note: null,
+      });
+    }
+    schedRows.push({
+      child_id: c.id as string,
+      days: { days: [1, 2, 3, 4, 5] } as SchedInsert['days'],
+      dropoff_window: '7:30–8:30 AM',
+      pickup_window: '4:30–5:30 PM',
+    });
+  });
+  await insertChunked(db, 'student_about', aboutRows);
+  await insertChunked(db, 'student_schedule', schedRows);
+
+  // ── 9c-quinquies. SAEO: observations + a draft checkpoint (infant/toddler) ──
+  let obsCount = 0;
+  let cpCount = 0;
+  let screenCount = 0;
+  let referralCount = 0;
+  const { data: fwRow } = await db
+    .from('frameworks')
+    .select('id')
+    .eq('is_system', true)
+    .is('center_id', null)
+    .eq('name', 'Head Start Early Learning Outcomes Framework')
+    .maybeSingle();
+  if (fwRow) {
+    const { data: doms } = await db
+      .from('framework_domains')
+      .select('framework_subdomains(framework_goals(id))')
+      .eq('framework_id', fwRow.id)
+      .eq('view', 'infant_toddler');
+    const itGoalIds: string[] = [];
+    for (const d of doms ?? [])
+      for (const s of (d.framework_subdomains ?? []) as { framework_goals?: { id: string }[] }[])
+        for (const g of s.framework_goals ?? []) itGoalIds.push(g.id);
+    const { data: psDoms } = await db
+      .from('framework_domains')
+      .select('framework_subdomains(framework_goals(id))')
+      .eq('framework_id', fwRow.id)
+      .eq('view', 'preschool');
+    const psGoalIds: string[] = [];
+    for (const d of psDoms ?? [])
+      for (const s of (d.framework_subdomains ?? []) as { framework_goals?: { id: string }[] }[])
+        for (const g of s.framework_goals ?? []) psGoalIds.push(g.id);
+    const { data: levels } = await db.from('rating_levels').select('id').is('center_id', null).order('sort_order');
+    const levelIds = (levels ?? []).map((l) => l.id);
+
+    if (itGoalIds.length && levelIds.length) {
+      const OBS_TITLES = ['Stacked blocks', 'Comforted a friend', 'Named animals in a book', 'Tried a new food', 'Sang along at circle time'];
+      const OBS_BODIES = [
+        'Worked independently for several minutes and showed real focus.',
+        'Used words to ask for help from a familiar teacher.',
+        'Explored materials with curiosity and persistence.',
+        'Followed the routine with only a gentle reminder.',
+      ];
+      type ObsInsert = Database['public']['Tables']['observations']['Insert'];
+      type ObsGoalInsert = Database['public']['Tables']['observation_goals']['Insert'];
+      type CpInsert = Database['public']['Tables']['checkpoints']['Insert'];
+      type CpRatingInsert = Database['public']['Tables']['checkpoint_ratings']['Insert'];
+      type ScreenInsert = Database['public']['Tables']['screenings']['Insert'];
+      type RefInsert = Database['public']['Tables']['referrals']['Insert'];
+      type RefInputInsert = Database['public']['Tables']['referral_inputs']['Insert'];
+      type PlanGoalInsert = Database['public']['Tables']['plan_goals']['Insert'];
+      const obsRows: ObsInsert[] = [];
+      const obsGoalRows: ObsGoalInsert[] = [];
+      const cpRows: CpInsert[] = [];
+      const cpRatingRows: CpRatingInsert[] = [];
+      const screenRows: ScreenInsert[] = [];
+      const referralRows: RefInsert[] = [];
+      const refInputRows: RefInputInsert[] = [];
+      const planGoalRows: PlanGoalInsert[] = [];
+      const monthsOf = (bd: string) => Math.floor((Date.now() - new Date(`${bd}T00:00:00`).getTime()) / (30.44 * 86_400_000));
+
+      const itByCenter = new Map<string, ChildInsert[]>();
+      for (const c of childrenRows) {
+        if (monthsOf(c.birthdate as string) < 36) {
+          const a = itByCenter.get(c.center_id as string) ?? [];
+          a.push(c);
+          itByCenter.set(c.center_id as string, a);
+        }
+      }
+
+      for (const [cid, kids] of itByCenter) {
+        kids.slice(0, 3).forEach((c, ki) => {
+          const cObs: string[] = [];
+          for (let o = 0; o < 2; o++) {
+            const oid = randomUUID();
+            cObs.push(oid);
+            obsRows.push({ id: oid, child_id: c.id as string, center_id: cid, classroom_id: (c.classroom_id as string) ?? null, observed_by: owner.id, observed_on: isoDate(daysAgo(rng.int(3, 40))), title: rng.pick(OBS_TITLES), body: rng.pick(OBS_BODIES) });
+            const picks = new Set<string>();
+            while (picks.size < rng.int(1, 2)) picks.add(rng.pick(itGoalIds));
+            for (const gid of picks) obsGoalRows.push({ observation_id: oid, goal_id: gid });
+          }
+          const cpId = randomUUID();
+          cpRows.push({ id: cpId, child_id: c.id as string, center_id: cid, framework_id: fwRow.id, view: 'infant_toddler', period_label: 'Fall 2026', period_start: isoDate(daysAgo(10)), period_end: isoDate(daysFromNow(80)), status: 'draft' });
+          for (const gid of itGoalIds.slice(0, 12)) cpRatingRows.push({ checkpoint_id: cpId, goal_id: gid, rating_level_id: rng.pick(levelIds), rated_at: new Date().toISOString() });
+
+          // A developmental screening for each of these children.
+          const ageM = monthsOf(c.birthdate as string);
+          screenRows.push({
+            child_id: c.id as string,
+            center_id: cid,
+            instrument: 'ASQ-3',
+            interval_label: `${Math.max(2, Math.round(ageM / 6) * 6)} month`,
+            result_summary: ki === 0 ? 'Communication domain below cutoff; monitor and refer.' : 'All domains within typical range.',
+            outcome: ki === 0 ? 'refer' : 'pass',
+            administered_by: owner.id,
+            administered_on: isoDate(daysAgo(rng.int(20, 90))),
+            due_on: isoDate(daysFromNow(rng.int(120, 200))),
+          });
+
+          // One worked-through referral per center (on the first child) to exercise Evaluation.
+          if (ki === 0) {
+            const refId = randomUUID();
+            referralRows.push({
+              id: refId,
+              child_id: c.id as string,
+              center_id: cid,
+              stage: 'services_active',
+              concern_summary: 'Delays in expressive communication noted during screening and daily routines.',
+              raised_by: owner.id,
+              raised_on: isoDate(daysAgo(70)),
+              agency: 'Maryland Infants & Toddlers Program (MITP)',
+              is_part_c: true,
+              parent_consent_on: isoDate(daysAgo(63)),
+              referred_on: isoDate(daysAgo(60)),
+              evaluation_on: isoDate(daysAgo(35)),
+              plan_type: 'IFSP',
+              plan_start: isoDate(daysAgo(25)),
+              plan_review_due: isoDate(daysFromNow(65)),
+            });
+            refInputRows.push({ referral_id: refId, submitted_by: owner.id, body: 'Teacher notes: uses gestures more than words; responds well to modeling. Attaching recent observations.', observation_ids: cObs });
+            planGoalRows.push({ referral_id: refId, goal_text: 'Increase expressive vocabulary to 20+ words.', strategy: 'Narrate routines and offer choices with verbal labels.' });
+            planGoalRows.push({ referral_id: refId, goal_text: 'Combine two words to make requests.', strategy: 'Model two-word phrases during play and mealtimes.' });
+          }
+        });
+      }
+
+      // Preschool children (36–60 mo): a checkpoint + observations against the
+      // preschool ELOF view, so that view is demonstrable too.
+      if (psGoalIds.length) {
+        const psByCenter = new Map<string, ChildInsert[]>();
+        for (const c of childrenRows) {
+          const m = monthsOf(c.birthdate as string);
+          if (m >= 36 && m < 60) {
+            const a = psByCenter.get(c.center_id as string) ?? [];
+            a.push(c);
+            psByCenter.set(c.center_id as string, a);
+          }
+        }
+        for (const [cid, kids] of psByCenter) {
+          kids.slice(0, 2).forEach((c) => {
+            for (let o = 0; o < 2; o++) {
+              const oid = randomUUID();
+              obsRows.push({ id: oid, child_id: c.id as string, center_id: cid, classroom_id: (c.classroom_id as string) ?? null, observed_by: owner.id, observed_on: isoDate(daysAgo(rng.int(3, 40))), title: rng.pick(OBS_TITLES), body: rng.pick(OBS_BODIES) });
+              const picks = new Set<string>();
+              while (picks.size < rng.int(1, 2)) picks.add(rng.pick(psGoalIds));
+              for (const gid of picks) obsGoalRows.push({ observation_id: oid, goal_id: gid });
+            }
+            const cpId = randomUUID();
+            cpRows.push({ id: cpId, child_id: c.id as string, center_id: cid, framework_id: fwRow.id, view: 'preschool', period_label: 'Fall 2026', period_start: isoDate(daysAgo(10)), period_end: isoDate(daysFromNow(80)), status: 'draft' });
+            for (const gid of psGoalIds.slice(0, 12)) cpRatingRows.push({ checkpoint_id: cpId, goal_id: gid, rating_level_id: rng.pick(levelIds), rated_at: new Date().toISOString() });
+          });
+        }
+      }
+
+      await insertChunked(db, 'observations', obsRows);
+      await insertChunked(db, 'observation_goals', obsGoalRows);
+      await insertChunked(db, 'checkpoints', cpRows);
+      await insertChunked(db, 'checkpoint_ratings', cpRatingRows);
+      await insertChunked(db, 'screenings', screenRows);
+      await insertChunked(db, 'referrals', referralRows);
+      await insertChunked(db, 'referral_inputs', refInputRows);
+      await insertChunked(db, 'plan_goals', planGoalRows);
+      obsCount = obsRows.length;
+      cpCount = cpRows.length;
+      screenCount = screenRows.length;
+      referralCount = referralRows.length;
+    }
+  }
 
   // ── 10. Time entries (weekday clock in/out history) ─────────────────────────
   type TimeEntry = Database['public']['Tables']['time_entries']['Insert'];
@@ -1065,6 +1555,164 @@ async function main(): Promise<void> {
   await insertChunked(db, 'staff_notes', notes);
   await insertChunked(db, 'staff_requests', requests);
 
+  // ── 12. Announcements, spotlights, assigned tasks (mobile Today) ─────────────
+  type AnnInsert = Database['public']['Tables']['announcements']['Insert'];
+  type SpotInsert = Database['public']['Tables']['spotlights']['Insert'];
+  type TaskInsert = Database['public']['Tables']['staff_tasks']['Insert'];
+  const annRows: AnnInsert[] = [];
+  const spotRows: SpotInsert[] = [];
+  const taskRows: TaskInsert[] = [];
+  const monthStart = isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const SPOT_CATS = ['Most observations', 'Lesson plan streak', 'Family engagement'];
+  centerIds.forEach((cid, ci) => {
+    annRows.push({ center_id: cid, author_id: owner.id, body: 'OCC licensing visit is Tuesday. Please make sure your staffing pattern is posted and credentials are current.', kind: 'announcement', created_at: daysAgo(0).toISOString() });
+    annRows.push({ center_id: cid, author_id: owner.id, body: 'Fall checkpoint opens Monday. Your observations pull in automatically as evidence.', kind: 'reminder', created_at: daysAgo(1).toISOString() });
+    const centerStaff = users.filter((u) => u.centerIndex === ci && u !== owner);
+    SPOT_CATS.forEach((cat, i) => {
+      const u = centerStaff[i % Math.max(1, centerStaff.length)];
+      if (u) spotRows.push({ center_id: cid, month: monthStart, category: cat, user_id: u.id });
+    });
+    if (ci === 0) {
+      const leads = centerStaff.filter((u) => u.centerRole === 'lead_teacher').slice(0, 2);
+      if (leads[0]) taskRows.push({ center_id: cid, assigned_to: leads[0].id, assigned_by: owner.id, title: "Review Amara's updated allergy plan", detail: 'New EpiPen location — confirm you’ve read it', source: 'assigned' });
+      if (leads[1]) taskRows.push({ center_id: cid, assigned_to: leads[1].id, assigned_by: owner.id, title: 'Post at least one family update today', detail: 'Nudge from your director', source: 'nudge' });
+    }
+  });
+  await insertChunked(db, 'announcements', annRows);
+  await insertChunked(db, 'spotlights', spotRows);
+  await insertChunked(db, 'staff_tasks', taskRows);
+
+  // ── 13. Messaging (threads, members, messages, translations, idea votes) ─────
+  // Team channels (announcement / idea / per-room / a private DM) plus per-child
+  // family threads on center 0 — one Spanish-preferring family (two-way
+  // translation) and one 26-hour-unanswered thread (aging red flag). Family
+  // threads need a guardian in `users` to author inbound messages, so we mint a
+  // few guardian auth accounts (no center membership — they never appear as staff).
+  type ThreadInsert = Database['public']['Tables']['threads']['Insert'];
+  type ThreadMemberInsert = Database['public']['Tables']['thread_members']['Insert'];
+  type MessageInsert = Database['public']['Tables']['messages']['Insert'];
+  type TranslationInsert = Database['public']['Tables']['message_translations']['Insert'];
+  type IdeaVoteInsert = Database['public']['Tables']['idea_votes']['Insert'];
+  const threadRows: ThreadInsert[] = [];
+  const threadMemberRows: ThreadMemberInsert[] = [];
+  const messageRows: MessageInsert[] = [];
+  const translationRows: TranslationInsert[] = [];
+  const ideaVoteRows: IdeaVoteInsert[] = [];
+  const hoursAgo = (h: number): Date => new Date(Date.now() - h * 3_600_000);
+  const addMsg = (threadId: string, authorId: string, body: string, at: Date, lang = 'en'): string => {
+    const id = randomUUID();
+    messageRows.push({ id, thread_id: threadId, author_id: authorId, body, lang, created_at: at.toISOString(), deliver_at: at.toISOString() });
+    return id;
+  };
+
+  centerIds.forEach((cid, ci) => {
+    const centerStaff = users.filter((u) => u.centerIndex === ci && u !== owner);
+    const director = centerStaff.find((u) => u.centerRole === 'director') ?? owner;
+    const leads = centerStaff.filter((u) => u.centerRole === 'lead_teacher');
+
+    // Announcement channel (broadcast — no member rows; RLS opens it to staff).
+    const annThreadId = randomUUID();
+    threadRows.push({ id: annThreadId, center_id: cid, kind: 'announcement', title: 'Announcements' });
+    addMsg(annThreadId, owner.id, 'Welcome to the new KinderBase app — log care, post to families, and message your team all in one place.', daysAgo(2));
+    addMsg(annThreadId, owner.id, 'Fall checkpoint opens Monday. Your observations pull in automatically as evidence.', hoursAgo(20));
+
+    // Idea Garden (broadcast) with a couple upvotes.
+    const ideaThreadId = randomUUID();
+    threadRows.push({ id: ideaThreadId, center_id: cid, kind: 'idea', title: 'Idea Garden' });
+    const idea1 = addMsg(ideaThreadId, (leads[0] ?? director).id, 'Could we do a Friday “family art wall” — each room posts one photo a week?', daysAgo(3));
+    if (leads[1]) addMsg(ideaThreadId, leads[1].id, 'Love this. The toddlers would be so proud to see their work up. +1', daysAgo(2));
+    for (const u of [leads[1], director, leads[0]].filter(Boolean).slice(0, 2)) ideaVoteRows.push({ message_id: idea1, user_id: u!.id });
+
+    // Per-room channels (first 3 rooms of the center).
+    classrooms
+      .filter((r) => r.centerIndex === ci)
+      .slice(0, 3)
+      .forEach((room) => {
+        const roster = rosterByRoom.get(room.key) ?? [];
+        if (roster.length === 0) return;
+        const roomThreadId = randomUUID();
+        threadRows.push({ id: roomThreadId, center_id: cid, kind: 'room', classroom_id: classroomIds.get(room.key)!, title: room.name });
+        roster.forEach((r) => threadMemberRows.push({ thread_id: roomThreadId, user_id: r.userId, role: 'member', last_read_at: hoursAgo(4).toISOString() }));
+        addMsg(roomThreadId, roster[0]!.userId, 'Sensory bins are refilled and the cots are sanitized for nap. All set for tomorrow. 🌙', hoursAgo(6));
+        if (roster[1]) addMsg(roomThreadId, roster[1].userId, 'Thank you! I’ll bring the new books for circle time.', hoursAgo(5));
+      });
+
+    // A private DM (director ↔ a lead). Owner is admin everywhere but is NOT a
+    // member, so the DM-privacy rule keeps it out of every admin view.
+    const dmPartner = leads[0] ?? centerStaff[0];
+    if (dmPartner && dmPartner.id !== director.id) {
+      const dmThreadId = randomUUID();
+      threadRows.push({ id: dmThreadId, center_id: cid, kind: 'dm', title: null });
+      threadMemberRows.push(
+        { thread_id: dmThreadId, user_id: director.id, role: 'member', last_read_at: hoursAgo(2).toISOString() },
+        { thread_id: dmThreadId, user_id: dmPartner.id, role: 'member', last_read_at: null },
+      );
+      addMsg(dmThreadId, director.id, `Hi ${dmPartner.fullName.split(' ')[0]} — are you open to covering the 2s room Thursday afternoon? I’ll adjust your ratio credit.`, hoursAgo(3));
+      addMsg(dmThreadId, dmPartner.id, 'Sure, I can do that. Thanks for asking!', hoursAgo(2));
+    }
+  });
+
+  // Family threads (center 0). Mint a guardian user per thread.
+  const familyChildren = childrenRows.filter((c) => c.center_id === centerIds[0]).slice(0, 6);
+  type GuardianUser = { childId: string; classroomId: string; name: string; email: string; lang: string; id: string };
+  const guardianUsers: GuardianUser[] = familyChildren.map((c, idx) => {
+    const g = guardianRows.find((gr) => gr.child_id === c.id && gr.is_primary);
+    return {
+      childId: c.id as string,
+      classroomId: c.classroom_id as string,
+      name: (g?.full_name as string) ?? 'Parent',
+      email: `family.${idx}@${domain}`,
+      lang: (g?.preferred_lang as string) ?? 'en',
+      id: '',
+    };
+  });
+  await mapPool(guardianUsers, 8, async (gu) => {
+    const { data, error } = await db.auth.admin.createUser({ email: gu.email, password: 'Sandbox!23456', email_confirm: true, user_metadata: { full_name: gu.name } });
+    if (error || !data.user) throw new Error(`createUser(${gu.email}) failed: ${error?.message}`);
+    gu.id = data.user.id;
+  });
+  await insertChunked(
+    db,
+    'users',
+    guardianUsers.map((gu) => ({ id: gu.id, email: gu.email, full_name: gu.name, role: 'staff' as const, profile_public: false })),
+  );
+
+  const classroomKeyById = new Map<string, string>();
+  classroomIds.forEach((id, key) => classroomKeyById.set(id, key));
+  guardianUsers.forEach((gu, idx) => {
+    const roomKey = classroomKeyById.get(gu.classroomId);
+    const roster = roomKey ? rosterByRoom.get(roomKey) ?? [] : [];
+    const teacherId = roster[0]?.userId ?? owner.id;
+    const threadId = randomUUID();
+    threadRows.push({ id: threadId, center_id: centerIds[0], kind: 'family', classroom_id: gu.classroomId, student_id: gu.childId, title: null });
+    threadMemberRows.push({ thread_id: threadId, user_id: gu.id, role: 'guardian', last_read_at: null });
+    roster.forEach((r) => threadMemberRows.push({ thread_id: threadId, user_id: r.userId, role: 'member', last_read_at: hoursAgo(1).toISOString() }));
+
+    if (gu.lang === 'es') {
+      // Two-way translation: teacher writes EN (stored ES for the family), the
+      // family replies in ES (stored EN for staff).
+      const en1 = 'He took 4oz at 8:05 — a bit less than usual. He may be teething. I will watch him at lunch.';
+      const m1 = addMsg(threadId, teacherId, en1, hoursAgo(5), 'en');
+      translationRows.push({ message_id: m1, lang: 'es', body: 'Tomó 4oz a las 8:05 — un poco menos de lo habitual. Puede que le estén saliendo los dientes. Lo vigilaré en el almuerzo.' });
+      const es1 = '¡Muchas gracias!';
+      const m2 = addMsg(threadId, gu.id, es1, hoursAgo(3), 'es');
+      translationRows.push({ message_id: m2, lang: 'en', body: 'Thank you so much!' });
+    } else if (idx === 1) {
+      // The 26-hour-unanswered thread: the family's message is the last one.
+      addMsg(threadId, teacherId, 'She napped well and ate all her fruit. Great day!', hoursAgo(30), 'en');
+      addMsg(threadId, gu.id, 'Thank you! Quick question — did she finish the antibiotics at noon? Want to make sure before tonight’s dose.', hoursAgo(26), 'en');
+    } else {
+      addMsg(threadId, teacherId, 'Great day today — lots of block building and a big appetite at lunch. 🧱', hoursAgo(7), 'en');
+      if (idx % 2 === 0) addMsg(threadId, gu.id, 'Love to hear it, thank you!', hoursAgo(6), 'en');
+    }
+  });
+
+  await insertChunked(db, 'threads', threadRows);
+  await insertChunked(db, 'thread_members', threadMemberRows);
+  await insertChunked(db, 'messages', messageRows);
+  await insertChunked(db, 'message_translations', translationRows);
+  await insertChunked(db, 'idea_votes', ideaVoteRows);
+
   // ── Summary ─────────────────────────────────────────────────────────────────
   console.log('\n✅ Seed complete');
   console.log(`   organization:      1 (${args.orgSlug})`);
@@ -1075,8 +1723,23 @@ async function main(): Promise<void> {
   console.log(`   credentials:       ${credentials.length}`);
   console.log(`   employment rows:   ${employment.length}`);
   console.log(`   roster rows:       ${rosterRows.length}`);
+  console.log(`   staff assignments: ${assignmentRows.length}`);
+  console.log(`   routines:          ${routineRows.length}`);
+  console.log(`   lesson plans:      ${planRows.length}`);
   console.log(`   shift slots:       ${shiftRows.length}`);
   console.log(`   children:          ${childrenRows.length}`);
+  console.log(`   student health:    ${healthRows.length}`);
+  console.log(`   physicians:        ${physicianRows.length}`);
+  console.log(`   student docs:      ${docRows.length}`);
+  console.log(`   guardians:         ${guardianRows.length}`);
+  console.log(`   authorized pickups:${pickupRows.length}`);
+  console.log(`   siblings (links):  ${siblingRows.length}`);
+  console.log(`   about profiles:    ${aboutRows.length}`);
+  console.log(`   schedules:         ${schedRows.length}`);
+  console.log(`   observations:      ${obsCount}`);
+  console.log(`   draft checkpoints: ${cpCount}`);
+  console.log(`   screenings:        ${screenCount}`);
+  console.log(`   referrals:         ${referralCount}`);
   console.log(`   attendance (today):${attendanceRows.length}`);
   console.log(`   child updates:     ${updateRows.length}`);
   console.log(`   time entries:      ${timeEntries.length}`);
@@ -1084,8 +1747,13 @@ async function main(): Promise<void> {
   console.log(`   teacher scores:    ${scores.length}`);
   console.log(`   staff profiles:    ${profiles.length}`);
   console.log(`   leave days:        ${leaveDays.length}`);
+  console.log(`   announcements:     ${annRows.length}`);
+  console.log(`   spotlights:        ${spotRows.length}`);
+  console.log(`   staff tasks:       ${taskRows.length}`);
   console.log(`   staff notes:       ${notes.length}`);
   console.log(`   staff requests:    ${requests.length}`);
+  console.log(`   threads:           ${threadRows.length} (+${guardianUsers.length} guardian users)`);
+  console.log(`   messages:          ${messageRows.length} (${translationRows.length} translations)`);
   console.log(`\n   Owner login →  ${owner.email}  /  ${owner.password}`);
   console.log(`   Staff logins →  <name>@${domain}  /  Sandbox!23456`);
   console.log(`   Reset later  →  pnpm dlx tsx apps/web/supabase/seed.ts --org-slug ${args.orgSlug} --reset --yes\n`);
@@ -1126,6 +1794,13 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
     await db.from('staff_profiles').delete().in('center_id', centerIds);
     await db.from('time_entries').delete().in('center_id', centerIds);
     await db.from('activity_log').delete().in('center_id', centerIds);
+    await db.from('staff_tasks').delete().in('center_id', centerIds);
+    await db.from('announcements').delete().in('center_id', centerIds);
+    await db.from('spotlights').delete().in('center_id', centerIds);
+    await db.from('staff_assignments').delete().in('center_id', centerIds);
+    // Threads restrict center deletion (center_id has no cascade); messages,
+    // members, translations, and idea votes all cascade from the thread.
+    await db.from('threads').delete().in('center_id', centerIds);
   }
   if (userIds.length) {
     const { data: credRows } = await db.from('credentials').select('id').in('user_id', userIds);
@@ -1136,6 +1811,9 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
     await db.from('push_tokens').delete().in('user_id', userIds);
   }
   if (centerIds.length) {
+    // Center-scoped student descriptors (created via the About modal) restrict
+    // center deletion — clear them first. System defaults (center_id null) stay.
+    await db.from('student_descriptors').delete().in('center_id', centerIds);
     await db.from('center_memberships').delete().in('center_id', centerIds);
     await db.from('classrooms').delete().in('center_id', centerIds);
     await db.from('centers').delete().in('org_id', orgId ? [orgId] : []);

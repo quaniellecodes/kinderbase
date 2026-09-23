@@ -1,0 +1,147 @@
+{
+  "view": "infant_toddler",
+  "domain": { "code": "IT-SE", "name": "Social and Emotional Development" },
+  "subdomains": [
+    {
+      "name": "Relationships with Adults",
+      "goals": [
+        {
+          "code": "IT-SE 1",
+          "text": "Child develops expectations of consistent, positive interactions through secure relationships with familiar adults.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Interacts in predictable ways with familiar adults. Responds positively to familiar adults' efforts to help with stressful moments.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Looks to familiar adults for emotional support and encouragement. Reacts or may become distressed when separated from familiar adults.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Engages in positive interactions in a wide variety of situations with familiar adults. Looks to or seeks familiar adults for comfort when distressed or tired.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 2",
+          "text": "Child uses expectations learned through repeated experiences in primary relationships to develop relationships with other adults.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Shows recognition of familiar adults by turning head toward familiar voice, smiling, reaching, or quieting when held. May avoid or withdraw from unfamiliar adults.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Moves or stays close to familiar adults for emotional security when unfamiliar adult approaches. May look at familiar adults to gauge comfort level with unfamiliar adult.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Often watches from a distance or waits for reassurance from familiar adult before approaching someone new. May engage in positive interactions when meeting new people, such as sharing a book with a visitor.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 3",
+          "text": "Child learns to use adults as a resource to meet needs.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Communicates needs to familiar adults by using a variety of behaviors, such as, crying, looking, smiling, pointing, dropping, reaching, or banging objects.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Looks to or seeks help from a familiar adults, such as taking the adult's hand and leading them to something the child wants or needs.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Asks familiar adult for help or assistance when encountering difficult tasks or situations.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Relationships with Other Children",
+      "goals": [
+        {
+          "code": "IT-SE 4",
+          "text": "Child shows interest in, interacts with, and develops personal relationships with other children.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Looks at attentively, touches or explores another child's face. Shows recognition of familiar children through actions or behaviors, such as smiling, reaching, touching, or making sounds directed to the child.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Participates in simple back-and-forth interactions with another child. Interacts with a few children on a regular basis, knows some of their names, likes or dislikes.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Seeks out other children for social interaction including initiating contact and responding to others. Develops friendships and engages in more elaborate play with friends.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 5",
+          "text": "Child imitates and engages in play with other children.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Responds to another child's actions or sounds during play with a toy by watching attentively, touching the other child, or reaching for or taking the toy.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Participates in simple imitation games, such as making similar sounds or running after another child. Plays next to other children with similar toys or materials.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Joins in play with other children by sometimes taking turns or doing joint activities with a common goal, such as building block structures with others or pretending to eat together.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Emotional Functioning",
+      "goals": [
+        {
+          "code": "IT-SE 6",
+          "text": "Child learns to express a range of emotions.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Expresses feelings of comfort, discomfort, enjoyment, fear, surprise, anger, or unhappiness by crying, smiling, laughing or through facial expressions, body movements or gestures, often to elicit a response from a familiar adult.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Expresses a variety of emotions and modifies their expression according to the reactions of familiar adults, based on the child's cultural background.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Expresses a range of emotions, including surprise, guilt, embarrassment, or pride, based on increasing awareness of their effects on others.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 7",
+          "text": "Child recognizes and interprets emotions of others with the support of familiar adults.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Attends with interest when others show they are happy, sad, or fearful by their facial expressions, voices, or actions.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Responds to others' emotional expressions, often by sharing an emotional reaction, such as smiling when an adult smiles or showing excitement when other children are excited.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Shows understanding of some emotional expressions of others by labeling the emotions, asking questions about them, or responding in appropriate non-verbal ways.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 8",
+          "text": "Child expresses care and concern towards others.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "May cry when another child cries.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Looks sad or concerned when another child is crying or upset. May seek adult's help or offer something, such as a blanket, food, or a soft toy.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Expresses empathy toward other children or adults who have been hurt or are crying by showing concerned attention. May try to comfort them with words or actions.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 9",
+          "text": "Child manages emotions with the support of familiar adults.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Quiets or stops crying when held and gently rocked or talked to by a familiar adult.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Looks to or seeks comfort when distressed and accepts reassurance from a familiar adult, or engages in self-comforting behaviors, such as sucking on fingers or thumb to calm self when upset or in new situations.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Shows developing ability to cope with stress or strong emotions by using strategies, such as getting a familiar toy or blanket or seeking contact with a familiar adult.", "needs_review": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sense of Identity and Belonging",
+      "goals": [
+        {
+          "code": "IT-SE 10",
+          "text": "Child shows awareness about self and how to connect with others.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Learns about self by exploring hands, feet, body, and movement.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Experiments with use of hands and body, discovering new capacities and how movement and gestures can be used to relate to others.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Shows awareness of own thoughts, feelings, and preferences as well as those of others. Uses different words or signs to refer to self and others.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 11",
+          "text": "Child understands some characteristics of self and others.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Listens and responds by quieting, smiling or cooing when name is said to child or when it is used in conversation with a familiar adult.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Responds by looking or coming when called by name. Pays attention when others notice what the child is able to do.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Identifies obvious physical similarities and differences between self and others. Compares characteristics of self and others.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 12",
+          "text": "Child shows confidence in own abilities through relationships with others.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Participates in back-and-forth social interactions through facial expressions, sounds, gestures, and responding to the actions of others.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Expresses desires and preferences. Seeks to draw adult's attention to objects of interest or new physical skills and attends to adult's responses.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Contributes own ideas, skills, and abilities to activities and experiences with adults and other children. May call attention to new skills and abilities or seek to do things by self, such as putting on own jacket or pouring juice out of a small pitcher.", "needs_review": false }
+          ]
+        },
+        {
+          "code": "IT-SE 13",
+          "text": "Child develops a sense of belonging through relationships with others.",
+          "progressions": [
+            { "band": "Birth to 9 months", "descriptor": "Shows awareness of familiar routines by behaviors, such as opening mouth for feeding or lifting arms to be picked up.", "needs_review": false },
+            { "band": "8 to 18 months", "descriptor": "Anticipates familiar routines or activities, such as getting shoes when it is time to go outside or watching for a parent when it is time to go home.", "needs_review": false },
+            { "band": "16 to 36 months", "descriptor": "Refers to personal or family experiences and events that have happened in the recent past, such as when a grandparent came to visit or when there was a family celebration.", "needs_review": false }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://headstart.gov/interactive-head-start-early-learning-outcomes-framework-ages-birth-five"
+  ]
+}

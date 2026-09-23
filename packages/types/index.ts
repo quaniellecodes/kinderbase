@@ -330,9 +330,12 @@ export function childDisplayName(child: { first_name: string; last_name: string 
 // COMAR age bands (months → age group). Thresholds are best-effort MD values —
 // confirm against current regulation. A birthday alert fires when a child will
 // cross one of these boundaries within 14 days.
+// COMAR 13A.16.01.02 center age bands (see docs/DECISIONS.md §3). Center bands
+// use an 18-month infant→toddler cutoff — NOT the 12-month family-childcare
+// cutoff. ⚠ Confirm with your OCC licensing specialist before partner demos.
 export const COMAR_AGE_BANDS: { minMonths: number; group: AgeGroup }[] = [
   { minMonths: 0, group: 'infant' },
-  { minMonths: 12, group: 'toddler' },
+  { minMonths: 18, group: 'toddler' },
   { minMonths: 24, group: 'two_year' },
   { minMonths: 36, group: 'preschool' },
   { minMonths: 60, group: 'school_age' },

@@ -1,0 +1,303 @@
+{
+  "view": "preschool",
+  "domain": { "code": "P-ATL", "name": "Approaches to Learning" },
+  "subdomains": [
+    {
+      "name": "Emotional and Behavioral Self-Regulation",
+      "goals": [
+        {
+          "code": "P-ATL 1",
+          "text": "Child manages emotions with increasing independence.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Manages less intense emotions, such as mild frustration, independently. May require adult support to manage more intense emotions.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Has an expanding range of strategies for managing emotions, both less intense emotions as well as those that cause greater distress. May still look to adults for support in managing the most intense emotions, but shows increasing skill in successfully using strategies suggested by adults.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Expresses emotions in ways that are appropriate to the situation. • Looks for adult assistance when emotions are most intense. • Uses a range of coping strategies to manage emotions with the support of an adult, such as using words or taking deep breaths.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 2",
+          "text": "Child follows classroom rules and routines with increasing independence.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Follows simple rules and routines with assistance from adults, such as hanging up their coat or sitting at the table when asked by an adult.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Usually follows classroom rules and routines with occasional reminders from adults, such as following an end-of-lunch routine that includes putting away their plate, washing hands, and lining up at the door to go outside.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Demonstrates awareness of classroom rules when asked and is able to follow these rules most of the time. • Follows most classroom routines, such as putting away backpack when entering the room or sitting on the rug after outside time. • Responds to signals when transitioning from one activity to another.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 3",
+          "text": "Child appropriately handles and takes care of classroom materials.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Handles classroom materials, such as putting them where they belong, with adult support.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Usually handles, takes care of, and manages classroom materials, such as using them in appropriate ways and not throwing them from the sensory table onto the floor.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Appropriately handles materials during activities. • Cleans up and puts materials away appropriately, such as places blocks back on correct shelf or places markers in the correct bin.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 4",
+          "text": "Child manages actions, words, and behavior with increasing independence.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Manages own actions, words and behavior with frequent support from adults, such as reminders to use gentle touches and friendly words.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Manages own actions, words, and behavior with occasional support from adults.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Demonstrates control over actions and words in response to a challenging situation, such as wanting to use the same materials as another child, or frustration over not being able to climb to the top of a structure. May need support from adults. • Manages behavior according to expectations, such as using quiet feet when asked or sitting on the rug during circle time. • Waits for turn, such as waits in line to wash hands or waits for turn on swings. • Refrains from aggressive behavior towards others. • Begins to understand the consequences of behavior, such as hitting leads to an adult giving you quiet time. Can describe the effects their behavior may have on others, such as noticing that another child feels sad when you hit him.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cognitive Self-Regulation (Executive Functioning)",
+      "goals": [
+        {
+          "code": "P-ATL 5",
+          "text": "Child demonstrates an increasing ability to control impulses.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Frequently engages in impulsive behaviors, but inhibits them when directly supported by an adult.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Sometimes controls impulses independently, while at other times needs support from an adult.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Stops an engaging activity to transition to another less desirable activity with adult guidance and support. • Delays having desires met, such as agreeing to wait turn to start an activity. • Without adult reminders, waits to communicate information to a group. • Refrains from responding impulsively, such as waiting to be called on during group discussion or requesting materials rather than grabbing them.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 6",
+          "text": "Child maintains focus and sustains attention with minimal adult support.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "With adult support, focuses attention on tasks and experiences for short periods of time, despite interruptions or distractions.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "With increasing independence, focuses attention on tasks and experiences for longer periods of time, despite interruptions or distractions.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Maintains focus on activities for extended periods of time, such as 15 minutes or more. • Engages in purposeful play for extended periods of time. • Attends to adult during large and small group activities with minimal support.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 7",
+          "text": "Child persists in tasks.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Persists on preferred tasks when presented with small challenges with or without adult support, such as continuing to try to build a tall tower with blocks, even when some pieces fall.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Frequently persists on preferred tasks. Sometimes persists on less preferred activities with or without adult support, such as working to clean up an activity area.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Completes tasks that are challenging or less preferred despite frustration, either by persisting independently or seeking help from an adult or other child. • Returns with focus to an activity or project after having been away from it.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 8",
+          "text": "Child holds information in mind and manipulates it to perform tasks.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Holds small amounts of information in mind, such as two-step directions, to successfully complete simple tasks.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Holds an increasing amount of information in mind in order to successfully complete tasks.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Accurately recounts recent experiences in the correct order and includes relevant details. • Successfully follows detailed, multi-step directions, sometimes with reminders. • Remembers actions to go with stories or songs shortly after being taught.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 9",
+          "text": "Child demonstrates flexibility in thinking and behavior.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Demonstrates flexibility, or the ability to switch gears, in thinking and behavior when prompted by an adult, such as trying a new way to climb a structure when the first attempt does not work.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Demonstrates flexibility in thinking and behavior without prompting at times. Also responds consistently to adult suggestions to show flexibility in approaching tasks or solving problems, such as taking turns to share toys when many children want to use them.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Tries different strategies to complete work or solve problems including with other children. • Applies different rules in contexts that require different behaviors, such as using indoor voices or feet instead of outdoor voices or feet. • Transitions between activities without getting upset.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Initiative and Curiosity",
+      "goals": [
+        {
+          "code": "P-ATL 10",
+          "text": "Child demonstrates initiative and independence.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Regularly shows initiative, particularly in interactions with familiar adults. Works independently for brief periods of time without adult prompting.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Frequently shows initiative, particularly when engaged in preferred activities. Demonstrates a willingness and capability to work independently for increasing amounts of time.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Engages in independent activities. • Makes choices and communicates these to adults and other children. • Independently identifies and seeks things to complete activities or tasks, such as gathering art supplies to make a mask or gathering cards to play a matching activity. • Plans play scenarios, such as dramatic play or construction, by establishing roles for play, using appropriate materials, and generating appropriate scenarios to be enacted.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 11",
+          "text": "Child shows interest in and curiosity about the world around them.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Seeks out new information and explores new play and tasks with adult support.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Seeks out new information and explores new play and tasks both independently and with adult support.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Asks questions and seeks new information. • Is willing to participate in new activities or experiences even if they are perceived as challenging. • Demonstrates eagerness to learn about and discuss a range of topics, ideas, and activities.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Creativity",
+      "goals": [
+        {
+          "code": "P-ATL 12",
+          "text": "Child expresses creativity in thinking and communication.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Responds to adults’ prompts to express creative ideas in words and/or actions.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Communicates creative ideas and actions both with and without prompting from adults.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Asks questions related to tasks or activities that indicate thinking about new ways to accomplish the task or activity. • Approaches tasks, activities, and play in ways that show creative problem solving. • Uses multiple means of communication to creatively express thoughts, feelings, or ideas.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-ATL 13",
+          "text": "Child uses imagination in play and interactions with others.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Consistently uses imagination in play and other creative works. Begins to communicate creative ideas to other children and adults.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Develops more elaborate imaginary play, stories, and other creative works with children and adults.",
+              "needs_review": false
+            },
+            {
+              "band": "By 60 Months",
+              "descriptor": "Engages in social and pretend play. • Uses imagination with materials to create stories or works of art. • Uses objects or materials to represent something else during play, such as using a paper plate or Frisbee as a steering wheel.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://eclkc.ohs.acf.hhs.gov/sites/default/files/pdf/elof-ohs-framework.pdf"
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "view": "preschool",
+  "domain": { "code": "P-LIT", "name": "Literacy" },
+  "subdomains": [
+    {
+      "name": "Phonological Awareness",
+      "goals": [
+        {
+          "code": "P-LIT 1",
+          "text": "Child demonstrates awareness that spoken language is composed of smaller segments of sound.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Shows rote imitation and enjoyment of rhyme and alliteration. With support, distinguishes when two words rhyme and when two words begin with the same sound.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Demonstrates rhyme recognition, such as identifying which words rhyme from a group of three: hat, cat, log. Recognizes phonemic changes in words, such as noticing the problem with “Old McDonald had a charm.” Is able to count syllables and understand sounds in spoken words.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Print and Alphabet Knowledge",
+      "goals": [
+        {
+          "code": "P-LIT 2",
+          "text": "Child demonstrates an understanding of how print is used (functions of print) and the rules that govern how print works (conventions of print).",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Distinguishes print from pictures and shows an understanding that print is something meaningful, such as asking an adult “What does this say?” or “Read this.”",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Begins to demonstrate an understanding of the connection between speech and print. Shows a growing awareness that print is a system that has rules and conventions, such as holding a book correctly or following a book left to right.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-LIT 3",
+          "text": "Child identifies letters of the alphabet and produces correct sounds associated with letters.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Shows an awareness of alphabet letters, such as singing the ABC song, recognizing letters from one’s name, or naming some letters that are encountered often.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Recognizes and names at least half of the letters in the alphabet, including letters in own name (first name and last name), as well as letters encountered often in the environment. Produces the sound of many recognized letters.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Comprehension and Text Structure",
+      "goals": [
+        {
+          "code": "P-LIT 4",
+          "text": "Child demonstrates an understanding of narrative structure through storytelling/re-telling.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "With support, may be able to tell one or two key events from a story or may act out a story with pictures or props.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Retells 2–3 key events from a well-known story, typically in the right temporal order and using some simple sequencing terms, such as first … and then.",
+              "needs_review": false
+            }
+          ]
+        },
+        {
+          "code": "P-LIT 5",
+          "text": "Child asks and answers questions about a book that was read aloud.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Can answer basic questions about likes or dislikes in a book or story. Asks and answers questions about main characters or events in a familiar story. With modeling and support, makes predictions about events that might happen next.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "With support, provides basic answers to specific questions about details of a story, such as who, what, when, or where. With support, can answer inferential questions about stories, such as predictions or how/why something is happening in a particular moment.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Writing",
+      "goals": [
+        {
+          "code": "P-LIT 6",
+          "text": "Child writes for a variety of purposes using increasingly sophisticated marks.",
+          "progressions": [
+            {
+              "band": "36 to 48 Months",
+              "descriptor": "Engages in writing activities that consist largely of drawing and scribbling. Begins to convey meaning. With modeling and support, writes some letter-like forms and letters.",
+              "needs_review": false
+            },
+            {
+              "band": "48 to 60 Months",
+              "descriptor": "Progressively uses drawing, scribbling, letter-like forms, and letters to intentionally convey meaning. With support, may use invented spelling consisting of salient or beginning sounds, such as L for elevator or B for bug.",
+              "needs_review": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://headstart.gov/sites/default/files/pdf/elof-ohs-framework.pdf",
+    "https://eclkc.ohs.acf.hhs.gov/sites/default/files/pdf/elof-ohs-framework.pdf"
+  ]
+}

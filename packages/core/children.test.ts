@@ -27,9 +27,10 @@ describe('formatAgeMonths', () => {
 
 describe('comarGroupForMonths', () => {
   it('maps months to age-group bands', () => {
+    // Center bands: infant→toddler at 18 months (COMAR 13A.16, not the 12-mo family cutoff)
     expect(comarGroupForMonths(0)).toBe('infant');
-    expect(comarGroupForMonths(11)).toBe('infant');
-    expect(comarGroupForMonths(12)).toBe('toddler');
+    expect(comarGroupForMonths(17)).toBe('infant');
+    expect(comarGroupForMonths(18)).toBe('toddler');
     expect(comarGroupForMonths(23)).toBe('toddler');
     expect(comarGroupForMonths(24)).toBe('two_year');
     expect(comarGroupForMonths(36)).toBe('preschool');
@@ -39,10 +40,10 @@ describe('comarGroupForMonths', () => {
 
 describe('nextComarBoundary', () => {
   it('finds the date a child turns into the next band', () => {
-    // born 2024-11-27; as of 2025-11-19 age = 11 months → next boundary at 12 mo on 2024-11-27+12 = 2025-11-27
+    // born 2024-11-27; as of 2025-11-19 age = 11 months → next boundary at 18 mo (infant→toddler) on 2026-05-27
     const b = nextComarBoundary('2024-11-27', new Date('2025-11-19T12:00:00'));
     expect(b).not.toBeNull();
-    expect(b!.date).toBe('2025-11-27');
+    expect(b!.date).toBe('2026-05-27');
     expect(b!.fromGroup).toBe('infant');
     expect(b!.toGroup).toBe('toddler');
     expect(daysUntil('2025-11-27', new Date('2025-11-19T12:00:00'))).toBe(8);

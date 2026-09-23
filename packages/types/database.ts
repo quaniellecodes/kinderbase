@@ -50,6 +50,8 @@ export type Database = {
           open_slot: number;
           close_slot: number;
           operating_days: number[];
+          quiet_hours_start: string;
+          quiet_hours_end: string;
           created_at: string;
         };
         Insert: {
@@ -65,6 +67,8 @@ export type Database = {
           open_slot?: number;
           close_slot?: number;
           operating_days?: number[];
+          quiet_hours_start?: string;
+          quiet_hours_end?: string;
           created_at?: string;
         };
         Update: {
@@ -80,6 +84,8 @@ export type Database = {
           open_slot?: number;
           close_slot?: number;
           operating_days?: number[];
+          quiet_hours_start?: string;
+          quiet_hours_end?: string;
           created_at?: string;
         };
         Relationships: [
@@ -140,6 +146,8 @@ export type Database = {
           center_id: string;
           role: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center: boolean;
+          lead_qualified: boolean;
+          infant_toddler_trained: boolean;
           joined_at: string;
           left_at: string | null;
         };
@@ -149,6 +157,8 @@ export type Database = {
           center_id: string;
           role: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center?: boolean;
+          lead_qualified?: boolean;
+          infant_toddler_trained?: boolean;
           joined_at?: string;
           left_at?: string | null;
         };
@@ -158,6 +168,8 @@ export type Database = {
           center_id?: string;
           role?: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center?: boolean;
+          lead_qualified?: boolean;
+          infant_toddler_trained?: boolean;
           joined_at?: string;
           left_at?: string | null;
         };
@@ -619,6 +631,23 @@ export type Database = {
           status: 'enrolled' | 'withdrawn';
           created_at: string;
           deleted_at: string | null;
+          middle_name: string | null;
+          preferred_name: string | null;
+          student_code: string | null;
+          enrollment_status: 'active' | 'inactive' | 'waitlist' | 'graduated';
+          sex: string | null;
+          primary_language: string | null;
+          home_languages: string[];
+          tags: string[];
+          address_line1: string | null;
+          address_line2: string | null;
+          city: string | null;
+          state: string | null;
+          zip: string | null;
+          graduates_on: string | null;
+          photo_path: string | null;
+          photo_consent: boolean;
+          admin_notes: string | null;
         };
         Insert: {
           id?: string;
@@ -631,6 +660,23 @@ export type Database = {
           status?: 'enrolled' | 'withdrawn';
           created_at?: string;
           deleted_at?: string | null;
+          middle_name?: string | null;
+          preferred_name?: string | null;
+          student_code?: string | null;
+          enrollment_status?: 'active' | 'inactive' | 'waitlist' | 'graduated';
+          sex?: string | null;
+          primary_language?: string | null;
+          home_languages?: string[];
+          tags?: string[];
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+          graduates_on?: string | null;
+          photo_path?: string | null;
+          photo_consent?: boolean;
+          admin_notes?: string | null;
         };
         Update: {
           id?: string;
@@ -643,6 +689,23 @@ export type Database = {
           status?: 'enrolled' | 'withdrawn';
           created_at?: string;
           deleted_at?: string | null;
+          middle_name?: string | null;
+          preferred_name?: string | null;
+          student_code?: string | null;
+          enrollment_status?: 'active' | 'inactive' | 'waitlist' | 'graduated';
+          sex?: string | null;
+          primary_language?: string | null;
+          home_languages?: string[];
+          tags?: string[];
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+          graduates_on?: string | null;
+          photo_path?: string | null;
+          photo_consent?: boolean;
+          admin_notes?: string | null;
         };
         Relationships: [
           {
@@ -668,6 +731,10 @@ export type Database = {
           signed_in_at: string | null;
           signed_out_at: string | null;
           created_at: string;
+          signed_in_by: string | null;
+          sign_in_method: string | null;
+          signed_out_by: string | null;
+          sign_out_method: string | null;
         };
         Insert: {
           id?: string;
@@ -677,6 +744,10 @@ export type Database = {
           signed_in_at?: string | null;
           signed_out_at?: string | null;
           created_at?: string;
+          signed_in_by?: string | null;
+          sign_in_method?: string | null;
+          signed_out_by?: string | null;
+          sign_out_method?: string | null;
         };
         Update: {
           id?: string;
@@ -686,6 +757,10 @@ export type Database = {
           signed_in_at?: string | null;
           signed_out_at?: string | null;
           created_at?: string;
+          signed_in_by?: string | null;
+          sign_in_method?: string | null;
+          signed_out_by?: string | null;
+          sign_out_method?: string | null;
         };
         Relationships: [
           {
@@ -710,6 +785,8 @@ export type Database = {
           update_type: 'meal' | 'nap' | 'milestone' | 'incident';
           body: string;
           created_at: string;
+          covering: boolean;
+          goal_codes: string[];
         };
         Insert: {
           id?: string;
@@ -718,6 +795,8 @@ export type Database = {
           update_type: 'meal' | 'nap' | 'milestone' | 'incident';
           body: string;
           created_at?: string;
+          covering?: boolean;
+          goal_codes?: string[];
         };
         Update: {
           id?: string;
@@ -726,6 +805,8 @@ export type Database = {
           update_type?: 'meal' | 'nap' | 'milestone' | 'incident';
           body?: string;
           created_at?: string;
+          covering?: boolean;
+          goal_codes?: string[];
         };
         Relationships: [
           {
@@ -994,6 +1075,1541 @@ export type Database = {
           }
         ];
       };
+      student_siblings: {
+        Row: {
+          child_id: string;
+          sibling_id: string;
+        };
+        Insert: {
+          child_id: string;
+          sibling_id: string;
+        };
+        Update: {
+          child_id?: string;
+          sibling_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'student_siblings_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'student_siblings_sibling_id_fkey';
+            columns: ['sibling_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      guardians: {
+        Row: {
+          id: string;
+          child_id: string;
+          full_name: string;
+          relationship: 'mother' | 'father' | 'grandparent' | 'guardian' | 'other';
+          email: string | null;
+          mobile_phone: string | null;
+          employer: string | null;
+          work_phone: string | null;
+          is_primary: boolean;
+          is_emergency: boolean;
+          custody_note: string | null;
+          is_pickup_restricted: boolean;
+          kiosk_pin: string | null;
+          app_user_id: string | null;
+          invited_at: string | null;
+          sort_order: number;
+          preferred_lang: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          full_name: string;
+          relationship: 'mother' | 'father' | 'grandparent' | 'guardian' | 'other';
+          email?: string | null;
+          mobile_phone?: string | null;
+          employer?: string | null;
+          work_phone?: string | null;
+          is_primary?: boolean;
+          is_emergency?: boolean;
+          custody_note?: string | null;
+          is_pickup_restricted?: boolean;
+          kiosk_pin?: string | null;
+          app_user_id?: string | null;
+          invited_at?: string | null;
+          sort_order?: number;
+          preferred_lang?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          full_name?: string;
+          relationship?: 'mother' | 'father' | 'grandparent' | 'guardian' | 'other';
+          email?: string | null;
+          mobile_phone?: string | null;
+          employer?: string | null;
+          work_phone?: string | null;
+          is_primary?: boolean;
+          is_emergency?: boolean;
+          custody_note?: string | null;
+          is_pickup_restricted?: boolean;
+          kiosk_pin?: string | null;
+          app_user_id?: string | null;
+          invited_at?: string | null;
+          sort_order?: number;
+          preferred_lang?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'guardians_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guardians_app_user_id_fkey';
+            columns: ['app_user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      authorized_pickups: {
+        Row: {
+          id: string;
+          child_id: string;
+          full_name: string;
+          relationship: string | null;
+          phone: string | null;
+          kiosk_pin: string | null;
+          photo_path: string | null;
+          authorized_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          full_name: string;
+          relationship?: string | null;
+          phone?: string | null;
+          kiosk_pin?: string | null;
+          photo_path?: string | null;
+          authorized_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          full_name?: string;
+          relationship?: string | null;
+          phone?: string | null;
+          kiosk_pin?: string | null;
+          photo_path?: string | null;
+          authorized_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'authorized_pickups_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'authorized_pickups_authorized_by_fkey';
+            columns: ['authorized_by'];
+            referencedRelation: 'guardians';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      student_health: {
+        Row: {
+          id: string;
+          child_id: string;
+          kind: string;
+          name: string;
+          detail: string | null;
+          severity: string | null;
+          rescue_med: string | null;
+          rescue_med_location: string | null;
+          rescue_med_expires: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          kind: string;
+          name: string;
+          detail?: string | null;
+          severity?: string | null;
+          rescue_med?: string | null;
+          rescue_med_location?: string | null;
+          rescue_med_expires?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          kind?: string;
+          name?: string;
+          detail?: string | null;
+          severity?: string | null;
+          rescue_med?: string | null;
+          rescue_med_location?: string | null;
+          rescue_med_expires?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'student_health_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      student_physicians: {
+        Row: {
+          id: string;
+          child_id: string;
+          name: string;
+          practice: string | null;
+          phone: string | null;
+          last_visit: string | null;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          name: string;
+          practice?: string | null;
+          phone?: string | null;
+          last_visit?: string | null;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          name?: string;
+          practice?: string | null;
+          phone?: string | null;
+          last_visit?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'student_physicians_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      student_documents: {
+        Row: {
+          id: string;
+          child_id: string;
+          doc_type: string;
+          label: string;
+          storage_path: string | null;
+          status: 'current' | 'review_due' | 'missing' | 'na';
+          is_required: boolean;
+          is_confidential: boolean;
+          signed_by: string | null;
+          signed_on: string | null;
+          review_due: string | null;
+          uploaded_by: string | null;
+          uploaded_at: string | null;
+          superseded_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          doc_type: string;
+          label: string;
+          storage_path?: string | null;
+          status?: 'current' | 'review_due' | 'missing' | 'na';
+          is_required?: boolean;
+          is_confidential?: boolean;
+          signed_by?: string | null;
+          signed_on?: string | null;
+          review_due?: string | null;
+          uploaded_by?: string | null;
+          uploaded_at?: string | null;
+          superseded_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          doc_type?: string;
+          label?: string;
+          storage_path?: string | null;
+          status?: 'current' | 'review_due' | 'missing' | 'na';
+          is_required?: boolean;
+          is_confidential?: boolean;
+          signed_by?: string | null;
+          signed_on?: string | null;
+          review_due?: string | null;
+          uploaded_by?: string | null;
+          uploaded_at?: string | null;
+          superseded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'student_documents_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'student_documents_uploaded_by_fkey';
+            columns: ['uploaded_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'student_documents_superseded_by_fkey';
+            columns: ['superseded_by'];
+            referencedRelation: 'student_documents';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      student_descriptors: {
+        Row: {
+          id: string;
+          center_id: string | null;
+          group_key: string;
+          label: string;
+        };
+        Insert: {
+          id?: string;
+          center_id?: string | null;
+          group_key: string;
+          label: string;
+        };
+        Update: {
+          id?: string;
+          center_id?: string | null;
+          group_key?: string;
+          label?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'student_descriptors_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      student_about: {
+        Row: {
+          child_id: string;
+          selections: Record<string, unknown>;
+          note: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          child_id: string;
+          selections?: Record<string, unknown>;
+          note?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          child_id?: string;
+          selections?: Record<string, unknown>;
+          note?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'student_about_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      student_schedule: {
+        Row: {
+          child_id: string;
+          days: Record<string, unknown>;
+          dropoff_window: string | null;
+          pickup_window: string | null;
+          transition_room: string | null;
+          transition_date: string | null;
+        };
+        Insert: {
+          child_id: string;
+          days?: Record<string, unknown>;
+          dropoff_window?: string | null;
+          pickup_window?: string | null;
+          transition_room?: string | null;
+          transition_date?: string | null;
+        };
+        Update: {
+          child_id?: string;
+          days?: Record<string, unknown>;
+          dropoff_window?: string | null;
+          pickup_window?: string | null;
+          transition_room?: string | null;
+          transition_date?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'student_schedule_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      frameworks: {
+        Row: {
+          id: string;
+          name: string;
+          publisher: string | null;
+          version: string | null;
+          is_licensed: boolean;
+          is_system: boolean;
+          center_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          publisher?: string | null;
+          version?: string | null;
+          is_licensed?: boolean;
+          is_system?: boolean;
+          center_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          publisher?: string | null;
+          version?: string | null;
+          is_licensed?: boolean;
+          is_system?: boolean;
+          center_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'frameworks_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      framework_domains: {
+        Row: {
+          id: string;
+          framework_id: string;
+          view: 'infant_toddler' | 'preschool';
+          code: string;
+          name: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          framework_id: string;
+          view: 'infant_toddler' | 'preschool';
+          code: string;
+          name: string;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          framework_id?: string;
+          view?: 'infant_toddler' | 'preschool';
+          code?: string;
+          name?: string;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'framework_domains_framework_id_fkey';
+            columns: ['framework_id'];
+            referencedRelation: 'frameworks';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      framework_subdomains: {
+        Row: {
+          id: string;
+          domain_id: string;
+          name: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          domain_id: string;
+          name: string;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          domain_id?: string;
+          name?: string;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'framework_subdomains_domain_id_fkey';
+            columns: ['domain_id'];
+            referencedRelation: 'framework_domains';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      framework_goals: {
+        Row: {
+          id: string;
+          subdomain_id: string;
+          code: string;
+          goal_text: string | null;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          subdomain_id: string;
+          code: string;
+          goal_text?: string | null;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          subdomain_id?: string;
+          code?: string;
+          goal_text?: string | null;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'framework_goals_subdomain_id_fkey';
+            columns: ['subdomain_id'];
+            referencedRelation: 'framework_subdomains';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      goal_progressions: {
+        Row: {
+          id: string;
+          goal_id: string;
+          age_band_min_months: number;
+          age_band_max_months: number;
+          descriptor: string | null;
+          indicators: string[] | null;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          goal_id: string;
+          age_band_min_months: number;
+          age_band_max_months: number;
+          descriptor?: string | null;
+          indicators?: string[] | null;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          goal_id?: string;
+          age_band_min_months?: number;
+          age_band_max_months?: number;
+          descriptor?: string | null;
+          indicators?: string[] | null;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'goal_progressions_goal_id_fkey';
+            columns: ['goal_id'];
+            referencedRelation: 'framework_goals';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      goal_crosswalks: {
+        Row: {
+          goal_id: string;
+          standard_set: string;
+          standard_code: string;
+        };
+        Insert: {
+          goal_id: string;
+          standard_set: string;
+          standard_code: string;
+        };
+        Update: {
+          goal_id?: string;
+          standard_set?: string;
+          standard_code?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'goal_crosswalks_goal_id_fkey';
+            columns: ['goal_id'];
+            referencedRelation: 'framework_goals';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      rating_levels: {
+        Row: {
+          id: string;
+          center_id: string | null;
+          level_number: number;
+          label: string;
+          color: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          center_id?: string | null;
+          level_number: number;
+          label: string;
+          color: string;
+          sort_order: number;
+        };
+        Update: {
+          id?: string;
+          center_id?: string | null;
+          level_number?: number;
+          label?: string;
+          color?: string;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'rating_levels_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      checkpoints: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          framework_id: string;
+          view: 'infant_toddler' | 'preschool';
+          period_label: string;
+          period_start: string;
+          period_end: string;
+          status: 'draft' | 'submitted' | 'locked';
+          rated_by: string | null;
+          submitted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          framework_id: string;
+          view: 'infant_toddler' | 'preschool';
+          period_label: string;
+          period_start: string;
+          period_end: string;
+          status?: 'draft' | 'submitted' | 'locked';
+          rated_by?: string | null;
+          submitted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          framework_id?: string;
+          view?: 'infant_toddler' | 'preschool';
+          period_label?: string;
+          period_start?: string;
+          period_end?: string;
+          status?: 'draft' | 'submitted' | 'locked';
+          rated_by?: string | null;
+          submitted_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'checkpoints_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'checkpoints_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'checkpoints_framework_id_fkey';
+            columns: ['framework_id'];
+            referencedRelation: 'frameworks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'checkpoints_rated_by_fkey';
+            columns: ['rated_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      checkpoint_ratings: {
+        Row: {
+          id: string;
+          checkpoint_id: string;
+          goal_id: string;
+          rating_level_id: string | null;
+          note: string | null;
+          rated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          checkpoint_id: string;
+          goal_id: string;
+          rating_level_id?: string | null;
+          note?: string | null;
+          rated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          checkpoint_id?: string;
+          goal_id?: string;
+          rating_level_id?: string | null;
+          note?: string | null;
+          rated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'checkpoint_ratings_checkpoint_id_fkey';
+            columns: ['checkpoint_id'];
+            referencedRelation: 'checkpoints';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'checkpoint_ratings_goal_id_fkey';
+            columns: ['goal_id'];
+            referencedRelation: 'framework_goals';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'checkpoint_ratings_rating_level_id_fkey';
+            columns: ['rating_level_id'];
+            referencedRelation: 'rating_levels';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      observations: {
+        Row: {
+          id: string;
+          child_id: string;
+          classroom_id: string | null;
+          center_id: string;
+          observed_by: string;
+          observed_on: string;
+          title: string;
+          body: string;
+          photo_path: string | null;
+          created_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          classroom_id?: string | null;
+          center_id: string;
+          observed_by: string;
+          observed_on: string;
+          title: string;
+          body: string;
+          photo_path?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          classroom_id?: string | null;
+          center_id?: string;
+          observed_by?: string;
+          observed_on?: string;
+          title?: string;
+          body?: string;
+          photo_path?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'observations_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'observations_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'observations_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'observations_observed_by_fkey';
+            columns: ['observed_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      observation_goals: {
+        Row: {
+          observation_id: string;
+          goal_id: string;
+        };
+        Insert: {
+          observation_id: string;
+          goal_id: string;
+        };
+        Update: {
+          observation_id?: string;
+          goal_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'observation_goals_observation_id_fkey';
+            columns: ['observation_id'];
+            referencedRelation: 'observations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'observation_goals_goal_id_fkey';
+            columns: ['goal_id'];
+            referencedRelation: 'framework_goals';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      screenings: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          instrument: string;
+          interval_label: string | null;
+          result_summary: string;
+          outcome: string;
+          administered_by: string | null;
+          administered_on: string | null;
+          due_on: string | null;
+          superseded_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          instrument: string;
+          interval_label?: string | null;
+          result_summary: string;
+          outcome: string;
+          administered_by?: string | null;
+          administered_on?: string | null;
+          due_on?: string | null;
+          superseded_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          instrument?: string;
+          interval_label?: string | null;
+          result_summary?: string;
+          outcome?: string;
+          administered_by?: string | null;
+          administered_on?: string | null;
+          due_on?: string | null;
+          superseded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'screenings_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'screenings_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'screenings_administered_by_fkey';
+            columns: ['administered_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'screenings_superseded_by_fkey';
+            columns: ['superseded_by'];
+            referencedRelation: 'screenings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      referrals: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          stage: 'concern_raised' | 'parent_consent_pending' | 'referred' | 'input_submitted' | 'evaluation_scheduled' | 'eligible' | 'not_eligible' | 'services_active' | 'closed';
+          concern_summary: string;
+          raised_by: string;
+          raised_on: string;
+          agency: string | null;
+          is_part_c: boolean;
+          parent_consent_on: string | null;
+          referred_on: string | null;
+          evaluation_on: string | null;
+          outcome_note: string | null;
+          plan_type: string | null;
+          plan_start: string | null;
+          plan_review_due: string | null;
+          closed_on: string | null;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          stage?: 'concern_raised' | 'parent_consent_pending' | 'referred' | 'input_submitted' | 'evaluation_scheduled' | 'eligible' | 'not_eligible' | 'services_active' | 'closed';
+          concern_summary: string;
+          raised_by: string;
+          raised_on: string;
+          agency?: string | null;
+          is_part_c: boolean;
+          parent_consent_on?: string | null;
+          referred_on?: string | null;
+          evaluation_on?: string | null;
+          outcome_note?: string | null;
+          plan_type?: string | null;
+          plan_start?: string | null;
+          plan_review_due?: string | null;
+          closed_on?: string | null;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          stage?: 'concern_raised' | 'parent_consent_pending' | 'referred' | 'input_submitted' | 'evaluation_scheduled' | 'eligible' | 'not_eligible' | 'services_active' | 'closed';
+          concern_summary?: string;
+          raised_by?: string;
+          raised_on?: string;
+          agency?: string | null;
+          is_part_c?: boolean;
+          parent_consent_on?: string | null;
+          referred_on?: string | null;
+          evaluation_on?: string | null;
+          outcome_note?: string | null;
+          plan_type?: string | null;
+          plan_start?: string | null;
+          plan_review_due?: string | null;
+          closed_on?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'referrals_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'referrals_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'referrals_raised_by_fkey';
+            columns: ['raised_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      referral_inputs: {
+        Row: {
+          id: string;
+          referral_id: string;
+          submitted_by: string;
+          body: string;
+          observation_ids: string[] | null;
+          submitted_at: string;
+        };
+        Insert: {
+          id?: string;
+          referral_id: string;
+          submitted_by: string;
+          body: string;
+          observation_ids?: string[] | null;
+          submitted_at?: string;
+        };
+        Update: {
+          id?: string;
+          referral_id?: string;
+          submitted_by?: string;
+          body?: string;
+          observation_ids?: string[] | null;
+          submitted_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'referral_inputs_referral_id_fkey';
+            columns: ['referral_id'];
+            referencedRelation: 'referrals';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'referral_inputs_submitted_by_fkey';
+            columns: ['submitted_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      plan_goals: {
+        Row: {
+          id: string;
+          referral_id: string;
+          goal_text: string;
+          strategy: string | null;
+          progress_note: string | null;
+          reviewed_on: string | null;
+        };
+        Insert: {
+          id?: string;
+          referral_id: string;
+          goal_text: string;
+          strategy?: string | null;
+          progress_note?: string | null;
+          reviewed_on?: string | null;
+        };
+        Update: {
+          id?: string;
+          referral_id?: string;
+          goal_text?: string;
+          strategy?: string | null;
+          progress_note?: string | null;
+          reviewed_on?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'plan_goals_referral_id_fkey';
+            columns: ['referral_id'];
+            referencedRelation: 'referrals';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      staff_assignments: {
+        Row: {
+          id: string;
+          center_id: string;
+          classroom_id: string;
+          user_id: string;
+          starts_at: string;
+          ends_at: string;
+          source: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by: string | null;
+          note: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          classroom_id: string;
+          user_id: string;
+          starts_at: string;
+          ends_at: string;
+          source?: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by?: string | null;
+          note?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          source?: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by?: string | null;
+          note?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      classroom_nap_events: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          state: 'awake' | 'settling' | 'resting';
+          set_by: string;
+          set_at: string;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          state: 'awake' | 'settling' | 'resting';
+          set_by: string;
+          set_at?: string;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          state?: 'awake' | 'settling' | 'resting';
+          set_by?: string;
+          set_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_breaks: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          user_id: string;
+          started_at: string;
+          ended_at: string | null;
+          engine_snapshot: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          user_id: string;
+          started_at: string;
+          ended_at?: string | null;
+          engine_snapshot: Record<string, unknown>;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          started_at?: string;
+          ended_at?: string | null;
+          engine_snapshot?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
+      cover_sessions: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          user_id: string;
+          mode: 'preview' | 'cover';
+          started_at: string;
+          ended_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          user_id: string;
+          mode: 'preview' | 'cover';
+          started_at: string;
+          ended_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          mode?: 'preview' | 'cover';
+          started_at?: string;
+          ended_at?: string | null;
+        };
+        Relationships: [];
+      };
+      lesson_plans: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          week_of: string;
+          theme: string | null;
+          letter: string | null;
+          number: string | null;
+          shape: string | null;
+          status: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by: string | null;
+          submitted_at: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_comment: string | null;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          week_of: string;
+          theme?: string | null;
+          letter?: string | null;
+          number?: string | null;
+          shape?: string | null;
+          status?: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_comment?: string | null;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          week_of?: string;
+          theme?: string | null;
+          letter?: string | null;
+          number?: string | null;
+          shape?: string | null;
+          status?: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_comment?: string | null;
+        };
+        Relationships: [];
+      };
+      lesson_plan_days: {
+        Row: {
+          plan_id: string;
+          day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question: string | null;
+          circle_parts: string[];
+          circle_notes: string | null;
+          outdoor: string | null;
+          stations: string[];
+        };
+        Insert: {
+          plan_id: string;
+          day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question?: string | null;
+          circle_parts?: string[];
+          circle_notes?: string | null;
+          outdoor?: string | null;
+          stations?: string[];
+        };
+        Update: {
+          plan_id?: string;
+          day?: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question?: string | null;
+          circle_parts?: string[];
+          circle_notes?: string | null;
+          outdoor?: string | null;
+          stations?: string[];
+        };
+        Relationships: [];
+      };
+      classroom_routines: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          starts_at: string;
+          title: string;
+          detail: string | null;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          starts_at: string;
+          title: string;
+          detail?: string | null;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          starts_at?: string;
+          title?: string;
+          detail?: string | null;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      staff_tasks: {
+        Row: {
+          id: string;
+          center_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          title: string;
+          detail: string | null;
+          due_at: string | null;
+          source: 'assigned' | 'nudge' | 'idea';
+          completed_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          title: string;
+          detail?: string | null;
+          due_at?: string | null;
+          source?: 'assigned' | 'nudge' | 'idea';
+          completed_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          assigned_to?: string;
+          assigned_by?: string;
+          title?: string;
+          detail?: string | null;
+          due_at?: string | null;
+          source?: 'assigned' | 'nudge' | 'idea';
+          completed_at?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      announcements: {
+        Row: {
+          id: string;
+          center_id: string;
+          author_id: string;
+          body: string;
+          kind: 'announcement' | 'reminder';
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          author_id: string;
+          body: string;
+          kind?: 'announcement' | 'reminder';
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          author_id?: string;
+          body?: string;
+          kind?: 'announcement' | 'reminder';
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      spotlights: {
+        Row: {
+          center_id: string;
+          month: string;
+          category: string;
+          user_id: string;
+        };
+        Insert: {
+          center_id: string;
+          month: string;
+          category: string;
+          user_id: string;
+        };
+        Update: {
+          center_id?: string;
+          month?: string;
+          category?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      threads: {
+        Row: {
+          id: string;
+          center_id: string;
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          classroom_id: string | null;
+          student_id: string | null;
+          title: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          classroom_id?: string | null;
+          student_id?: string | null;
+          title?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          kind?: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          classroom_id?: string | null;
+          student_id?: string | null;
+          title?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'threads_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'threads_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'threads_student_id_fkey';
+            columns: ['student_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      thread_members: {
+        Row: {
+          thread_id: string;
+          user_id: string;
+          role: string;
+          last_read_at: string | null;
+        };
+        Insert: {
+          thread_id: string;
+          user_id: string;
+          role?: string;
+          last_read_at?: string | null;
+        };
+        Update: {
+          thread_id?: string;
+          user_id?: string;
+          role?: string;
+          last_read_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'thread_members_thread_id_fkey';
+            columns: ['thread_id'];
+            referencedRelation: 'threads';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'thread_members_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      messages: {
+        Row: {
+          id: string;
+          thread_id: string;
+          author_id: string;
+          body: string;
+          lang: string;
+          created_at: string | null;
+          deliver_at: string;
+          attachment_path: string | null;
+        };
+        Insert: {
+          id?: string;
+          thread_id: string;
+          author_id: string;
+          body: string;
+          lang?: string;
+          created_at?: string | null;
+          deliver_at?: string;
+          attachment_path?: string | null;
+        };
+        Update: {
+          id?: string;
+          thread_id?: string;
+          author_id?: string;
+          body?: string;
+          lang?: string;
+          created_at?: string | null;
+          deliver_at?: string;
+          attachment_path?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'messages_thread_id_fkey';
+            columns: ['thread_id'];
+            referencedRelation: 'threads';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'messages_author_id_fkey';
+            columns: ['author_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      message_translations: {
+        Row: {
+          message_id: string;
+          lang: string;
+          body: string;
+        };
+        Insert: {
+          message_id: string;
+          lang: string;
+          body: string;
+        };
+        Update: {
+          message_id?: string;
+          lang?: string;
+          body?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_translations_message_id_fkey';
+            columns: ['message_id'];
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      idea_votes: {
+        Row: {
+          message_id: string;
+          user_id: string;
+        };
+        Insert: {
+          message_id: string;
+          user_id: string;
+        };
+        Update: {
+          message_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'idea_votes_message_id_fkey';
+            columns: ['message_id'];
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'idea_votes_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};
@@ -1004,6 +2620,7 @@ export type Database = {
       credential_type_enum: 'preschool_90hr' | 'infant_toddler_9hr' | 'communication_9hr' | 'ada_training' | 'first_aid_cpr' | 'child_abuse_prevention' | 'medication_administration' | 'cda' | 'directors_certification' | 'college_degree' | 'other';
       credential_status_enum: 'active' | 'expiring_soon' | 'expired' | 'no_expiration';
       age_group_enum: 'infant' | 'toddler' | 'two_year' | 'preschool' | 'school_age';
+      thread_kind_enum: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
     };
   };
 };
