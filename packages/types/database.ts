@@ -50,6 +50,8 @@ export type Database = {
           open_slot: number;
           close_slot: number;
           operating_days: number[];
+          quiet_hours_start: string;
+          quiet_hours_end: string;
           created_at: string;
         };
         Insert: {
@@ -65,6 +67,8 @@ export type Database = {
           open_slot?: number;
           close_slot?: number;
           operating_days?: number[];
+          quiet_hours_start?: string;
+          quiet_hours_end?: string;
           created_at?: string;
         };
         Update: {
@@ -80,6 +84,8 @@ export type Database = {
           open_slot?: number;
           close_slot?: number;
           operating_days?: number[];
+          quiet_hours_start?: string;
+          quiet_hours_end?: string;
           created_at?: string;
         };
         Relationships: [
@@ -140,6 +146,8 @@ export type Database = {
           center_id: string;
           role: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center: boolean;
+          lead_qualified: boolean;
+          infant_toddler_trained: boolean;
           joined_at: string;
           left_at: string | null;
         };
@@ -149,6 +157,8 @@ export type Database = {
           center_id: string;
           role: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center?: boolean;
+          lead_qualified?: boolean;
+          infant_toddler_trained?: boolean;
           joined_at?: string;
           left_at?: string | null;
         };
@@ -158,6 +168,8 @@ export type Database = {
           center_id?: string;
           role?: 'director' | 'admin' | 'lead_teacher' | 'assistant_teacher' | 'aide' | 'substitute';
           is_primary_center?: boolean;
+          lead_qualified?: boolean;
+          infant_toddler_trained?: boolean;
           joined_at?: string;
           left_at?: string | null;
         };
@@ -773,6 +785,8 @@ export type Database = {
           update_type: 'meal' | 'nap' | 'milestone' | 'incident';
           body: string;
           created_at: string;
+          covering: boolean;
+          goal_codes: string[];
         };
         Insert: {
           id?: string;
@@ -781,6 +795,8 @@ export type Database = {
           update_type: 'meal' | 'nap' | 'milestone' | 'incident';
           body: string;
           created_at?: string;
+          covering?: boolean;
+          goal_codes?: string[];
         };
         Update: {
           id?: string;
@@ -789,6 +805,8 @@ export type Database = {
           update_type?: 'meal' | 'nap' | 'milestone' | 'incident';
           body?: string;
           created_at?: string;
+          covering?: boolean;
+          goal_codes?: string[];
         };
         Relationships: [
           {
@@ -1103,6 +1121,7 @@ export type Database = {
           app_user_id: string | null;
           invited_at: string | null;
           sort_order: number;
+          preferred_lang: string;
         };
         Insert: {
           id?: string;
@@ -1121,6 +1140,7 @@ export type Database = {
           app_user_id?: string | null;
           invited_at?: string | null;
           sort_order?: number;
+          preferred_lang?: string;
         };
         Update: {
           id?: string;
@@ -1139,6 +1159,7 @@ export type Database = {
           app_user_id?: string | null;
           invited_at?: string | null;
           sort_order?: number;
+          preferred_lang?: string;
         };
         Relationships: [
           {
@@ -2098,6 +2119,497 @@ export type Database = {
           }
         ];
       };
+      staff_assignments: {
+        Row: {
+          id: string;
+          center_id: string;
+          classroom_id: string;
+          user_id: string;
+          starts_at: string;
+          ends_at: string;
+          source: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by: string | null;
+          note: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          classroom_id: string;
+          user_id: string;
+          starts_at: string;
+          ends_at: string;
+          source?: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by?: string | null;
+          note?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          source?: 'schedule' | 'float' | 'substitute' | 'cover';
+          assigned_by?: string | null;
+          note?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      classroom_nap_events: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          state: 'awake' | 'settling' | 'resting';
+          set_by: string;
+          set_at: string;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          state: 'awake' | 'settling' | 'resting';
+          set_by: string;
+          set_at?: string;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          state?: 'awake' | 'settling' | 'resting';
+          set_by?: string;
+          set_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_breaks: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          user_id: string;
+          started_at: string;
+          ended_at: string | null;
+          engine_snapshot: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          user_id: string;
+          started_at: string;
+          ended_at?: string | null;
+          engine_snapshot: Record<string, unknown>;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          started_at?: string;
+          ended_at?: string | null;
+          engine_snapshot?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
+      cover_sessions: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          user_id: string;
+          mode: 'preview' | 'cover';
+          started_at: string;
+          ended_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          user_id: string;
+          mode: 'preview' | 'cover';
+          started_at: string;
+          ended_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          user_id?: string;
+          mode?: 'preview' | 'cover';
+          started_at?: string;
+          ended_at?: string | null;
+        };
+        Relationships: [];
+      };
+      lesson_plans: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          week_of: string;
+          theme: string | null;
+          letter: string | null;
+          number: string | null;
+          shape: string | null;
+          status: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by: string | null;
+          submitted_at: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_comment: string | null;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          week_of: string;
+          theme?: string | null;
+          letter?: string | null;
+          number?: string | null;
+          shape?: string | null;
+          status?: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_comment?: string | null;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          week_of?: string;
+          theme?: string | null;
+          letter?: string | null;
+          number?: string | null;
+          shape?: string | null;
+          status?: 'draft' | 'submitted' | 'returned' | 'approved';
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_comment?: string | null;
+        };
+        Relationships: [];
+      };
+      lesson_plan_days: {
+        Row: {
+          plan_id: string;
+          day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question: string | null;
+          circle_parts: string[];
+          circle_notes: string | null;
+          outdoor: string | null;
+          stations: string[];
+        };
+        Insert: {
+          plan_id: string;
+          day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question?: string | null;
+          circle_parts?: string[];
+          circle_notes?: string | null;
+          outdoor?: string | null;
+          stations?: string[];
+        };
+        Update: {
+          plan_id?: string;
+          day?: 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+          question?: string | null;
+          circle_parts?: string[];
+          circle_notes?: string | null;
+          outdoor?: string | null;
+          stations?: string[];
+        };
+        Relationships: [];
+      };
+      classroom_routines: {
+        Row: {
+          id: string;
+          classroom_id: string;
+          starts_at: string;
+          title: string;
+          detail: string | null;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          classroom_id: string;
+          starts_at: string;
+          title: string;
+          detail?: string | null;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          classroom_id?: string;
+          starts_at?: string;
+          title?: string;
+          detail?: string | null;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      staff_tasks: {
+        Row: {
+          id: string;
+          center_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          title: string;
+          detail: string | null;
+          due_at: string | null;
+          source: 'assigned' | 'nudge' | 'idea';
+          completed_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          title: string;
+          detail?: string | null;
+          due_at?: string | null;
+          source?: 'assigned' | 'nudge' | 'idea';
+          completed_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          assigned_to?: string;
+          assigned_by?: string;
+          title?: string;
+          detail?: string | null;
+          due_at?: string | null;
+          source?: 'assigned' | 'nudge' | 'idea';
+          completed_at?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      announcements: {
+        Row: {
+          id: string;
+          center_id: string;
+          author_id: string;
+          body: string;
+          kind: 'announcement' | 'reminder';
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          author_id: string;
+          body: string;
+          kind?: 'announcement' | 'reminder';
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          author_id?: string;
+          body?: string;
+          kind?: 'announcement' | 'reminder';
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      spotlights: {
+        Row: {
+          center_id: string;
+          month: string;
+          category: string;
+          user_id: string;
+        };
+        Insert: {
+          center_id: string;
+          month: string;
+          category: string;
+          user_id: string;
+        };
+        Update: {
+          center_id?: string;
+          month?: string;
+          category?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      threads: {
+        Row: {
+          id: string;
+          center_id: string;
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          classroom_id: string | null;
+          student_id: string | null;
+          title: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          classroom_id?: string | null;
+          student_id?: string | null;
+          title?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          kind?: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          classroom_id?: string | null;
+          student_id?: string | null;
+          title?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'threads_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'threads_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'threads_student_id_fkey';
+            columns: ['student_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      thread_members: {
+        Row: {
+          thread_id: string;
+          user_id: string;
+          role: string;
+          last_read_at: string | null;
+        };
+        Insert: {
+          thread_id: string;
+          user_id: string;
+          role?: string;
+          last_read_at?: string | null;
+        };
+        Update: {
+          thread_id?: string;
+          user_id?: string;
+          role?: string;
+          last_read_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'thread_members_thread_id_fkey';
+            columns: ['thread_id'];
+            referencedRelation: 'threads';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'thread_members_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      messages: {
+        Row: {
+          id: string;
+          thread_id: string;
+          author_id: string;
+          body: string;
+          lang: string;
+          created_at: string | null;
+          deliver_at: string;
+          attachment_path: string | null;
+        };
+        Insert: {
+          id?: string;
+          thread_id: string;
+          author_id: string;
+          body: string;
+          lang?: string;
+          created_at?: string | null;
+          deliver_at?: string;
+          attachment_path?: string | null;
+        };
+        Update: {
+          id?: string;
+          thread_id?: string;
+          author_id?: string;
+          body?: string;
+          lang?: string;
+          created_at?: string | null;
+          deliver_at?: string;
+          attachment_path?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'messages_thread_id_fkey';
+            columns: ['thread_id'];
+            referencedRelation: 'threads';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'messages_author_id_fkey';
+            columns: ['author_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      message_translations: {
+        Row: {
+          message_id: string;
+          lang: string;
+          body: string;
+        };
+        Insert: {
+          message_id: string;
+          lang: string;
+          body: string;
+        };
+        Update: {
+          message_id?: string;
+          lang?: string;
+          body?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_translations_message_id_fkey';
+            columns: ['message_id'];
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      idea_votes: {
+        Row: {
+          message_id: string;
+          user_id: string;
+        };
+        Insert: {
+          message_id: string;
+          user_id: string;
+        };
+        Update: {
+          message_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'idea_votes_message_id_fkey';
+            columns: ['message_id'];
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'idea_votes_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};
@@ -2108,6 +2620,7 @@ export type Database = {
       credential_type_enum: 'preschool_90hr' | 'infant_toddler_9hr' | 'communication_9hr' | 'ada_training' | 'first_aid_cpr' | 'child_abuse_prevention' | 'medication_administration' | 'cda' | 'directors_certification' | 'college_degree' | 'other';
       credential_status_enum: 'active' | 'expiring_soon' | 'expired' | 'no_expiration';
       age_group_enum: 'infant' | 'toddler' | 'two_year' | 'preschool' | 'school_age';
+      thread_kind_enum: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
     };
   };
 };

@@ -85,3 +85,116 @@ Deferred/notes: document file bytes aren't seeded (upload path is live); no noti
 - Students module is backed by the existing `children` table (not a new `students` table). Satellites use `child_id → children`.
 - Activity tab reuses `child_updates`; SAEO `observations` is a separate table.
 - Routes live under `app/(dashboard)/students` → URLs `/students/...` (route group invisible).
+
+---
+
+# Mobile track (branch `feat/mobile-engine`, stacked on `feat/students`)
+
+Spec: `docs/DECISIONS.md` + `docs/sessions/*` + `docs/prototypes/kb-full.html`. Six sessions: engine → classroom → today/me → admin → messaging → demo sandbox.
+
+## Phase 0 — artifacts + source of truth (done)
+- `docs/DECISIONS.md`, `docs/sessions/00–06`, `docs/prototypes/README.md`; CLAUDE.md "Source of truth" pointer. Locked mappings: students→children, activity_posts→child_updates(+observations), 18/24/36/60-mo bands, demo DB = sandbox, mobile `app/(mobile)/m`, `/demo` under DEMO_MODE.
+
+## Phase 1 — Staffing engine + clock (done; session 01)
+- [x] **Age band corrected to 18-month center cutoff** (`COMAR_AGE_BANDS` in packages/types; toddler max-group 6→9 in `computeRatio`). ⚠ Confirm 18-mo band + §D(1)=3-staff reading with an OCC licensing specialist before partner demos.
+- [x] `packages/core/clock.ts` (Clock/systemClock/fixedClock) + `apps/web/lib/clock.ts` `getClock()` (honors `kb_demo_now` cookie under DEMO_MODE). Note: getClock lives app-side (cookie needs next/headers); core stays framework-agnostic.
+- [x] `packages/core/comar-engine.ts` — `bandFor`, `governingRule` (§C same-age + §D(1)/§D(2) tables), `isLeadFor`, `evaluate` (size/staff/lead/nap checks), `canStepOut`, `nextAgeTransition`, `suggestAgeMixFix`, `COMAR_VERSION`. Legacy `computeRatio` shim kept for the desktop.
+- [x] `packages/core/comar-engine.test.ts` — **all 26 cases from 01-ENGINE.md green** (60 core tests total incl. existing).
+- [x] Migration `023_staffing_engine.sql` — `staff_assignments`, `classroom_nap_events`, `staff_breaks`, `cover_sessions`, `center_memberships.lead_qualified/infant_toddler_trained`; center-membership RLS. Applied to sandbox.
+- [x] `apps/web/lib/staffing/room-state.ts` — `loadRoomInput` (present children + assigned-minus-break staff + quals + latest nap event) and `activeClassroomFor`. (Lives app-side, not packages/core/queries, so core stays pure.)
+- [x] `/dev/staffing` debug page (DEMO_MODE-gated) + `DevClock` (sets `kb_demo_now`). Reads live data through the engine per room.
+- [x] Seed: qualification flags by role (assistants lead-qualified; substitutes = lead-qualified floats w/o IT course; aides neither), and `staff_assignments` for present staff (understaffed focus room reads OUT). `DEMO_MODE=true` added to `.env.local`.
+- Verified: 60 core tests + tsc + production build green; migration applied; sandbox reseeded; Infant Room shows 6 infants / 1 staff → engine OUT.
+- **Deferred to later phases:** explicit §D(1) "toddler+twos out" demo room → Phase 6 scenario system (06-DEMO §5); full-repo `new Date()` sweep beyond the engine path (remaining ones are display/seed, not compliance logic); the DEMO_MODE↔prod-URL safety assertion → Phase 6 §1.
+
+## Phase 2 — Mobile shell + Classroom (session 02)
+
+### Phase 2a — shell + Classroom Overview wired to the live engine (done)
+- [x] `app/(mobile)/m/layout.tsx` (auth + active-context gate, phone shell), `MobileNav` (Today · Classroom · ＋ · Messages · Me, raised center ＋ with quick-add sheet), reusable `components/mobile/BottomSheet` (drag handle, backdrop close, safe-area).
+- [x] Active-room resolution: `/m` → `/m/today`; `/m/classroom` resolves assignment-now → `kb_active_room` override → admin default → `/m/classroom/[id]` (via `activeClassroomFor`).
+- [x] Migration `024_child_updates_mobile.sql` — `child_updates.covering` + `goal_codes` (our activity_posts). Applied to sandbox; database.ts updated.
+- [x] `/m/classroom/[id]` — header (room, staff-on-floor, live compliance pill → why sheet) + tabs (Overview · Lesson plan · Schedule · Feed). **Overview is fully wired to the COMAR engine**: Here/Staff/Required/Need-update numbers, compliance strip + why sheet (per-check pass/fail, rule + citation, mix), In-the-room staff with Lead/Aide pills + **Break/Back enforced by `canStepOut`** (blocked break opens the why sheet with plain-English reasons + hint), nap control (Settling/Resting/Nap-over), children grid (tap → log sheet, Select-multiple → batch), Quick-log (Batch nap/meal open a preset log). **Feed** tab live (child_updates). Lesson-plan/Schedule tabs are "coming next" placeholders.
+- [x] `classroom/actions.ts` — `getMobileRoom` (loadRoomInput + evaluate + roster/staff/allergy), `getRoomFeed`, `logChildUpdate` (covering flag for admins), `setNapState`, `startBreak` (engine-enforced, snapshots the evaluation), `endBreak`.
+- [x] Navigable stubs: `/m/today` (greeting + open-classroom), `/m/me` (profile link), `/m/messages` (Session-5 placeholder).
+- Verified: tsc + production build (all /m routes) + 60 core tests green; migration applied. `DEMO_MODE` served on :3000 (desktop) and :3001 (mobile/demo).
+
+### Phase 2b — Lesson plan + Schedule tabs + picker (done)
+- [x] Migration `025_lesson_plans_routines.sql` — `lesson_plans`, `lesson_plan_days` (OMH template: question / circle parts+notes / outdoor / 4 stations), `classroom_routines`; center-member RLS. Applied; database.ts updated.
+- [x] Lesson plan tab: week + status pill, theme/letter/number/shape, 20-block progress, MonâFri day chips (n/4), four section cards; **lead-only editing** via section sheets (Circle Time part toggles), **Copy last week** (fills incomplete days), **Submit** (blocked until 20/20; returned→Resubmit with reviewer comment), read-only banner for non-leads. Actions: `getLessonPlan`/`savePlanDay`/`copyLastWeek`/`submitPlan` (`isRoomLead` gate).
+- [x] Schedule tab: `classroom_routines` timeline with the current block marked **NOW**, past dimmed, staff avatars on the current + next two blocks. Action: `getRoutine`.
+- [x] Classroom **picker** sheet (header room name → switch rooms) via `getRoomOptions`.
+- [x] Seed: 11-block daily routine per room + a current-week lesson plan per room (first room draft/partial, second returned-with-comment, rest submitted).
+- Verified: tsc + build + 60 core tests green; migration applied; sandbox reseeded (88 routines, 8 plans).
+
+### Phase 2c — Voice observation + room briefing (done)
+- [x] Voice observation: Overview "Observation" quick-button + a voice card open a review sheet — editable (canned) transcript, child chips (default first present child), **ELOF goal chips** suggested from the room's dominant age view (`goalSuggestions` on `getMobileRoom`, IT vs preschool by present-child bands). Posts one goal-tagged `child_updates` (type milestone, `goal_codes`, `covering` for admins) to every tagged child via `postObservation`; shows in Feed.
+- [x] Room briefing sheet (ⓘ in the header): children/staff counts, severe-allergy alert, now → next routine block, and your role (Lead/Aide/Admin).
+- Verified: tsc + production build + 60 core tests green (no migration/seed change — reads existing ELOF goals).
+- **Phase 2 complete** (Classroom tab: Overview · Lesson plan · Schedule · Feed, all live). Deferred: extra log types (diaper/mood/photo) need a widened `child_updates` CHECK; real audio capture (native, Session-13 `speech.ts`) — the demo uses a canned transcript.
+
+## Demo / testing bar (done — brought forward from Phase 6)
+A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both** desktop (`/dashboard`) and mobile (`/m`), matching the user's mock: `VIEWING AS` persona chips (Director / Lead / Assistant / Float, active = orange) + `CLOCK` presets (9:12 / 12:05 / 3:10 + Real) + a `Mobile ↗` / `Desktop ↗` toggle.
+- `lib/demo.ts` — `isDemo`, `assertNotProd` (crashes if DEMO_MODE ever points at prod), `getDemoPersonas` (representative seeded users by role at the active center).
+- `POST /api/demo/login` — one-tap sign-in as a seeded persona (looks up email, `signInWithPassword` with `DEMO_USER_PASSWORD` = sandbox password, sets the persona's active context). DEMO_MODE-gated (404 else). **Verified end-to-end (200 + session cookie).**
+- `components/demo/DemoBar` (client) + `DemoBarMount` (server) mounted in both layouts; clock reuses the app-wide `kb_demo_now` cookie. The bar hides itself when inside the `/demo` frame.
+- **`/demo` phone/tablet simulator** (`app/demo`, DEMO_MODE-gated): renders `/m` inside a real device frame (`<iframe>`, so the app's fixed nav + safe areas work) with a **Phone ⇄ Tablet** toggle and a side control panel (persona cards + clock presets) — no devtools needed. The floating bar's "Mobile ↗" points here. `force-dynamic` (needs request cookies).
+- `.env.local`: `DEMO_MODE=true`, `DEMO_USER_PASSWORD`. Prod never sets these.
+- Still Phase 6: the full partner-facing polish — access passcode/invite gate, "stories to walk through", one-tap scenarios, nightly reset, separate deploy (see [[project-demo-vision]] / 06-DEMO-SANDBOX.md).
+
+## Phase 3 — Teacher Today + Me (session 03; done)
+- [x] Migration `026` — `staff_tasks` (assigned/nudge/idea), `announcements`, `spotlights`; center-member RLS.
+- [x] **Today** (`/m/today`): `getToday` merges computed priorities (children needing an update in the active room with tappable faces · lesson-plan due/returned for room leads · own credential expiring ≤30d) with assigned `staff_tasks` (complete checkbox), + latest announcements, today's shift (assignments + kiosk clock-in), monthly spotlights, and a float "you're in now / on call" hero + day timeline. `completeTask`.
+- [x] **Me** (`/m/me`): `getMe` — hero (avatar/role/star score + since + attendance/tenure/expiring stats), growth card (5 signal bars + closest-win) + growth sheet (weights + definitions, **float reweighting: no lesson plans, posts/floor-hour**, lifetime), schedule (availability week strip + sick/vacation/personal balances), employment list (full profile link + credentials/training/time/requests), coaching empty state. Reads `teacher_scores`/`staff_profiles`/`credentials`.
+- [x] Seed: announcements + spotlights + assigned/nudge tasks per center; reset clears the new center-scoped tables.
+- Verified: tsc + production build + 60 core tests green; migration applied; reseeded.
+- Deferred: teacher-score nightly recompute is still display-only (Session 9); requests/credentials/training deep screens are toasts on mobile (full versions live on the desktop profile).
+
+## Phase 4 — Admin mobile + Preview/Cover (session 04)
+
+### Phase 4a — admin shell + Home + Preview/Cover (done)
+- [x] Role-aware `MobileNav` (admin: Home · Rooms · ＋ · Inbox · People); `/m` redirects admins → `/m/admin`.
+- [x] **Admin Home** (`/m/admin`): `getAdminHome` runs every room through the engine — worst-room **compliance alert** (mix · citation · required/present · missing lead · **age-mix fix** via `suggestAgeMixFix` with mover names + target room), stats (staff on floor · children · compliant/total), approvals count (pending `staff_requests` + submitted lesson plans), rooms-right-now list, and heads-up (soonest `nextAgeTransition`, expiring credentials, missing required docs).
+- [x] **Preview / Cover** (docs §2): `RoomModeSheet` (Preview vs Cover) → `enterRoomMode` writes a `cover_sessions` row (+ a `source='cover'` `staff_assignments` row for Cover so the engine counts the admin); `exitRoomMode` closes both. `ClassroomView` shows a purple **Preview** (read-only) / orange **Covering** banner + Exit; every write action is guarded client-side and **server-enforced** (`assertNotPreview` throws "Preview is read-only" in log/observation/nap/break). Covering posts carry the admin's name tagged `covering`.
+- [x] Rooms list (`/m/admin/rooms`, All / Needs-attention filter → mode sheet); Inbox/People stubs.
+- Verified: tsc + production build (all /m/admin routes) + 60 core tests green. Reuses `cover_sessions` from migration 023 — no new migration.
+
+### Phase 4b — approvals + float + age-mix + People (done)
+- [x] **Approvals** (`/m/admin/inbox`): `getApprovals` unifies pending `staff_requests` (time correction / leave / schedule) + submitted `lesson_plans`; leave flags a coverage note if the requester leads a room. Cards with Deny/Approve (requests) or **Return-with-comment**/Approve (plans). `resolveApproval` → request status or plan status (`returned` writes `review_comment` → shows in the lead's plan tab).
+- [x] **Float assignment** (`FloatSheet`): `getFloatCandidates` simulates each candidate through the engine → **Fixes it / Still n short / Breaks <room>** (blocked if pulling them drops their current room out of ratio) + Lead-qualified/Aide; `assignFloat` writes a `source='float'` assignment. Wired to the Home alert.
+- [x] **Age-mix "Move them"**: `applyAgeMixFix` runs `suggestAgeMixFix` across the center and moves the 2+ children to the compliant target room; Home alert button shows the mover names.
+- [x] **People** (`/m/admin/people`): staff (star score + role + Lead-qualified/Aide) and students (room · age + severe-allergy flag) segments.
+- Verified: tsc + production build + 60 core tests green. No new migration (reuses staff_requests/lesson_plans/staff_assignments).
+- **Phase 4 complete.** Deferred: time-correction payroll math + full engine coverage sim for a *future* leave day; center switcher + admin ＋ sheet (owner rollup) — light follow-ups.
+
+## Phase 5 — Messaging (session 05; done)
+
+### Phase 5a — team channels + family threads (done)
+- [x] Migration `027` — `threads` (announcement/room/idea/dm/family, `student_id` → `children`), `thread_members` (role member/guardian), `messages` (`lang`, `deliver_at`), `message_translations`, `idea_votes`; `centers.quiet_hours_{start,end}`; `guardians.preferred_lang`. RLS is the DB backstop; the one invariant it holds: **an admin can never read a staff DM** (no admin override on `dm`).
+- [x] Core stubs: `translate()` (canned-Spanish demo — real provider drops in later) + `transcribe()` speech stub (`packages/core/translate.ts`, `speech.ts`).
+- [x] Actions (`m/messages/actions.ts`, service client, app-enforced): `getThreads` (Team = announcement/room/idea/DM · Families = per-child; DM privacy, unread + family-language + 26h aging flags, quiet-hours window), `getThread` (access check — DMs members-only; guardian vs staff authorship; inline EN translation under non-English messages; marks read), `sendMessage` (quiet-hours `deliver_at` → next 7 AM to families; outbound `translate()` stored alongside the original).
+- [x] UI: `/m/messages` (Team/Families segments, aging/lang chips, quiet-hours banner) + `/m/messages/[threadId]` (bubbles, translation footer, read-only float/announcement, composer).
+- [x] Seed: 12 threads / 22 messages incl. a **Spanish family** (two-way translation) + a **26-hour-unanswered** thread; mints guardian users for inbound authorship; reset clears `threads` before centers (center_id has no cascade).
+
+### Phase 5b — idea votes → task, aging escalation, realtime (done)
+- [x] **Idea Garden**: per-message upvotes (`toggleIdeaVote`) + admin **promote-to-task** (`promoteIdeaToTask` → `staff_tasks`); idea posts render as full-width cards with a vote pill.
+- [x] **Family-thread aging** (`getAgingFamilyThreads`, scoped to caller's rooms / all center rooms for admins): red priority on teacher **Today** · tappable red heads-up on admin **Home** (optional `href`) · "Families waiting" section atop admin **Inbox**.
+- [x] **Realtime**: migration `028` adds `messages` to `supabase_realtime` (RLS governs the socket → DMs stay private); `ThreadClient` subscribes to inserts on the open thread and refreshes live.
+- Verified: tsc + production build (messages/today/admin/inbox routes) + 60 core tests green; migrations 027/028 applied to sandbox; reseeded; confirmed DM has only its two staff members (owner absent), Spanish thread carries `en→es`+`es→en`, aging thread at 26h, art-wall idea at 2 votes.
+- **Reminder:** the 18-month COMAR bands / §D(1) staffing readings must be confirmed with an OCC licensing specialist before partner demos — the engine tells staff whether a break is legal.
+
+## Phase 6 — partner /demo sandbox (session 06)
+
+### Phase 6a — access gate + stories + scenarios (done)
+- [x] **Access gate** (§6): `/demo` sits behind a passcode or signed invite. `lib/demo-gate.ts` mints an HMAC-signed 7-day `kb_demo_gate` cookie (unforgeable), validates `DEMO_PASSCODE` / `?invite=<token>` (HMAC + expiry). `/api/demo/gate` sets the cookie and auto-signs-in the Director persona when there's no session — a partner is one passcode from a working phone. `DemoGate` screen (passcode form; a valid invite link logs straight in). In-memory rate limiter (`lib/rate-limit.ts`). Non-demo builds still 404 everywhere.
+- [x] **Scenarios** (§5): one-tap (clock + persona) presets over the seeded baseline — out-of-ratio room · float view · nap breaks · lesson-plan review · families & translation. (Baseline already carries the out-of-ratio focus room, submitted plans, and the Spanish/aging threads, so no data mutation needed.)
+- [x] **Stories to walk through** (§4): the five numbered stories as static panel copy.
+- Local passcode: `DEMO_PASSCODE` in `.env.local` (uncommitted; falls back to `kinderbase` if unset).
+
+### Phase 6b — reset + nightly reseed (done)
+- [x] **Reset demo** button → `/api/demo/reset`: clock → 9:12, persona → Director (Story 1 baseline). Gated + rate-limited. (View reset; data is refreshed nightly — a route handler can't safely run the full seed.)
+- [x] **Nightly reseed**: `.github/workflows/demo-nightly-reset.yml` runs the real `seed:reset` at ~03:00 ET (cron `0 7 * * *`) + manual `workflow_dispatch`. Secrets `DEMO_SUPABASE_URL` / `DEMO_SUPABASE_SERVICE_KEY` (sandbox). Diverges from the spec's Edge Function — the seeder is a Node/tsx script, so CI runs it directly rather than a Deno rewrite.
+- Verified: tsc + production build (`/demo`, `/api/demo/{gate,login,reset}`) + 60 core tests green.
+
+**Deploy (§8):** a separate Vercel project/env (e.g. `demo.kinderbase.com`) with `DEMO_MODE=true`, the sandbox Supabase keys, `DEMO_USER_PASSWORD` (matching the seeded `Sandbox!23456`), `DEMO_PASSCODE`, and `DEMO_INVITE_SECRET`. **Production never sets any `DEMO_*`.** Add the two `DEMO_SUPABASE_*` secrets to the GitHub repo for the nightly job.
+
+**Deferred (6c, optional):** persona names don't match the prototype (Maria Torres / Soo Kim / Laura Rivera) — the switcher shows representative seeded users by role; aligning needs deterministic demo personas in the seed. Scenario data-mutations (nap `settling` flags, Laura pre-assigned to Toddler B) are approximated by clock+persona; deeper per-scenario state would need a lightweight scenario applier.
