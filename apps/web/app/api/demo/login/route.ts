@@ -2,12 +2,21 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { setActiveContext } from '@/lib/session/active-context';
 import { isDemo, assertNotProd } from '@/lib/demo';
+import { hasValidGate } from '@/lib/demo-gate';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 import type { CenterRole } from '@kinderbase/types';
 
-// One-tap persona sign-in for the demo bar (docs/sessions/06 §3). DEMO_MODE only.
+// One-tap persona sign-in for the demo bar (docs/sessions/06 §3). DEMO_MODE only,
+// and behind the same access gate as the rest of /demo — otherwise anyone could
+// POST a userId and sign in as any persona (incl. the Director) without the
+// passcode.
 export async function POST(req: Request) {
   if (!isDemo()) return new NextResponse('Not found', { status: 404 });
   assertNotProd();
+  if (!hasValidGate()) return NextResponse.json({ error: 'Gate required' }, { status: 401 });
+  if (!rateLimit(`demo-login:${clientIp(req)}`, 20, 60_000)) {
+    return NextResponse.json({ error: 'Too many attempts. Wait a moment.' }, { status: 429 });
+  }
 
   const { userId, centerId } = (await req.json().catch(() => ({}))) as { userId?: string; centerId?: string };
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });

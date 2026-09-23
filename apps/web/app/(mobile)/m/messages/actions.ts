@@ -28,7 +28,37 @@ async function myRoomIds(service: Service, userId: string, centerId: string, adm
   return [...new Set((data ?? []).map((r) => r.classroom_id))];
 }
 
-export type ThreadSummary = { id: string; kind: string; name: string; sub: string; avatar: string; lastBody: string; lastAt: string; unread: boolean; lang: string | null; aging: boolean };
+type Ctx = { service: Service; userId: string; centerId: string; role: CenterRole; admin: boolean };
+export type ThreadKind = 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+
+/**
+ * Load a thread and this user's read/reply decision — the single source of
+ * truth shared by getThread and sendMessage so the two can never drift. DMs are
+ * members-only with NO admin override, and (critically) this is a read: posting
+ * must go through `canReply` and must never be the thing that grants membership.
+ */
+async function resolveThreadAccess(threadId: string, c: Ctx) {
+  const { data: t } = await c.service
+    .from('threads')
+    .select('id, kind, center_id, classroom_id, student_id, title, classrooms(name), children(id, first_name, last_name)')
+    .eq('id', threadId)
+    .maybeSingle();
+  if (!t || t.center_id !== c.centerId) return null;
+  const rooms = await myRoomIds(c.service, c.userId, c.centerId, c.admin);
+  const { data: myMember } = await c.service.from('thread_members').select('role').eq('thread_id', threadId).eq('user_id', c.userId).maybeSingle();
+  const inMyRoom = t.classroom_id != null && rooms.includes(t.classroom_id);
+  const canAccess =
+    t.kind === 'announcement' || t.kind === 'idea'
+      ? true
+      : t.kind === 'room' || t.kind === 'family'
+        ? c.admin || inMyRoom || !!myMember
+        : !!myMember; // dm — members only, no admin override
+  const isFloatOnly = t.kind === 'family' && !c.admin && !myMember && !!t.classroom_id;
+  const canReply = t.kind === 'announcement' ? c.admin : canAccess && !isFloatOnly;
+  return { t, myMember, canAccess, canReply, isFloatOnly };
+}
+
+export type ThreadSummary = { id: string; kind: ThreadKind; name: string; sub: string; avatar: string; lastBody: string; lastAt: string; unread: boolean; lang: string | null; aging: boolean };
 export type ThreadGroups = { team: ThreadSummary[]; families: ThreadSummary[]; quiet: { start: string; end: string } };
 
 export async function getThreads(): Promise<ThreadGroups | null> {
@@ -105,36 +135,22 @@ export async function getThreads(): Promise<ThreadGroups | null> {
   summaries.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1));
 
   const { data: center } = await service.from('centers').select('quiet_hours_start, quiet_hours_end').eq('id', centerId).maybeSingle();
-  const order = { announcement: 0, room: 1, idea: 2, dm: 3, family: 4 } as Record<string, number>;
-  const team = summaries.filter((s) => s.kind !== 'family').sort((a, b) => order[a.kind]! - order[b.kind]!);
+  const order: Record<ThreadKind, number> = { announcement: 0, room: 1, idea: 2, dm: 3, family: 4 };
+  const team = summaries.filter((s) => s.kind !== 'family').sort((a, b) => order[a.kind] - order[b.kind]);
   const families = summaries.filter((s) => s.kind === 'family');
   return { team, families, quiet: { start: center?.quiet_hours_start ?? '18:30', end: center?.quiet_hours_end ?? '07:00' } };
 }
 
 export type ThreadMessage = { id: string; author: string; mine: boolean; isGuardian: boolean; body: string; translated: string | null; at: string; votes: number; voted: boolean };
-export type ThreadDetail = { id: string; kind: string; name: string; sub: string; disclosure: string; canReply: boolean; canPromote: boolean; lang: string | null; messages: ThreadMessage[] };
+export type ThreadDetail = { id: string; kind: ThreadKind; name: string; sub: string; disclosure: string; canReply: boolean; canPromote: boolean; lang: string | null; messages: ThreadMessage[] };
 
 export async function getThread(threadId: string): Promise<ThreadDetail | null> {
   const c = await ctx();
   if (!c) return null;
-  const { service, userId, centerId, admin } = c;
-  const { data: t } = await service.from('threads').select('id, kind, center_id, classroom_id, student_id, title, classrooms(name), children(id, first_name, last_name)').eq('id', threadId).maybeSingle();
-  if (!t || t.center_id !== centerId) return null;
-
-  const rooms = await myRoomIds(service, userId, centerId, admin);
-  const { data: myMember } = await service.from('thread_members').select('role').eq('thread_id', threadId).eq('user_id', userId).maybeSingle();
-  // Access (app-enforced; DMs are members-only, no admin override).
-  const canAccess =
-    t.kind === 'announcement' || t.kind === 'idea'
-      ? true
-      : t.kind === 'room' || t.kind === 'family'
-        ? admin || (t.classroom_id != null && rooms.includes(t.classroom_id)) || !!myMember
-        : !!myMember; // dm
-  if (!canAccess) return null;
-
-  // Float assigned to a family room is read-only.
-  const isFloatOnly = t.kind === 'family' && !admin && !myMember && !!t.classroom_id;
-  const canReply = t.kind === 'announcement' ? admin : !isFloatOnly;
+  const { service, userId, admin } = c;
+  const acc = await resolveThreadAccess(threadId, c);
+  if (!acc || !acc.canAccess) return null;
+  const { t, canReply, isFloatOnly } = acc;
 
   const { data: members } = await service.from('thread_members').select('user_id, role').eq('thread_id', threadId);
   const roleByUser = new Map((members ?? []).map((m) => [m.user_id, m.role]));
@@ -195,8 +211,10 @@ export async function toggleIdeaVote(messageId: string): Promise<void> {
   const thr = m ? (Array.isArray(m.threads) ? m.threads[0] : m.threads) : null;
   if (!thr || thr.kind !== 'idea' || thr.center_id !== centerId) throw new Error('Forbidden');
   const { data: existing } = await service.from('idea_votes').select('user_id').eq('message_id', messageId).eq('user_id', userId).maybeSingle();
-  if (existing) await service.from('idea_votes').delete().eq('message_id', messageId).eq('user_id', userId);
-  else await service.from('idea_votes').insert({ message_id: messageId, user_id: userId });
+  const { error } = existing
+    ? await service.from('idea_votes').delete().eq('message_id', messageId).eq('user_id', userId)
+    : await service.from('idea_votes').insert({ message_id: messageId, user_id: userId });
+  if (error) throw new Error(error.message);
   revalidatePath(`/m/messages/${m!.thread_id}`);
 }
 
@@ -210,7 +228,8 @@ export async function promoteIdeaToTask(messageId: string): Promise<void> {
   const thr = m ? (Array.isArray(m.threads) ? m.threads[0] : m.threads) : null;
   if (!thr || thr.kind !== 'idea' || thr.center_id !== centerId) throw new Error('Forbidden');
   const title = m!.body.length > 80 ? `${m!.body.slice(0, 77)}…` : m!.body;
-  await service.from('staff_tasks').insert({ center_id: centerId, assigned_to: userId, assigned_by: userId, title, detail: 'Promoted from the Idea Garden', source: 'assigned' });
+  const { error } = await service.from('staff_tasks').insert({ center_id: centerId, assigned_to: userId, assigned_by: userId, title, detail: 'Promoted from the Idea Garden', source: 'assigned' });
+  if (error) throw new Error(error.message);
   revalidatePath(`/m/messages/${m!.thread_id}`);
   revalidatePath('/m/admin/inbox');
 }
@@ -270,8 +289,13 @@ export async function sendMessage(threadId: string, body: string): Promise<void>
   if (!c) throw new Error('Forbidden');
   const { service, userId, centerId } = c;
   if (!body.trim()) return;
-  const { data: t } = await service.from('threads').select('kind, center_id, student_id, classroom_id').eq('id', threadId).maybeSingle();
-  if (!t || t.center_id !== centerId) throw new Error('Forbidden');
+  // Authorize the reply through the SAME decision getThread reads with. Without
+  // this, the service client (RLS-bypassed) would let anyone post into a DM they
+  // aren't in — and the read-receipt upsert below would then make them a member,
+  // exposing the whole thread. DMs stay members-only; announcements admin-only.
+  const acc = await resolveThreadAccess(threadId, c);
+  if (!acc || !acc.canReply) throw new Error('Forbidden');
+  const { t } = acc;
 
   // Quiet hours: to families outside 7:00 AM–6:30 PM, deliver at next 7:00 AM.
   const now = getClock().now();
