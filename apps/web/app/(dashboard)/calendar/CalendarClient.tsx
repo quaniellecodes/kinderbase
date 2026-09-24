@@ -156,14 +156,25 @@ export function CalendarClient({ admin, todayIso, variant = 'desktop' }: { admin
     </div>
   );
 
-  const header = (
+  const onTypes = res.types.filter((t) => !off.has(t.key));
+  const typesButton = (full: boolean) => (
+    <button
+      onClick={() => setTypesOpen(true)}
+      className={cn('inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white font-semibold text-gray-700 hover:bg-gray-50', full ? 'w-full justify-center py-2.5 text-[13px]' : 'px-3 py-1.5 text-[12px]')}
+    >
+      <span className="flex gap-0.5">{onTypes.slice(0, 6).map((t, i) => <span key={i} className="w-2 h-2 rounded-full" style={{ background: t.colour }} />)}</span>
+      Types <b className="font-semibold">{onCount}/{total}</b>
+    </button>
+  );
+
+  const renderHeader = (showTypes: boolean) => (
     <div className="flex items-center gap-2 mb-3">
       <button onClick={() => move(-1)} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50"><ChevronLeft className="w-4 h-4" /></button>
       <div className="text-[16px] font-semibold text-gray-900 min-w-[150px]">{MONTH_NAMES[m]} {y}</div>
       <button onClick={() => move(1)} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50"><ChevronRight className="w-4 h-4" /></button>
       <span className="flex-1" />
       <Button variant="secondary" size="sm" onClick={() => { setYm([Number(todayIso.slice(0, 4)), Number(todayIso.slice(5, 7)) - 1]); setSel(todayIso); }}>Today</Button>
-      <Button variant="secondary" size="sm" onClick={() => setTypesOpen(true)}>Types · {onCount}/{total}</Button>
+      {showTypes && typesButton(false)}
     </div>
   );
 
@@ -181,13 +192,15 @@ export function CalendarClient({ admin, todayIso, variant = 'desktop' }: { admin
         <AgendaView items={items} />
       ) : variant === 'desktop' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)] gap-4 items-start">
-          <div>{header}<div className="overflow-x-auto">{grid}</div></div>
+          <div>{renderHeader(true)}<div className="overflow-x-auto">{grid}</div></div>
           <div className="xl:sticky xl:top-0">{dayPanel}</div>
         </div>
       ) : (
         <div>
-          {header}
+          {renderHeader(false)}
           {grid}
+          {/* Types filter sits full-width below the grid on mobile (08-CALENDAR §6). */}
+          <div className="mt-3">{typesButton(true)}</div>
           <div className="mt-3">{dayPanel}</div>
         </div>
       )}
@@ -282,7 +295,7 @@ function TypesModal({ types, off, admin, pending, onToggle, onAll, onVis, onDele
           </div>
         ))}
       </div>
-      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
         <Button variant="secondary" size="sm" onClick={() => onAll(true)}>Show all</Button>
         <Button variant="secondary" size="sm" onClick={() => onAll(false)}>Hide all</Button>
         {admin && <Button size="sm" className="ml-auto" onClick={() => setAdding((a) => !a)}>{adding ? 'Cancel' : 'New type'}</Button>}
