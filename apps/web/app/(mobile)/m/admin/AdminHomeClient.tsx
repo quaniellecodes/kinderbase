@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, CalendarDays } from 'lucide-react';
 import { Card, StatusDot, toast, type BadgeTone } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { enterRoomMode } from '../classroom/actions';
@@ -38,9 +38,14 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
 
   return (
     <div className="p-4 space-y-5">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900">{data.centerName}</h1>
-        <p className="text-xs text-gray-500">Live compliance across every room</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold text-gray-900">{data.centerName}</h1>
+          <p className="text-xs text-gray-500">Live compliance across every room</p>
+        </div>
+        <Link href="/m/calendar" aria-label="Calendar" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+          <CalendarDays className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* Compliance alert */}

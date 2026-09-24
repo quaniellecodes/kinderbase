@@ -648,6 +648,7 @@ export type Database = {
           photo_path: string | null;
           photo_consent: boolean;
           admin_notes: string | null;
+          birthday_visible: boolean;
         };
         Insert: {
           id?: string;
@@ -677,6 +678,7 @@ export type Database = {
           photo_path?: string | null;
           photo_consent?: boolean;
           admin_notes?: string | null;
+          birthday_visible?: boolean;
         };
         Update: {
           id?: string;
@@ -706,6 +708,7 @@ export type Database = {
           photo_path?: string | null;
           photo_consent?: boolean;
           admin_notes?: string | null;
+          birthday_visible?: boolean;
         };
         Relationships: [
           {
@@ -2606,6 +2609,171 @@ export type Database = {
             foreignKeyName: 'idea_votes_user_id_fkey';
             columns: ['user_id'];
             referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      dashboard_widgets: {
+        Row: {
+          user_id: string;
+          center_id: string;
+          widget_key: string;
+          sort_order: number;
+          span: number;
+          visible: boolean;
+        };
+        Insert: {
+          user_id: string;
+          center_id: string;
+          widget_key: string;
+          sort_order: number;
+          span?: number;
+          visible?: boolean;
+        };
+        Update: {
+          user_id?: string;
+          center_id?: string;
+          widget_key?: string;
+          sort_order?: number;
+          span?: number;
+          visible?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dashboard_widgets_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dashboard_widgets_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      calendar_event_types: {
+        Row: {
+          id: string;
+          center_id: string | null;
+          key: string;
+          label: string;
+          colour: string;
+          icon: string;
+          is_system: boolean;
+          is_derived: boolean;
+          visible_admin: boolean;
+          visible_staff: boolean;
+          visible_family: boolean;
+          sort_order: number;
+          created_by: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id?: string | null;
+          key: string;
+          label: string;
+          colour: string;
+          icon: string;
+          is_system?: boolean;
+          is_derived?: boolean;
+          visible_admin?: boolean;
+          visible_staff?: boolean;
+          visible_family?: boolean;
+          sort_order?: number;
+          created_by?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string | null;
+          key?: string;
+          label?: string;
+          colour?: string;
+          icon?: string;
+          is_system?: boolean;
+          is_derived?: boolean;
+          visible_admin?: boolean;
+          visible_staff?: boolean;
+          visible_family?: boolean;
+          sort_order?: number;
+          created_by?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'calendar_event_types_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      calendar_events: {
+        Row: {
+          id: string;
+          center_id: string;
+          type_id: string;
+          title: string;
+          detail: string | null;
+          starts_on: string;
+          ends_on: string | null;
+          time_label: string | null;
+          classroom_ids: string[];
+          child_id: string | null;
+          user_id: string | null;
+          series_id: string | null;
+          rrule: string | null;
+          created_by: string;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          center_id: string;
+          type_id: string;
+          title: string;
+          detail?: string | null;
+          starts_on: string;
+          ends_on?: string | null;
+          time_label?: string | null;
+          classroom_ids?: string[];
+          child_id?: string | null;
+          user_id?: string | null;
+          series_id?: string | null;
+          rrule?: string | null;
+          created_by: string;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          center_id?: string;
+          type_id?: string;
+          title?: string;
+          detail?: string | null;
+          starts_on?: string;
+          ends_on?: string | null;
+          time_label?: string | null;
+          classroom_ids?: string[];
+          child_id?: string | null;
+          user_id?: string | null;
+          series_id?: string | null;
+          rrule?: string | null;
+          created_by?: string;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'calendar_events_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'calendar_events_type_id_fkey';
+            columns: ['type_id'];
+            referencedRelation: 'calendar_event_types';
             referencedColumns: ['id'];
           }
         ];
