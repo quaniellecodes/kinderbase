@@ -104,7 +104,7 @@ export function mixText(mix: Record<Band, number>): string {
   return parts.join(', ') || 'no children';
 }
 
-const C = 'COMAR 13A.16.08.03';
+const C = 'COMAR 13A.16.08.03 §';
 
 /** The rule that governs a given age mix. Mirrors DECISIONS §3 exactly. */
 export function governingRule(mix: Record<Band, number>): GoverningRule {

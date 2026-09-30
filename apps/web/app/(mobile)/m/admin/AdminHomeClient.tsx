@@ -60,18 +60,18 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
       <div className="flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-lg bg-brand text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">{centerInitials(data.centerName)}</div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            <h1 className="text-[15px] font-semibold text-gray-900 truncate">{data.centerName}</h1>
+          <div className="flex items-center gap-1 min-w-0">
+            <h1 className="text-[15px] font-semibold text-gray-900 truncate min-w-0">{data.centerName}</h1>
             <ChevronDown className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
           </div>
-          <p className="text-[11px] text-gray-500">{data.roleLabel} · {data.licensed} licensed</p>
+          <p className="text-[11px] text-gray-500 truncate">{data.roleLabel} · {data.licensed} licensed</p>
         </div>
-        <Link href="/m/calendar" aria-label="Calendar" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+        <Link href="/m/calendar" aria-label="Calendar" className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
           <CalendarDays className="w-4 h-4" />
         </Link>
-        <Link href="/m/admin/inbox" aria-label="Inbox" className="relative w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+        <Link href="/m/admin/inbox" aria-label="Inbox" className="relative w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
           <Bell className="w-4 h-4" />
-          {data.approvals > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-status-red border border-white" />}
+          {data.approvals > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-status-red border border-white" />}
         </Link>
       </div>
 
