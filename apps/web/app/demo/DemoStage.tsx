@@ -8,7 +8,7 @@ import type { DemoPersona } from '@/lib/demo';
 const DEVICES = {
   // `notch` reserves the top space a real phone's camera / status bar takes, so
   // the app inside the frame previews the same way it renders on a device.
-  phone: { label: 'Phone', w: 390, h: 844, radius: 44, bezel: 12, notch: { h: 30, pill: true } },
+  phone: { label: 'Phone', w: 420, h: 910, radius: 46, bezel: 12, notch: { h: 30, pill: true } },
   tablet: { label: 'Tablet', w: 800, h: 1040, radius: 26, bezel: 14, notch: { h: 22, pill: false } },
 };
 type Device = keyof typeof DEVICES;
