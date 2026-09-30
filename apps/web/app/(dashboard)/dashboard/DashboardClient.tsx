@@ -263,7 +263,7 @@ function WidgetBody({ keyName, data, onFloat, act, pending }: { keyName: WidgetK
       return (
         <div className="divide-y divide-gray-50">
           {data.heads.map((h) => (
-            <div key={h.key} className="flex items-center gap-3 px-4 py-3"><div className="flex-1 min-w-0"><p className="text-[13px] font-medium text-gray-900">{h.title}</p><p className="text-[11px] text-gray-500">{h.sub}</p></div><span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', toneBg[h.tone])}>{h.badge}</span></div>
+            <div key={h.key} className="flex items-center gap-3 px-4 py-3"><div className="flex-1 min-w-0"><p className="text-[13px] font-medium text-gray-900">{h.title}</p><p className="text-[11px] text-gray-500">{h.sub}</p></div>{h.badge && <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', toneBg[h.tone])}>{h.badge}</span>}</div>
           ))}
         </div>
       );
