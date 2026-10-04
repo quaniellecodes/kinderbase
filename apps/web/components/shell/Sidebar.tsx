@@ -7,6 +7,7 @@ import {
   DoorOpen,
   FileCheck,
   Calendar,
+  CalendarDays,
   Clock,
   ClipboardList,
   BarChart3,
@@ -56,6 +57,7 @@ const adminNav = [
   { href: '/students', label: 'Students', icon: Baby },
   { href: '/staff', label: 'Staff', icon: Users },
   { href: '/classrooms', label: 'Classrooms', icon: DoorOpen },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/requests', label: 'Requests', icon: ClipboardList },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -64,6 +66,7 @@ const adminNav = [
 const teacherNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/students', label: 'Students', icon: Baby },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/credentials', label: 'Credentials', icon: FileCheck },
   { href: '/schedule', label: 'Schedule', icon: Calendar },
   { href: '/time', label: 'Time', icon: Clock },

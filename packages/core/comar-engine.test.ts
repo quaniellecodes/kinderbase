@@ -102,6 +102,23 @@ describe('mixed (§D)', () => {
   });
 });
 
+describe('citations', () => {
+  // Pin the ' §' separator so it can't regress to "COMAR 13A.16.08.03C(1)"
+  // (which the dashboard then displayed as "COMARC(1)").
+  it('14. same-age cites §C with a separator', () => {
+    expect(ruleOf([6]).citation).toBe('COMAR 13A.16.08.03 §C(1)'); // infants
+    expect(ruleOf([28, 28]).citation).toBe('COMAR 13A.16.08.03 §C(2)'); // two-year-olds
+  });
+  it('15. mixed-age cites §D with a separator', () => {
+    expect(ruleOf([20, 20, 20, 20, 28, 28]).citation).toBe('COMAR 13A.16.08.03 §D(1)');
+  });
+  it('16. never emits the un-separated "03C"/"03D" form', () => {
+    for (const c of [[6], [28, 28], [48], [20, 20, 20, 20, 28, 28], [48, 72]]) {
+      expect(ruleOf(c).citation).not.toMatch(/\d{2}[CD]\(/);
+    }
+  });
+});
+
 describe('lead', () => {
   it('14. aide alone with toddlers → lead check fails', () => {
     const e = evaluate(room(kids([20, 20, 20]), [aide('x')]));

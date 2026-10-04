@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils';
 import type { DemoPersona } from '@/lib/demo';
 
 const DEVICES = {
-  phone: { label: 'Phone', w: 390, h: 844, radius: 44, bezel: 12 },
-  tablet: { label: 'Tablet', w: 800, h: 1040, radius: 26, bezel: 14 },
+  // `notch` reserves the top space a real phone's camera / status bar takes, so
+  // the app inside the frame previews the same way it renders on a device.
+  phone: { label: 'Phone', w: 420, h: 910, radius: 46, bezel: 12, notch: { h: 30, pill: true } },
+  tablet: { label: 'Tablet', w: 800, h: 1040, radius: 26, bezel: 14, notch: { h: 22, pill: false } },
 };
 type Device = keyof typeof DEVICES;
 
@@ -108,8 +110,16 @@ export function DemoStage({
       {/* Device frame */}
       <div className="flex-shrink-0 mx-auto">
         <div className="bg-[#1a1a18] shadow-2xl" style={{ borderRadius: dev.radius, padding: dev.bezel, width: 'min(100%, ' + (dev.w + dev.bezel * 2) + 'px)' }}>
-          <div className="bg-white overflow-hidden relative" style={{ borderRadius: dev.radius - dev.bezel, height: `min(${dev.h}px, 84vh)` }}>
-            <iframe ref={iframeRef} src="/m" title="KinderBase mobile" className="w-full h-full border-0" />
+          <div className="bg-white overflow-hidden relative flex flex-col" style={{ borderRadius: dev.radius - dev.bezel, height: `min(${dev.h}px, 84vh)` }}>
+            {/* Status bar / camera notch — reserves the top safe area so app content isn't cut off */}
+            <div className="relative flex-shrink-0 bg-white" style={{ height: dev.notch.h }}>
+              {dev.notch.pill ? (
+                <div className="absolute left-1/2 top-1.5 -translate-x-1/2 h-[18px] w-[112px] rounded-full bg-black" />
+              ) : (
+                <div className="absolute left-1/2 top-2 -translate-x-1/2 h-2 w-2 rounded-full bg-black/70" />
+              )}
+            </div>
+            <iframe ref={iframeRef} src="/m" title="KinderBase mobile" className="w-full flex-1 border-0" />
           </div>
         </div>
       </div>

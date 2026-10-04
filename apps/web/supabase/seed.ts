@@ -1549,6 +1549,13 @@ async function main(): Promise<void> {
       for_date: isoDate(daysAgo(6)), details: 'Missed clock-out corrected.', created_at: daysAgo(6).toISOString(), resolved_at: daysAgo(5).toISOString() });
   });
 
+  // One dated pending LEAVE for a room lead → the calendar flags a coverage risk
+  // (the engine removes them from their room and re-evaluates on read).
+  const leadForLeave = users.find((u) => u.centerIndex === 0 && u.centerRole === 'lead_teacher');
+  if (leadForLeave) {
+    requests.push({ user_id: leadForLeave.id, center_id: centerIds[0], type: 'leave', status: 'pending', created_by: leadForLeave.id, for_date: isoDate(daysFromNow(5)), details: 'Doctor appointment — may be out all day.', created_at: daysAgo(1).toISOString() });
+  }
+
   await insertChunked(db, 'teacher_scores', scores);
   await insertChunked(db, 'staff_profiles', profiles);
   await insertChunked(db, 'staff_leave_days', leaveDays);
@@ -1712,6 +1719,32 @@ async function main(): Promise<void> {
   await insertChunked(db, 'messages', messageRows);
   await insertChunked(db, 'message_translations', translationRows);
   await insertChunked(db, 'idea_votes', ideaVoteRows);
+
+  // ── 14. Calendar (stored events; time-off/birthdays/ratio are derived live) ──
+  type CalEventInsert = Database['public']['Tables']['calendar_events']['Insert'];
+  const { data: calTypeRows } = await db.from('calendar_event_types').select('id, key').is('center_id', null);
+  const calTypeId = new Map((calTypeRows ?? []).map((t) => [t.key, t.id]));
+  const calEvents: CalEventInsert[] = [];
+  const c0 = centerIds[0];
+  const c0rooms = classrooms.filter((r) => r.centerIndex === 0).map((r) => classroomIds.get(r.key)!);
+  const staffForBday = users.find((u) => u.centerIndex === 0 && u.centerRole === 'substitute') ?? users.find((u) => u.centerIndex === 0 && u !== owner);
+  const calEv = (key: string, title: string, days: number, extra: Partial<CalEventInsert> = {}) => {
+    const tid = calTypeId.get(key);
+    if (!tid) return;
+    calEvents.push({ center_id: c0, type_id: tid, title, starts_on: isoDate(daysFromNow(days)), classroom_ids: [], created_by: owner.id, ...extra });
+  };
+  calEv('drill', 'Fire drill', 0, { detail: 'All rooms · practice lineup first', time_label: '3:30 PM' });
+  calEv('training', 'Lesson plans due', 2, { detail: 'Every classroom', time_label: '8:00 AM' });
+  calEv('licensing', 'OCC licensing visit', 4, { detail: 'Staffing patterns posted · credentials current' });
+  calEv('event', 'Picture day', 5, { detail: 'Forms due at pickup' });
+  calEv('trip', 'Firehouse visit', 7, { detail: 'Two rooms · bus at 9:30', time_label: '9:30 AM', classroom_ids: c0rooms.slice(2, 4) });
+  calEv('closure', 'Center closed', 17, { detail: 'Staff development day · no children' });
+  calEv('conference', 'Parent–teacher conferences · Infant & Toddler', 18, { detail: '4:00–7:00 PM', time_label: '4:00 PM', classroom_ids: c0rooms.slice(0, 2) });
+  calEv('conference', 'Parent–teacher conferences · Preschool & Pre-K', 19, { detail: '4:00–7:00 PM', time_label: '4:00 PM', classroom_ids: c0rooms.slice(2, 4) });
+  if (staffForBday) calEv('bday_t', `${staffForBday.fullName.split(' ')[0]}'s birthday`, 24, { detail: 'Card in the office' });
+  calEv('event', 'Block party', 28, { detail: 'Pre-K promotion · 11:00–2:00' });
+  calEv('event', 'Harvest party', 35, { detail: 'All rooms · parents welcome' });
+  await insertChunked(db, 'calendar_events', calEvents);
 
   // ── Summary ─────────────────────────────────────────────────────────────────
   console.log('\n✅ Seed complete');
