@@ -58,7 +58,7 @@ async function resolveThreadAccess(threadId: string, c: Ctx) {
   return { t, myMember, canAccess, canReply, isFloatOnly };
 }
 
-export type ThreadSummary = { id: string; kind: ThreadKind; name: string; sub: string; avatar: string; lastBody: string; lastAt: string; unread: boolean; lang: string | null; aging: boolean };
+export type ThreadSummary = { id: string; kind: ThreadKind; name: string; sub: string; avatar: string; lastAuthor: string; lastBody: string; lastAt: string; unread: boolean; lang: string | null; aging: boolean };
 export type ThreadGroups = { team: ThreadSummary[]; families: ThreadSummary[]; quiet: { start: string; end: string } };
 
 export async function getThreads(): Promise<ThreadGroups | null> {
@@ -87,10 +87,14 @@ export async function getThreads(): Promise<ThreadGroups | null> {
 
   // Latest message per thread + my last_read.
   const { data: msgs } = ids.length
-    ? await service.from('messages').select('thread_id, author_id, body, created_at').in('thread_id', ids).order('created_at', { ascending: false })
-    : { data: [] as { thread_id: string; author_id: string; body: string; created_at: string }[] };
-  const latest = new Map<string, { author_id: string; body: string; created_at: string }>();
-  for (const m of msgs ?? []) if (!latest.has(m.thread_id)) latest.set(m.thread_id, { author_id: m.author_id, body: m.body, created_at: m.created_at ?? '' });
+    ? await service.from('messages').select('thread_id, author_id, body, created_at, users(full_name)').in('thread_id', ids).order('created_at', { ascending: false })
+    : { data: [] as { thread_id: string; author_id: string; body: string; created_at: string; users: { full_name: string } | { full_name: string }[] | null }[] };
+  const latest = new Map<string, { author_id: string; authorName: string; body: string; created_at: string }>();
+  for (const m of msgs ?? []) {
+    if (latest.has(m.thread_id)) continue;
+    const u = Array.isArray(m.users) ? m.users[0] : m.users;
+    latest.set(m.thread_id, { author_id: m.author_id, authorName: u?.full_name ?? '', body: m.body, created_at: m.created_at ?? '' });
+  }
 
   const { data: reads } = ids.length ? await service.from('thread_members').select('thread_id, last_read_at, role').eq('user_id', userId).in('thread_id', ids) : { data: [] as { thread_id: string; last_read_at: string | null; role: string }[] };
   const myRead = new Map((reads ?? []).map((r) => [r.thread_id, r.last_read_at]));
@@ -125,6 +129,7 @@ export async function getThreads(): Promise<ThreadGroups | null> {
       name,
       sub: t.kind === 'family' ? ((room as { name: string } | null)?.name ?? '') : '',
       avatar: t.kind === 'announcement' ? '📢' : t.kind === 'idea' ? '💡' : t.kind === 'room' ? '🏫' : t.kind === 'family' ? (child ? child.first_name[0]! : 'F') : '💬',
+      lastAuthor: last ? (last.author_id === userId ? 'You' : last.authorName.split(' ')[0] || 'Someone') : '',
       lastBody: last?.body ?? 'No messages yet',
       lastAt: last?.created_at ?? '',
       unread,

@@ -19,7 +19,10 @@ export default async function MobileLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <main className="flex-1 min-w-0 pb-[68px]">{children}</main>
+      {/* Reserve the top safe area (notch / status bar) on real devices so the
+          first screenful isn't hidden under the camera. env() is 0 in a normal
+          browser; the /demo phone frame simulates the notch itself. */}
+      <main className="flex-1 min-w-0 pb-[68px]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>{children}</main>
       <MobileNav role={active.role} />
       <Toaster />
       <DemoBarMount surface="mobile" />

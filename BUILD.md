@@ -198,3 +198,30 @@ A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both*
 **Deploy (§8):** a separate Vercel project/env (e.g. `demo.kinderbase.com`) with `DEMO_MODE=true`, the sandbox Supabase keys, `DEMO_USER_PASSWORD` (matching the seeded `Sandbox!23456`), `DEMO_PASSCODE`, and `DEMO_INVITE_SECRET`. **Production never sets any `DEMO_*`.** Add the two `DEMO_SUPABASE_*` secrets to the GitHub repo for the nightly job.
 
 **Deferred (6c, optional):** persona names don't match the prototype (Maria Torres / Soo Kim / Laura Rivera) — the switcher shows representative seeded users by role; aligning needs deterministic demo personas in the seed. Scenario data-mutations (nap `settling` flags, Laura pre-assigned to Toddler B) are approximated by clock+persona; deeper per-scenario state would need a lightweight scenario applier.
+
+## Session 7 §2 + Session 8 — Director custom dashboard + Calendar (this session)
+
+### Director custom widget dashboard (07-DESKTOP.md §2; done)
+- [x] Migration `030_dashboard_widgets.sql` — per-user/per-center `dashboard_widgets` (widget_key, sort_order, span 1–3, visible); own-row RLS. No rows → default layout in code.
+- [x] `dashboard/actions.ts` — `getDirectorDashboard()` composes `getAdminHome` + `getCenterDashboard` + `getApprovals` + `getAgingFamilyThreads` + one room-enrichment eval pass (governing rule/citation) + late-staff/accountability/feed queries; `getDashboardLayout`/`saveDashboardLayout`; `nudgeStaff` (activity_log). Widget catalogue + default layout in the plain `dashboard/widgets.ts`.
+- [x] `DashboardClient.tsx` — **locked** compliance banner (Assign float → `FloatSheet`, Age-mix fix → `applyAgeMixFix`, Open room → `/classrooms/[id]`) that can't be hidden/moved, over a 3-col widget grid: drag-reorder (native HTML5), 1/2/3 span, Hide→tray, Reset, Done → persists. Widgets: strip · kpi · needs · rooms · heads · acc · staff · approv · feed. Admins only; teachers keep the current `/dashboard`.
+- Deviation: dropped "Cover it myself" on desktop (needs the teacher in-room view from full Session 7).
+
+### Calendar — mobile + desktop (08-CALENDAR.md; done)
+- [x] Migration `031_calendar.sql` — `calendar_event_types` (built-in `center_id NULL`; 11 seeded) + `calendar_events` (recurrence cols reserved) + `children.birthday_visible`. RLS: read = center member; write = director/admin. Types read = built-ins + own center.
+- [x] Core `packages/core/calendar.ts` (pure) — `canSee` (own-item-always-visible rule), `filterVisible`, `monthCells`, `BUILTIN_CAL_TYPES`; **14 Vitest cases** (`calendar.test.ts`), 77 core tests total.
+- [x] `calendar/actions.ts` (shared by both surfaces) — `getCalendar({from,to})` merges stored events + **derived** time-off (with an engine coverage note), credential expiries, age transitions (`nextAgeTransition`, `engine:true`), and student birthdays — never written; visibility enforced server-side via `canSee`. `createEvent`/`updateEvent`/`deleteEvent`, `createType`/`setTypeVisibility` (built-ins get a per-center override row)/`deleteType`, `decideTimeOff` → delegates to `resolveApproval`.
+- [x] `CalendarClient.tsx` (one component, `variant` desktop|mobile) — month grid + day panel (desktop split / mobile stacked) + agenda (mobile) + Types sheet (toggle, Show/Hide all, admin New-type + staff-visibility matrix) + Add-event modal + Find-cover (`FloatSheet`). Desktop `/calendar`, mobile `/m/calendar`; calendar icon added to `/m/today` and `/m/admin` headers; **Calendar** added to admin + teacher sidebars.
+- [x] Seed: the prototype's month (drill, plans-due, OCC visit, picture day, two-room field trip, closure, two conferences, block party, harvest party, a staff birthday) + one **dated pending leave** for a lead (coverage risk) + boundary child → live `ratio` item. Reset cascades both tables via `centers` FK.
+- Verified: tsc + `next build` (`/dashboard`, `/calendar`, `/m/calendar`) + 70 core tests green; sandbox reseeded (11 events, 11 built-in types, 1 dated leave).
+- Deviations/deferred: visibility matrix lives in the Types sheet (Settings page out of scope); staff-birthday *derivation* skipped (no `users` DOB) — the type holds stored staff-birthday events. Migrations 030/031 applied to **sandbox**; run `db:push` on prod.
+
+### Review hardening (pr-review-toolkit, before landing)
+- [x] Ran code-reviewer, silent-failure-hunter, type-design-analyzer, pr-test-analyzer over the branch diff.
+- [x] **Tenant isolation (blocker):** `resolveApproval` now scopes the `staff_requests` update by `center_id` and the `lesson_plans` update by the center's classroom ids — the service client bypasses RLS and the approval id is client-supplied, so a raw id must not reach another center's row.
+- [x] Silent writes now throw (`deleteEvent`, `setTypeVisibility` all branches, `deleteType`, `nudgeStaff`, `saveDashboardLayout` delete) — repo has no `logError` layer, so `if (error) throw` is the pattern.
+- [x] `getAdminHome` compliant count no longer fails open (rooms with no evaluation excluded); calendar type `sort_order` derived from `BUILTIN_CAL_TYPES` order; types `NeedItem.urgency 0|1|2` + optional `HeadsUp.badge`.
+- [x] Tests pin the COMAR `§` citation separator (guards the "COMARC(1)" regression) + add `monthCells` year-boundary / leap-Feb, family-audience `filterVisible`, and own-item `canSee` cases.
+
+### Landing note
+- Merge order on GitHub stranded this work: PR #5 (`mobile-engine`→`students`) and #6 (`students`→`main`) merged while `mobile-engine` was at `c081dbf`; PR #7 then merged `dashboard-calendar`→`mobile-engine` *after* those, so the 8 commits never reached `main`. Re-landed via a direct `feat/dashboard-calendar` → `main` PR (base `c081dbf` already in `main`, so the diff is exactly this work).
