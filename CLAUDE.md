@@ -20,6 +20,22 @@ Living document. Update after every session.
 
 ---
 
+## Session end state (2026-10-04) — Director dashboard + Calendar landed on `main`
+
+**Everything is now merged to `main`** (`origin/main` @ the PR #8 merge). The stack (students → mobile track → dashboard+calendar) is fully landed; no long-lived feature branch is in flight.
+
+- **Director custom widget dashboard** (`/dashboard`, admin/director only — Session 7 §2): migration `030_dashboard_widgets` (per-user/center layout, own-row RLS, empty→default layout in code); `getDirectorDashboard()` composes `getAdminHome` + center dashboard + approvals + aging-family + room-enrichment; locked compliance banner (Assign float / Age-mix fix / Open room — can't be hidden/moved) over a drag-reorder / 1·2·3-span / hide-tray / reset widget grid persisted via `saveDashboardLayout`. Teachers keep the old `/dashboard`.
+- **Calendar** (`/calendar` desktop + `/m/calendar` mobile — Session 8): migration `031_calendar` (`calendar_event_types` + `calendar_events` + `children.birthday_visible`; read = center member, write = admin/director; 11 built-in types, time-off + licensing admin-only). Pure `packages/core/calendar.ts` (`canSee` own-item-always-visible rule, `filterVisible`, `monthCells`; **14 tests**, 77 core total). `getCalendar({from,to})` merges stored events with **derived** items (time-off w/ engine coverage note, credential expiries, ELOF age transitions, birthdays) — derived items never written. Desktop month+day-panel; mobile Month/Agenda + Types sheet below grid; inline approve/deny/find-cover for admins (`decideTimeOff` → `resolveApproval`). Calendar in both sidebars + `/m/today`/`/m/admin` headers.
+- **Review hardening** (pr-review-toolkit): `resolveApproval` now center-scopes its `staff_requests`/`lesson_plans` writes (service client bypasses RLS + client-supplied id = tenant-isolation fix); silent writes throw (`deleteEvent`/`setTypeVisibility`/`deleteType`/`nudgeStaff`/layout delete); `getAdminHome` compliant count no longer fails open; types tightened (`urgency 0|1|2`, optional `badge`).
+
+⚠️ **Prod migrations 030/031 not yet applied** — sandbox only. Run `db:link:prod` + `db:push`, then regenerate `packages/types/database.ts`.
+
+**Merge-order note:** PRs #5/#6 landed `mobile-engine`→`students`→`main` while `mobile-engine` was at `c081dbf`; #7 later merged `dashboard-calendar`→`mobile-engine`, stranding 8 commits. Re-landed via a direct `feat/dashboard-calendar`→`main` PR (#8).
+
+**Deferred:** staff-birthday *derivation* (no `users` DOB; type holds stored events only); "Cover it myself" dashboard action (needs teacher in-room view from full Session 7); visibility matrix lives in the Types sheet (Settings out of scope).
+
+---
+
 ## Session end state (2026-09-22) — Mobile track complete (Phases 1–6)
 
 **Current branch: `feat/mobile-engine`** (stacked on `feat/students`). The phone apps + real COMAR engine + partner `/demo` are built through **Phase 6**. See [BUILD.md](BUILD.md) for the full phase log.
