@@ -45,8 +45,11 @@ export async function saveDashboardLayout(rows: WidgetLayoutRow[]): Promise<void
   if (!c) throw new Error('Forbidden');
   const known = new Set(WIDGETS.map((w) => w.key));
   const clean = rows.filter((r) => known.has(r.widget_key as WidgetKey));
-  // Replace the full set for this user+center.
-  await c.service.from('dashboard_widgets').delete().eq('user_id', c.userId).eq('center_id', c.centerId);
+  // Replace the full set for this user+center. (Not transactional — a failed
+  // insert after a successful delete just falls back to the default layout on
+  // next load, which is acceptable for a layout preference.)
+  const { error: delErr } = await c.service.from('dashboard_widgets').delete().eq('user_id', c.userId).eq('center_id', c.centerId);
+  if (delErr) throw new Error(delErr.message);
   if (clean.length) {
     const { error } = await c.service.from('dashboard_widgets').insert(
       clean.map((r) => ({ user_id: c.userId, center_id: c.centerId, widget_key: r.widget_key, sort_order: r.sort_order, span: Math.min(3, Math.max(1, r.span)), visible: r.visible })),
@@ -60,12 +63,13 @@ export async function saveDashboardLayout(rows: WidgetLayoutRow[]): Promise<void
 export async function nudgeStaff(userId: string): Promise<void> {
   const c = await requireAdmin();
   if (!c) throw new Error('Forbidden');
-  await c.service.from('activity_log').insert({ center_id: c.centerId, actor_id: c.userId, event_type: 'staff_nudged', payload: { user_id: userId } });
+  const { error } = await c.service.from('activity_log').insert({ center_id: c.centerId, actor_id: c.userId, event_type: 'staff_nudged', payload: { user_id: userId } });
+  if (error) throw new Error(error.message);
 }
 
 // ── Dashboard data ───────────────────────────────────────────────────────────
 export type StripRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out'; ratio: string; present: number; required: number; children: number; mixText: string; ruleName: string; citation: string; leadOk: boolean };
-export type NeedItem = { key: string; urgency: number; title: string; sub: string; kind: 'approval' | 'aging' | 'late'; refId?: string; plan?: boolean; href?: string };
+export type NeedItem = { key: string; urgency: 0 | 1 | 2; title: string; sub: string; kind: 'approval' | 'aging' | 'late'; refId?: string; plan?: boolean; href?: string };
 export type AccRow = { userId: string; name: string; posts7d: number; last: string | null; tone: 'ok' | 'amber' | 'red' };
 export type StaffToday = { key: string; name: string; sub: string; tone: 'ok' | 'amber' | 'gray'; badge?: string };
 export type FeedRow = { id: string; author: string; room: string; body: string; at: string };

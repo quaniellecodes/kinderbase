@@ -86,15 +86,24 @@ export async function getApprovals(): Promise<Approval[]> {
 export async function resolveApproval(id: string, decision: 'approved' | 'rejected' | 'returned', comment?: string): Promise<void> {
   const ctx = await requireAdmin();
   if (!ctx) throw new Error('Forbidden');
-  const { service, userId } = ctx;
+  const { service, centerId, userId } = ctx;
   const now = getClock().now().toISOString();
   const [kind, realId] = id.split(':');
+  if (!realId) throw new Error('Bad approval id');
 
   if (kind === 'req') {
-    await service.from('staff_requests').update({ status: decision === 'returned' ? 'rejected' : decision, resolved_at: now }).eq('id', realId);
+    // Scope to the caller's center — the service client bypasses RLS, so a raw
+    // id (exposed to the client) must not let an admin touch another center's row.
+    const { error } = await service.from('staff_requests').update({ status: decision === 'returned' ? 'rejected' : decision, resolved_at: now }).eq('id', realId).eq('center_id', centerId);
+    if (error) throw new Error(error.message);
   } else if (kind === 'plan') {
     const status = decision === 'approved' ? 'approved' : 'returned';
-    await service.from('lesson_plans').update({ status, reviewed_by: userId, reviewed_at: now, review_comment: comment ?? null }).eq('id', realId);
+    // Plans have no center_id; verify the plan's classroom belongs to this center.
+    const { data: rooms } = await service.from('classrooms').select('id').eq('center_id', centerId).is('deleted_at', null);
+    const roomIds = (rooms ?? []).map((r) => r.id);
+    if (!roomIds.length) throw new Error('Forbidden');
+    const { error } = await service.from('lesson_plans').update({ status, reviewed_by: userId, reviewed_at: now, review_comment: comment ?? null }).eq('id', realId).in('classroom_id', roomIds);
+    if (error) throw new Error(error.message);
   }
   revalidatePath('/m/admin/inbox');
   revalidatePath('/m/admin');

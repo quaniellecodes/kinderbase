@@ -28,12 +28,15 @@ const BUILTIN_BY_KEY = Object.fromEntries(BUILTIN_CAL_TYPES.map((t) => [t.key, t
 async function loadTypes(c: Ctx): Promise<{ types: CalType[]; byKey: Record<string, CalType> }> {
   const { data } = await c.service.from('calendar_event_types').select('*').or(`center_id.is.null,center_id.eq.${c.centerId}`).order('sort_order');
   const byKey: Record<string, CalType> = {};
+  const orderByKey: Record<string, number> = {};
   for (const r of data ?? []) {
     const t: CalType = { key: r.key, label: r.label, colour: r.colour, icon: r.icon, isSystem: r.is_system, isDerived: r.is_derived, visibleAdmin: r.visible_admin, visibleStaff: r.visible_staff, visibleFamily: r.visible_family };
-    // A center-specific override wins over the built-in of the same key.
+    // A center-specific override wins over the built-in of the same key; keep the
+    // built-in's sort_order so toggling visibility never reorders the list.
     if (!byKey[r.key] || r.center_id) byKey[r.key] = t;
+    if (orderByKey[r.key] == null || r.center_id == null) orderByKey[r.key] = r.sort_order;
   }
-  const types = Object.values(byKey).sort((a, b) => (BUILTIN_BY_KEY[a.key]?.key ? 0 : 1) - (BUILTIN_BY_KEY[b.key]?.key ? 0 : 1));
+  const types = Object.values(byKey).sort((a, b) => (orderByKey[a.key] ?? 0) - (orderByKey[b.key] ?? 0));
   return { types, byKey };
 }
 
@@ -226,7 +229,8 @@ export async function updateEvent(id: string, patch: { title?: string; detail?: 
 
 export async function deleteEvent(id: string): Promise<void> {
   const c = await requireAdminCtx();
-  await c.service.from('calendar_events').delete().eq('id', id).eq('center_id', c.centerId);
+  const { error } = await c.service.from('calendar_events').delete().eq('id', id).eq('center_id', c.centerId);
+  if (error) throw new Error(error.message);
   revalidatePath('/calendar');
   revalidatePath('/m/calendar');
 }
@@ -259,11 +263,16 @@ export async function createType(input: { label: string; colour: string; icon: s
 export async function setTypeVisibility(key: string, visibleStaff: boolean): Promise<void> {
   const c = await requireAdminCtx();
   const builtin = BUILTIN_BY_KEY[key];
-  const { data: existing } = await c.service.from('calendar_event_types').select('id').eq('center_id', c.centerId).eq('key', key).maybeSingle();
+  const { data: existing, error: readErr } = await c.service.from('calendar_event_types').select('id').eq('center_id', c.centerId).eq('key', key).maybeSingle();
+  if (readErr) throw new Error(readErr.message);
   if (existing) {
-    await c.service.from('calendar_event_types').update({ visible_staff: visibleStaff }).eq('id', existing.id);
+    const { error } = await c.service.from('calendar_event_types').update({ visible_staff: visibleStaff }).eq('id', existing.id);
+    if (error) throw new Error(error.message);
   } else if (builtin) {
-    await c.service.from('calendar_event_types').insert({ center_id: c.centerId, key, label: builtin.label, colour: builtin.colour, icon: builtin.icon, is_system: false, is_derived: builtin.isDerived, visible_admin: true, visible_staff: visibleStaff, visible_family: builtin.visibleFamily, sort_order: 0, created_by: c.userId });
+    // Preserve the built-in's natural order on the per-center override row.
+    const sortOrder = BUILTIN_CAL_TYPES.findIndex((t) => t.key === key);
+    const { error } = await c.service.from('calendar_event_types').insert({ center_id: c.centerId, key, label: builtin.label, colour: builtin.colour, icon: builtin.icon, is_system: false, is_derived: builtin.isDerived, visible_admin: true, visible_staff: visibleStaff, visible_family: builtin.visibleFamily, sort_order: sortOrder < 0 ? 0 : sortOrder, created_by: c.userId });
+    if (error) throw new Error(error.message);
   }
   revalidatePath('/calendar');
   revalidatePath('/m/calendar');
@@ -272,7 +281,8 @@ export async function setTypeVisibility(key: string, visibleStaff: boolean): Pro
 export async function deleteType(key: string): Promise<void> {
   const c = await requireAdminCtx();
   // Only custom (non-system) center types may be deleted; events cascade via FK.
-  await c.service.from('calendar_event_types').delete().eq('center_id', c.centerId).eq('key', key).eq('is_system', false);
+  const { error } = await c.service.from('calendar_event_types').delete().eq('center_id', c.centerId).eq('key', key).eq('is_system', false);
+  if (error) throw new Error(error.message);
   revalidatePath('/calendar');
   revalidatePath('/m/calendar');
 }

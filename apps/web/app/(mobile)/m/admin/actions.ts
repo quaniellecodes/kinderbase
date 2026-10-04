@@ -24,7 +24,7 @@ async function requireAdmin(): Promise<{ service: Service; centerId: string; cen
 }
 
 export type AdminRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out'; ratio: string; required: number; present: number; children: number; mixText: string; staffNames: string };
-export type HeadsUp = { key: string; title: string; sub: string; badge: string; tone: 'red' | 'amber' | 'green'; href?: string; avatar?: string; nudgeUserId?: string };
+export type HeadsUp = { key: string; title: string; sub: string; badge?: string; tone: 'red' | 'amber' | 'green'; href?: string; avatar?: string; nudgeUserId?: string };
 export type ApprovalLite = { id: string; kind: 'time' | 'leave' | 'sched' | 'plan'; who: string; detail: string };
 export type StaffTodayRow = { key: string; name: string; sub: string; badge?: string; tone: 'ok' | 'amber' | 'gray' };
 export type AdminHome = {
@@ -142,7 +142,6 @@ export async function getAdminHome(): Promise<AdminHome | null> {
       key: 'acc',
       title: worst.days >= 99 ? `${worst.name.split(' ')[0]} hasn't posted recently` : `${worst.name.split(' ')[0]} hasn't posted in ${worst.days} days`,
       sub: `${room ? room + ' · ' : ''}${worst.count} post${worst.count === 1 ? '' : 's'} this period`,
-      badge: '',
       tone: 'amber',
       avatar: initialsOf(worst.name),
       nudgeUserId: worst.userId,
@@ -210,7 +209,9 @@ export async function getAdminHome(): Promise<AdminHome | null> {
       staffScheduled: ids.length,
       children: evals.reduce((a, ev) => a + (ev.input?.children.length ?? 0), 0),
       childrenEnrolled,
-      compliant: evals.filter((ev) => ev.e?.status !== 'out').length,
+      // Only count rooms we could actually evaluate — a room whose data failed
+      // to load must not be counted as compliant (fail safe, not open).
+      compliant: evals.filter((ev) => ev.e && ev.e.status !== 'out').length,
       roomsTotal: evals.length,
     },
     approvals: approvalsAll.length,

@@ -31,6 +31,12 @@ describe('canSee', () => {
     // …but the owner always can.
     expect(canSee(byKey.timeoff, 'staff', { viewerId: 'me', item })).toBe(true);
   });
+
+  it('shows a person their OWN item for any type (e.g. their licensing expiry)', () => {
+    const mine: CalItem = { date: '2026-10-15', typeKey: 'licensing', title: 'CPR expires', userId: 'me', derived: true };
+    expect(canSee(byKey.licensing, 'staff', { viewerId: 'someone-else', item: mine })).toBe(false);
+    expect(canSee(byKey.licensing, 'staff', { viewerId: 'me', item: mine })).toBe(true);
+  });
 });
 
 describe('filterVisible (derived-merge shape)', () => {
@@ -55,6 +61,17 @@ describe('filterVisible (derived-merge shape)', () => {
   it('drops items whose type is unknown', () => {
     expect(filterVisible(items, byKey, 'admin').some((i) => i.typeKey === 'unknown_type')).toBe(false);
   });
+
+  it('a family viewer sees public types but not staff-only ones', () => {
+    const famItems: CalItem[] = [
+      { id: 't', date: '2026-10-02', typeKey: 'trip', title: 'Firehouse' },
+      { id: 'b', date: '2026-10-01', typeKey: 'bday_s', title: 'Amara turns 1', childId: 'amara', derived: true },
+      { id: 'd', date: '2026-10-03', typeKey: 'drill', title: 'Fire drill' },
+      { id: 'l', date: '2026-10-15', typeKey: 'licensing', title: 'CPR expires', derived: true },
+    ];
+    const out = filterVisible(famItems, byKey, 'family').map((i) => i.id).sort();
+    expect(out).toEqual(['b', 't']); // trip + student birthday; not drill/licensing (staff-only)
+  });
 });
 
 describe('monthCells', () => {
@@ -76,5 +93,20 @@ describe('monthCells', () => {
     const inMonth = cells.filter((c) => !c.outside);
     expect(inMonth).toHaveLength(28);
     expect(new Set(inMonth.map((c) => c.iso)).size).toBe(28);
+  });
+
+  it('rolls spill days across a year boundary', () => {
+    const dec = monthCells(2026, 11); // December → trailing spill into Jan 2027
+    expect(dec.some((c) => c.iso.startsWith('2027-01') && c.outside)).toBe(true);
+    expect(dec.find((c) => c.iso === '2026-12-31')!.outside).toBe(false);
+    const jan = monthCells(2026, 0); // January → leading spill from Dec 2025
+    expect(jan.some((c) => c.iso.startsWith('2025-12') && c.outside)).toBe(true);
+    expect(jan.find((c) => c.iso === '2026-01-01')!.outside).toBe(false);
+  });
+
+  it('handles a leap February (29 in-month days)', () => {
+    const feb = monthCells(2028, 1).filter((c) => !c.outside);
+    expect(feb).toHaveLength(29);
+    expect(feb.some((c) => c.iso === '2028-02-29')).toBe(true);
   });
 });
