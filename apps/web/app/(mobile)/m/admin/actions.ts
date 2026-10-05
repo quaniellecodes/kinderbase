@@ -67,10 +67,8 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   const roomIds = rooms.map((r) => r.id);
   const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
 
-  // Enrolled children per room (for the enrolled-but-none-signed-in heads-up).
-  const { data: enrolledRows } = await service.from('children').select('classroom_id').eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null);
-  const enrolledByRoom = new Map<string, number>();
-  for (const c of enrolledRows ?? []) if (c.classroom_id) enrolledByRoom.set(c.classroom_id, (enrolledByRoom.get(c.classroom_id) ?? 0) + 1);
+  // Enrolled children (center-wide) for the "Children" stat denominator.
+  const { data: enrolledRows } = await service.from('children').select('id').eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null);
   const inputs = await Promise.all(rooms.map((r) => loadRoomInput(r.id, clock, service)));
   const evals: { id: string; name: string; input: RoomInput | null; e: Evaluation | null }[] = rooms.map((r, i) => ({
     id: r.id,
@@ -174,24 +172,15 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     headsUp.push({ key: `age-${t.childId}`, title: `${name.split(' ')[0]} becomes a ${BAND_LABEL[t.to]} in ${t.inDays} days`, sub: `${ev.name} will need ${t.after.minStaff} staff (now ${t.before.minStaff})`, badge: `${t.inDays}d`, tone: 'amber', avatar: initialsOf(name) });
   }
 
-  // Data-quality (not compliance): a room open with children enrolled but nobody
-  // signed in usually means the kiosk isn't being used — surface it in Heads up,
-  // never in the compliance strip (same class as the roster-vs-punch mismatch).
-  for (const ev of evals) {
-    if (!ev.input || ev.input.children.length > 0) continue;
-    const enr = enrolledByRoom.get(ev.id) ?? 0;
-    if (enr > 0) headsUp.push({ key: `nosignin-${ev.id}`, title: `${ev.name}: ${enr} enrolled, none signed in`, sub: 'Kiosk may not be in use — not a ratio issue', badge: 'Check-in', tone: 'amber' });
-  }
-
   const { data: memberIds } = await service.from('center_memberships').select('user_id').eq('center_id', centerId).is('left_at', null);
   const ids = (memberIds ?? []).map((s) => s.user_id);
   if (ids.length) {
     const { data: creds } = await service.from('credentials').select('expires_at').in('user_id', ids).is('deleted_at', null);
     const exp = (creds ?? []).filter((c) => ['expiring_soon', 'expired'].includes(computeCredentialStatus(c.expires_at))).length;
-    if (exp) headsUp.push({ key: 'cred', title: `${exp} credential${exp > 1 ? 's' : ''} expire this month`, sub: 'Staff renewals due', badge: String(exp), tone: 'red' });
+    if (exp) headsUp.push({ key: 'cred', title: `${exp} credential${exp > 1 ? 's' : ''} expire this month`, sub: 'Staff renewals due', badge: String(exp), tone: 'red', href: '/m/admin/heads/credentials' });
   }
   const { count: missingDocs } = roomIds.length ? await service.from('student_documents').select('child_id', { count: 'exact', head: true }).eq('is_required', true).eq('status', 'missing').is('superseded_by', null) : { count: 0 };
-  if (missingDocs) headsUp.push({ key: 'docs', title: `${missingDocs} student document${missingDocs > 1 ? 's' : ''} missing`, sub: 'Emergency medical authorization most common', badge: String(missingDocs), tone: 'amber' });
+  if (missingDocs) headsUp.push({ key: 'docs', title: `${missingDocs} student document${missingDocs > 1 ? 's' : ''} missing`, sub: 'Emergency medical authorization most common', badge: String(missingDocs), tone: 'amber', href: '/m/admin/heads/documents' });
 
   const aging = await getAgingFamilyThreads();
   if (aging.length) headsUp.push({ key: 'aging', title: `A parent has waited ${aging[0]!.hours}h for a reply`, sub: `${aging[0]!.childName} · ${aging[0]!.snippet}`, badge: `${aging[0]!.hours}h`, tone: 'red', href: `/m/messages/${aging[0]!.id}` });

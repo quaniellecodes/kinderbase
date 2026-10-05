@@ -226,7 +226,10 @@ function HeadRow({ h, pending, onNudge }: { h: HeadsUp; pending: boolean; onNudg
       {h.nudgeUserId ? (
         <button onClick={(e) => { e.preventDefault(); onNudge(h.nudgeUserId!); }} disabled={pending} className="text-[11px] font-semibold rounded-full px-2.5 py-1 bg-red-50 text-status-red flex-shrink-0">Nudge</button>
       ) : (
-        h.badge && <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5 flex-shrink-0', toneBadge[h.tone])}>{h.badge}</span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {h.badge && <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', toneBadge[h.tone])}>{h.badge}</span>}
+          {h.href && <ChevronRight className="w-4 h-4 text-gray-300" />}
+        </div>
       )}
     </>
   );
