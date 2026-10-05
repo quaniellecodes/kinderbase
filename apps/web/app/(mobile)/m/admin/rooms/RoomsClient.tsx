@@ -6,13 +6,14 @@ import { cn } from '@/lib/utils';
 import { RoomModeSheet } from '../RoomModeSheet';
 import type { AdminRoom } from '../actions';
 
-const ratioColor: Record<AdminRoom['status'], string> = { ok: 'text-status-green', at_minimum: 'text-status-amber', out: 'text-status-red' };
-const dot: Record<AdminRoom['status'], 'green' | 'amber' | 'red'> = { ok: 'green', at_minimum: 'amber', out: 'red' };
+const ratioColor: Record<AdminRoom['status'], string> = { ok: 'text-status-green', at_minimum: 'text-status-amber', out: 'text-status-red', empty: 'text-gray-400' };
+const dot: Record<AdminRoom['status'], 'green' | 'amber' | 'red' | 'gray'> = { ok: 'green', at_minimum: 'amber', out: 'red', empty: 'gray' };
 
 export function RoomsClient({ rooms }: { rooms: AdminRoom[] }) {
   const [filter, setFilter] = useState<'all' | 'attention'>('all');
   const [modeRoom, setModeRoom] = useState<{ id: string; name: string } | null>(null);
-  const list = rooms.filter((r) => filter === 'all' || r.status !== 'ok');
+  // "Needs attention" = evaluated and failing; an empty room is neither.
+  const list = rooms.filter((r) => filter === 'all' || r.status === 'out' || r.status === 'at_minimum');
 
   return (
     <div className="p-4">
@@ -29,7 +30,7 @@ export function RoomsClient({ rooms }: { rooms: AdminRoom[] }) {
           <button key={r.id} onClick={() => setModeRoom({ id: r.id, name: r.name })} className="w-full flex items-center gap-3 px-4 py-3 text-left">
             <StatusDot tone={dot[r.status]} />
             <div className="flex-1 min-w-0"><p className="text-[13px] font-medium text-gray-900 truncate">{r.name}</p><p className="text-[11px] text-gray-400 truncate">{r.mixText}</p></div>
-            <div className="text-right flex-shrink-0"><div className={cn('text-[13px] font-semibold', ratioColor[r.status])}>{r.ratio}</div><div className="text-[10px] text-gray-400">needs {r.required}</div></div>
+            <div className="text-right flex-shrink-0"><div className={cn('text-[13px] font-semibold', ratioColor[r.status])}>{r.ratio}</div><div className="text-[10px] text-gray-400">{r.status === 'empty' ? 'no children' : `needs ${r.required}`}</div></div>
           </button>
         ))}
         {list.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Nothing here.</p>}

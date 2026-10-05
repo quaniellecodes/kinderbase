@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { getClock } from '@/lib/clock';
+import { formatWeekOf } from '@/lib/format';
 import { isAdmin } from '@kinderbase/types';
 
 type Service = ReturnType<typeof createServiceClient>;
@@ -69,16 +70,28 @@ export async function getApprovals(): Promise<Approval[]> {
   const { data: plans } = roomIds.length
     ? await service
         .from('lesson_plans')
-        .select('id, week_of, submitted_at, classrooms(name), users!lesson_plans_submitted_by_fkey(full_name)')
+        .select('id, week_of, submitted_at, classroom_id, classrooms(name), users!lesson_plans_submitted_by_fkey(full_name)')
         .in('classroom_id', roomIds)
         .eq('status', 'submitted')
         .order('submitted_at', { ascending: false })
     : { data: [] as never[] };
-  const planApprovals: Approval[] = (plans ?? []).map((p) => {
-    const room = Array.isArray(p.classrooms) ? p.classrooms[0] : p.classrooms;
-    const u = Array.isArray(p.users) ? p.users[0] : p.users;
-    return { id: `plan:${p.id}`, kind: 'plan', who: u?.full_name ?? 'Lead', when: p.submitted_at ?? '', title: `Lesson plan · ${(room as { name: string } | null)?.name ?? ''}`, detail: `Week of ${p.week_of} · 20 of 20 blocks`, meta: undefined };
-  });
+  // One approval per (classroom, week) — collapse any duplicate submissions so the
+  // Inbox doesn't show three identical rows (10 §2). Ordered newest-first above.
+  const seenPlan = new Set<string>();
+  const planApprovals: Approval[] = (plans ?? [])
+    .filter((p) => {
+      const k = `${p.classroom_id}|${p.week_of}`;
+      if (seenPlan.has(k)) return false;
+      seenPlan.add(k);
+      return true;
+    })
+    .map((p) => {
+      const room = Array.isArray(p.classrooms) ? p.classrooms[0] : p.classrooms;
+      const u = Array.isArray(p.users) ? p.users[0] : p.users;
+      // Title names the classroom (what you decide on); the teacher is context on
+      // the detail line, and the date is formatted — never a raw ISO string.
+      return { id: `plan:${p.id}`, kind: 'plan', who: u?.full_name ?? 'Lead', when: p.submitted_at ?? '', title: `Lesson plan · ${(room as { name: string } | null)?.name ?? ''}`, detail: `${formatWeekOf(p.week_of)} · ${u?.full_name ?? 'Lead'}`, meta: undefined };
+    });
 
   return [...planApprovals, ...reqApprovals];
 }

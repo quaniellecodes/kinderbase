@@ -15,6 +15,34 @@ export function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+/** "Sep 28" from an ISO date ("2026-09-28") or timestamp. */
+export function formatDate(iso: string): string {
+  // Date-only strings parse as UTC midnight; add noon so the local day is right.
+  const d = iso.length === 10 ? new Date(`${iso}T12:00:00`) : new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/** "Week of Sep 28" — one place so no component hand-rolls toISOString().slice(). */
+export function formatWeekOf(iso: string): string {
+  return `Week of ${formatDate(iso)}`;
+}
+
+/** "Mon 29" style weekday label from an ISO date. */
+export function formatDayLabel(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+}
+
+/** Hours as "7h 30m" (or "0m"). */
+export function formatHours(hours: number): string {
+  const total = Math.round(hours * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (!h) return `${m}m`;
+  if (!m) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 /** Accountability "Last posted": "Today, 9:14 AM", "Yesterday", or "11 days ago". Null → "No posts". */
 export function formatLastPosted(iso: string | null): string {
   if (!iso) return 'No posts';

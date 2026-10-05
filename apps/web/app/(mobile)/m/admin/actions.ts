@@ -23,9 +23,12 @@ async function requireAdmin(): Promise<{ service: Service; centerId: string; cen
   return { service: createServiceClient(), centerId: active.centerId, centerName: active.centerName, role: active.role, userId: user.id };
 }
 
-export type AdminRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out'; ratio: string; required: number; present: number; children: number; mixText: string; staffNames: string };
+// `empty` = a room with no children present: COMAR applies to children who are
+// there, so an empty room is not evaluated — grey, never a computed ratio or a
+// claimed pass (docs/sessions/10-DEMO-PHONE-POLISH.md §2).
+export type AdminRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out' | 'empty'; ratio: string; required: number; present: number; children: number; mixText: string; staffNames: string };
 export type HeadsUp = { key: string; title: string; sub: string; badge?: string; tone: 'red' | 'amber' | 'green'; href?: string; avatar?: string; nudgeUserId?: string };
-export type ApprovalLite = { id: string; kind: 'time' | 'leave' | 'sched' | 'plan'; who: string; detail: string };
+export type ApprovalLite = { id: string; kind: 'time' | 'leave' | 'sched' | 'plan'; title: string; who: string; detail: string };
 export type StaffTodayRow = { key: string; name: string; sub: string; badge?: string; tone: 'ok' | 'amber' | 'gray' };
 export type AdminHome = {
   centerName: string;
@@ -35,7 +38,11 @@ export type AdminHome = {
     | { roomId: string; name: string; mixText: string; citation: string; required: number; present: number; missingLead: boolean; ageFix: { names: string[]; toRoomId: string; toRoom: string } | null }
     | null;
   moreOut: number;
+  // `compliant`/`roomsTotal` count ONLY occupied rooms — "8/8 compliant" when all
+  // eight are empty is true and useless. `complianceLabel` is the sentence form.
   stats: { staffOnFloor: number; staffScheduled: number; children: number; childrenEnrolled: number; compliant: number; roomsTotal: number };
+  complianceLabel: string;
+  unseeded: boolean;
   approvals: number;
   approvalsTop: ApprovalLite[];
   rooms: AdminRoom[];
@@ -59,6 +66,11 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   const rooms = classrooms ?? [];
   const roomIds = rooms.map((r) => r.id);
   const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
+
+  // Enrolled children per room (for the enrolled-but-none-signed-in heads-up).
+  const { data: enrolledRows } = await service.from('children').select('classroom_id').eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null);
+  const enrolledByRoom = new Map<string, number>();
+  for (const c of enrolledRows ?? []) if (c.classroom_id) enrolledByRoom.set(c.classroom_id, (enrolledByRoom.get(c.classroom_id) ?? 0) + 1);
   const inputs = await Promise.all(rooms.map((r) => loadRoomInput(r.id, clock, service)));
   const evals: { id: string; name: string; input: RoomInput | null; e: Evaluation | null }[] = rooms.map((r, i) => ({
     id: r.id,
@@ -75,17 +87,21 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   const floorNameById = new Map((floorUsers ?? []).map((u) => [u.id, u.full_name]));
   const staffNamesOf = (ev: (typeof evals)[number]) => (ev.input && ev.input.staff.length ? ev.input.staff.map((s) => surnameOf(floorNameById.get(s.id) ?? 'Staff')).join(' · ') : 'No staff');
 
-  const adminRooms: AdminRoom[] = evals.map((ev) => ({
-    id: ev.id,
-    name: ev.name,
-    status: ev.e?.status ?? 'ok',
-    ratio: ev.input ? ratioText(ev.input.children.length, ev.input.staff.length) : '—',
-    required: ev.e?.requiredNow ?? 0,
-    present: ev.input?.staff.length ?? 0,
-    children: ev.input?.children.length ?? 0,
-    mixText: ev.e ? mixText(ev.e.mix) : 'no children',
-    staffNames: staffNamesOf(ev),
-  }));
+  const adminRooms: AdminRoom[] = evals.map((ev) => {
+    const children = ev.input?.children.length ?? 0;
+    const empty = !!ev.input && children === 0;
+    return {
+      id: ev.id,
+      name: ev.name,
+      status: empty ? 'empty' : (ev.e?.status ?? 'ok'),
+      ratio: empty || !ev.input ? '—' : ratioText(ev.input.children.length, ev.input.staff.length),
+      required: empty ? 0 : (ev.e?.requiredNow ?? 0),
+      present: ev.input?.staff.length ?? 0,
+      children,
+      mixText: empty ? 'No children signed in' : (ev.e ? mixText(ev.e.mix) : 'no children'),
+      staffNames: staffNamesOf(ev),
+    };
+  });
 
   const outRooms = evals.filter((ev) => ev.e?.status === 'out');
   let alert: AdminHome['alert'] = null;
@@ -106,7 +122,7 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   // Approvals (list + count) — shared with the Inbox resolver.
   const approvalsAll = await getApprovals();
   const KIND_LABEL: Record<ApprovalLite['kind'], string> = { time: 'Time correction', leave: 'Leave', sched: 'Schedule change', plan: 'Lesson plan' };
-  const approvalsTop: ApprovalLite[] = approvalsAll.slice(0, 3).map((a) => ({ id: a.id, kind: a.kind, who: a.who, detail: a.meta || a.detail || a.title }));
+  const approvalsTop: ApprovalLite[] = approvalsAll.slice(0, 3).map((a) => ({ id: a.id, kind: a.kind, title: a.title, who: a.who, detail: a.meta || a.detail || '' }));
 
   // ── Heads up ──
   const headsUp: HeadsUp[] = [];
@@ -158,6 +174,15 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     headsUp.push({ key: `age-${t.childId}`, title: `${name.split(' ')[0]} becomes a ${BAND_LABEL[t.to]} in ${t.inDays} days`, sub: `${ev.name} will need ${t.after.minStaff} staff (now ${t.before.minStaff})`, badge: `${t.inDays}d`, tone: 'amber', avatar: initialsOf(name) });
   }
 
+  // Data-quality (not compliance): a room open with children enrolled but nobody
+  // signed in usually means the kiosk isn't being used — surface it in Heads up,
+  // never in the compliance strip (same class as the roster-vs-punch mismatch).
+  for (const ev of evals) {
+    if (!ev.input || ev.input.children.length > 0) continue;
+    const enr = enrolledByRoom.get(ev.id) ?? 0;
+    if (enr > 0) headsUp.push({ key: `nosignin-${ev.id}`, title: `${ev.name}: ${enr} enrolled, none signed in`, sub: 'Kiosk may not be in use — not a ratio issue', badge: 'Check-in', tone: 'amber' });
+  }
+
   const { data: memberIds } = await service.from('center_memberships').select('user_id').eq('center_id', centerId).is('left_at', null);
   const ids = (memberIds ?? []).map((s) => s.user_id);
   if (ids.length) {
@@ -196,7 +221,20 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     staffToday.push({ key: `sub-${s.user_id}`, name: u?.full_name ?? 'Substitute', sub: 'Float · on call', badge: 'Available', tone: 'gray' });
   }
 
-  const childrenEnrolled = (await service.from('children').select('id', { count: 'exact', head: true }).eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null)).count ?? 0;
+  const childrenEnrolled = enrolledRows?.length ?? 0;
+
+  // Compliance counts occupied rooms only. An empty room was never evaluated, so
+  // it is neither compliant nor a violation — it simply doesn't count.
+  const occupiedEvals = evals.filter((ev) => ev.input && ev.input.children.length > 0);
+  const compliantCount = occupiedEvals.filter((ev) => ev.e && ev.e.status !== 'out').length;
+  const unseeded = rooms.length === 0;
+  const complianceLabel = unseeded
+    ? 'No sample data for this center'
+    : occupiedEvals.length === 0
+      ? 'No rooms occupied right now'
+      : compliantCount === occupiedEvals.length
+        ? `${occupiedEvals.length} room${occupiedEvals.length === 1 ? '' : 's'} occupied · all in ratio`
+        : `${occupiedEvals.length - compliantCount} of ${occupiedEvals.length} occupied rooms out of ratio`;
 
   return {
     centerName,
@@ -209,11 +247,11 @@ export async function getAdminHome(): Promise<AdminHome | null> {
       staffScheduled: ids.length,
       children: evals.reduce((a, ev) => a + (ev.input?.children.length ?? 0), 0),
       childrenEnrolled,
-      // Only count rooms we could actually evaluate — a room whose data failed
-      // to load must not be counted as compliant (fail safe, not open).
-      compliant: evals.filter((ev) => ev.e && ev.e.status !== 'out').length,
-      roomsTotal: evals.length,
+      compliant: compliantCount,
+      roomsTotal: occupiedEvals.length,
     },
+    complianceLabel,
+    unseeded,
     approvals: approvalsAll.length,
     approvalsTop,
     rooms: adminRooms,

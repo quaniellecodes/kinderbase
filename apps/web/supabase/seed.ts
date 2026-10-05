@@ -887,6 +887,8 @@ async function main(): Promise<void> {
   const assignmentRows: AssignInsert[] = [];
   const dayStart = new Date(); dayStart.setHours(6, 30, 0, 0);
   const dayEnd = new Date(); dayEnd.setHours(18, 0, 0, 0);
+  // Per-room present/absent roster, for the Time-log demo actors below (§8).
+  const roomStats: { key: string; cid: string; centerIndex: number; isFocus: boolean; required: number; presentUserIds: string[]; absentUserIds: string[] }[] = [];
 
   const ageDaysForBand = (g: AgeGroup): number => {
     switch (g) {
@@ -902,6 +904,9 @@ async function main(): Promise<void> {
     const cid = classroomIds.get(room.key)!;
     const roster = rosterByRoom.get(room.key) ?? [];
     const isFocus = roomIdx === 0; // first room → deliberately understaffed (out of ratio)
+    // Last room → enrolled children but nobody signed in (kiosk not used): drives
+    // the grey "empty" three-state + the "N enrolled, none signed in" heads-up (10 §2).
+    const isEmptyDemo = roomIdx === classrooms.length - 1 && classrooms.length > 2;
     const nKids = Math.min(room.enrollment, 6);
     const cpr = RATIO_RULES[room.ageGroup].childrenPerStaff;
     const kids: { id: string; present: boolean }[] = [];
@@ -936,8 +941,9 @@ async function main(): Promise<void> {
       kids.push({ id, present: false });
     }
 
-    // Presence: focus room fully present; others ~78%.
-    for (const k of kids) k.present = isFocus ? true : rng.chance(0.78);
+    // Presence: focus room fully present; the empty-demo room has nobody signed
+    // in; others ~78%.
+    for (const k of kids) k.present = isFocus ? true : isEmptyDemo ? false : rng.chance(0.78);
     for (const k of kids.filter((x) => x.present)) {
       const inAt = new Date();
       inAt.setHours(7, rng.int(0, 59), 0, 0);
@@ -961,7 +967,38 @@ async function main(): Promise<void> {
         source: 'schedule',
       });
     }
+    roomStats.push({
+      key: room.key,
+      cid,
+      centerIndex: room.centerIndex,
+      isFocus,
+      required,
+      presentUserIds: roster.slice(0, staffPresent).map((r) => r.userId),
+      absentUserIds: roster.slice(staffPresent).map((r) => r.userId),
+    });
   });
+
+  // ── 9c-ter. Time-log demo actors (docs/sessions/09-TIME-LOG.md §8) ──────────
+  // A staff member on an open break right now (live timer) + one who already took
+  // and ended a break, both in a room with ratio slack so the break stays legal.
+  type BreakInsert = Database['public']['Tables']['staff_breaks']['Insert'];
+  const breakRows: BreakInsert[] = [];
+  const nowTs = new Date();
+  const slackRoom = roomStats.find((r) => !r.isFocus && r.presentUserIds.length >= 2 && r.presentUserIds.length > r.required);
+  if (slackRoom) {
+    breakRows.push({ classroom_id: slackRoom.cid, user_id: slackRoom.presentUserIds[0]!, started_at: new Date(nowTs.getTime() - 22 * 60_000).toISOString(), ended_at: null, engine_snapshot: {} });
+    const e1 = new Date(nowTs); e1.setHours(9, 30, 0, 0);
+    const e2 = new Date(nowTs); e2.setHours(9, 45, 0, 0);
+    breakRows.push({ classroom_id: slackRoom.cid, user_id: slackRoom.presentUserIds[1]!, started_at: e1.toISOString(), ended_at: e2.toISOString(), engine_snapshot: {} });
+  }
+  if (breakRows.length) await insertChunked(db, 'staff_breaks', breakRows);
+
+  // A rostered teacher counted toward ratio but with no punch → the staffing
+  // engine still counts them while the kiosk says nobody arrived (roster mismatch).
+  const mismatchRoom = roomStats.find((r) => !r.isFocus && r.absentUserIds.length > 0);
+  if (mismatchRoom) {
+    assignmentRows.push({ center_id: centerIds[mismatchRoom.centerIndex], classroom_id: mismatchRoom.cid, user_id: mismatchRoom.absentUserIds[0]!, starts_at: dayStart.toISOString(), ends_at: dayEnd.toISOString(), source: 'schedule' });
+  }
   // ── 9c-bis. Student-module detail: tags, enrollment status, health, docs ────
   type HealthInsert = Database['public']['Tables']['student_health']['Insert'];
   type DocInsert = Database['public']['Tables']['student_documents']['Insert'];
@@ -1080,11 +1117,15 @@ async function main(): Promise<void> {
   // insert stays homogeneous (PostgREST fills omitted keys with NULL, not the
   // column default).
   const spanishChildId = childrenRows.find((c) => c.center_id === centerIds[0])?.id as string | undefined;
+  const primaryGuardianByChild = new Map<string, string>();
 
   for (const c of childrenRows) {
     const last = c.last_name as string;
     const mom = rng.pick(MOM_NAMES);
+    const primaryGid = randomUUID();
+    primaryGuardianByChild.set(c.id as string, primaryGid);
     guardianRows.push({
+      id: primaryGid,
       child_id: c.id as string,
       full_name: `${mom} ${last}`,
       relationship: 'mother',
@@ -1100,6 +1141,9 @@ async function main(): Promise<void> {
     if (rng.chance(0.6)) {
       const dad = rng.pick(DAD_NAMES);
       guardianRows.push({
+        // Every row sets `id`: once one row in a batch does, PostgREST fills
+        // omitted ids with NULL (not the default) — the heterogeneous-batch gotcha.
+        id: randomUUID(),
         child_id: c.id as string,
         full_name: `${dad} ${last}`,
         relationship: 'father',
@@ -1131,6 +1175,24 @@ async function main(): Promise<void> {
     if (ids.length < 2) continue;
     for (let i = 0; i < ids.length; i++)
       for (let j = 0; j < ids.length; j++) if (i !== j) siblingRows.push({ child_id: ids[i]!, sibling_id: ids[j]! });
+  }
+
+  // Record who signed each child in (primary guardian · kiosk) and sign a couple
+  // of NON-focus children out early, so the Time log shows "Signed out" without
+  // relieving the deliberately out-of-ratio focus room.
+  const focusCid = roomStats.find((r) => r.isFocus)?.cid;
+  let signedOutEarly = 0;
+  for (const a of attendanceRows) {
+    const gid = primaryGuardianByChild.get(a.child_id as string) ?? null;
+    a.signed_in_by = gid;
+    a.sign_in_method = 'kiosk_pin';
+    if (signedOutEarly < 2 && a.classroom_id !== focusCid && !a.signed_out_at) {
+      const out = new Date(); out.setHours(8, 45, 0, 0);
+      a.signed_out_at = out.toISOString();
+      a.signed_out_by = gid;
+      a.sign_out_method = 'kiosk_pin';
+      signedOutEarly++;
+    }
   }
 
   await insertChunked(db, 'children', childrenRows);
@@ -1819,6 +1881,7 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
   // classroom-scoped tables cascade when classrooms are deleted below).
   if (centerIds.length) await db.from('children').delete().in('center_id', centerIds);
   if (classIds.length) await db.from('staffing_patterns').delete().in('classroom_id', classIds);
+  if (classIds.length) await db.from('staff_breaks').delete().in('classroom_id', classIds);
   if (centerIds.length) {
     await db.from('staff_requests').delete().in('center_id', centerIds);
     await db.from('staff_leave_days').delete().in('center_id', centerIds);

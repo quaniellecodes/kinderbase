@@ -6,6 +6,7 @@ import { Pencil, Check } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Badge, Button, ProgressBar, toast, type BadgeTone } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { formatWeekOf } from '@/lib/format';
 import { savePlanDay, copyLastWeek, submitPlan, type LessonPlan, type PlanDay } from '../actions';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
@@ -87,7 +88,7 @@ export function LessonPlanTab({ plan }: { plan: LessonPlan }) {
 
       <div className="rounded-card border border-gray-100 bg-white p-3 mb-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[13px] font-semibold text-gray-900">Week of {plan.weekOf}</span>
+          <span className="text-[13px] font-semibold text-gray-900">{formatWeekOf(plan.weekOf)}</span>
           <Badge tone={st.tone} size="sm">{st.label}</Badge>
         </div>
         {plan.status === 'returned' && plan.reviewComment && (

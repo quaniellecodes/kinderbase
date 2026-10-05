@@ -68,7 +68,7 @@ export async function nudgeStaff(userId: string): Promise<void> {
 }
 
 // ── Dashboard data ───────────────────────────────────────────────────────────
-export type StripRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out'; ratio: string; present: number; required: number; children: number; mixText: string; ruleName: string; citation: string; leadOk: boolean };
+export type StripRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out' | 'empty'; ratio: string; present: number; required: number; children: number; mixText: string; ruleName: string; citation: string; leadOk: boolean };
 export type NeedItem = { key: string; urgency: 0 | 1 | 2; title: string; sub: string; kind: 'approval' | 'aging' | 'late'; refId?: string; plan?: boolean; href?: string };
 export type AccRow = { userId: string; name: string; posts7d: number; last: string | null; tone: 'ok' | 'amber' | 'red' };
 export type StaffToday = { key: string; name: string; sub: string; tone: 'ok' | 'amber' | 'gray'; badge?: string };
@@ -104,16 +104,19 @@ export async function getDirectorDashboard(): Promise<DirectorDashboard | null> 
   const inputs = await Promise.all(rooms.map((r) => loadRoomInput(r.id, clock, service)));
   const strip: StripRoom[] = rooms.map((r, i) => {
     const input = inputs[i] ?? null;
-    const e = input ? evaluate(input) : null;
+    const children = input?.children.length ?? 0;
+    const empty = !!input && children === 0;
+    const e = input && !empty ? evaluate(input) : null;
     return {
       id: r.id,
       name: r.name,
-      status: e?.status ?? 'ok',
-      ratio: input ? ratioText(input.children.length, input.staff.length) : '—',
+      // Empty rooms aren't evaluated — grey, no computed ratio (10 §2).
+      status: empty ? 'empty' : (e?.status ?? 'ok'),
+      ratio: empty || !input ? '—' : ratioText(input.children.length, input.staff.length),
       present: input?.staff.length ?? 0,
-      required: e?.requiredNow ?? 0,
-      children: input?.children.length ?? 0,
-      mixText: e ? mixText(e.mix) : 'no children',
+      required: empty ? 0 : (e?.requiredNow ?? 0),
+      children,
+      mixText: empty ? 'No children signed in' : (e ? mixText(e.mix) : 'no children'),
       ruleName: e?.rule.name ?? '—',
       citation: e?.rule.citation ?? '—',
       leadOk: e ? !!e.checks.find((ck) => ck.key === 'lead')?.pass : true,
