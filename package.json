@@ -5,7 +5,8 @@
     "dev": "pnpm --filter @kinderbase/web dev",
     "build": "pnpm --filter @kinderbase/web build",
     "lint": "pnpm --filter @kinderbase/web lint",
-    "typecheck": "pnpm -r exec tsc --noEmit"
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "gaps": "node tools/gaps-checklist.mjs"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
