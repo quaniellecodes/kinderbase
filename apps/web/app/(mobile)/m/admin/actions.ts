@@ -57,7 +57,7 @@ const surnameOf = (full: string) => full.trim().split(' ').slice(-1)[0] ?? full;
 export async function getAdminHome(): Promise<AdminHome | null> {
   const ctx = await requireAdmin();
   if (!ctx) return null;
-  const { service, centerId, centerName, role } = ctx;
+  const { service, centerId, centerName, role, userId } = ctx;
   const clock = getClock();
   const now = clock.now();
 
@@ -153,7 +153,7 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   if (worst && (worst.count <= 2 || worst.days >= 7)) {
     const room = roomOfUser.get(worst.userId);
     headsUp.push({
-      key: 'acc',
+      key: `acc:${worst.userId}`,
       title: worst.days >= 99 ? `${worst.name.split(' ')[0]} hasn't posted recently` : `${worst.name.split(' ')[0]} hasn't posted in ${worst.days} days`,
       sub: `${room ? room + ' · ' : ''}${worst.count} post${worst.count === 1 ? '' : 's'} this period`,
       tone: 'amber',
@@ -177,13 +177,13 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   if (ids.length) {
     const { data: creds } = await service.from('credentials').select('expires_at').in('user_id', ids).is('deleted_at', null);
     const exp = (creds ?? []).filter((c) => ['expiring_soon', 'expired'].includes(computeCredentialStatus(c.expires_at))).length;
-    if (exp) headsUp.push({ key: 'cred', title: `${exp} credential${exp > 1 ? 's' : ''} expire this month`, sub: 'Staff renewals due', badge: String(exp), tone: 'red', href: '/m/admin/heads/credentials' });
+    if (exp) headsUp.push({ key: `cred:${exp}`, title: `${exp} credential${exp > 1 ? 's' : ''} expire this month`, sub: 'Staff renewals due', badge: String(exp), tone: 'red', href: '/m/admin/heads/credentials' });
   }
   const { count: missingDocs } = roomIds.length ? await service.from('student_documents').select('child_id', { count: 'exact', head: true }).eq('is_required', true).eq('status', 'missing').is('superseded_by', null) : { count: 0 };
-  if (missingDocs) headsUp.push({ key: 'docs', title: `${missingDocs} student document${missingDocs > 1 ? 's' : ''} missing`, sub: 'Emergency medical authorization most common', badge: String(missingDocs), tone: 'amber', href: '/m/admin/heads/documents' });
+  if (missingDocs) headsUp.push({ key: `docs:${missingDocs}`, title: `${missingDocs} student document${missingDocs > 1 ? 's' : ''} missing`, sub: 'Emergency medical authorization most common', badge: String(missingDocs), tone: 'amber', href: '/m/admin/heads/documents' });
 
   const aging = await getAgingFamilyThreads();
-  if (aging.length) headsUp.push({ key: 'aging', title: `A parent has waited ${aging[0]!.hours}h for a reply`, sub: `${aging[0]!.childName} · ${aging[0]!.snippet}`, badge: `${aging[0]!.hours}h`, tone: 'red', href: `/m/messages/${aging[0]!.id}` });
+  if (aging.length) headsUp.push({ key: `aging:${aging[0]!.id}`, title: `A parent has waited ${aging[0]!.hours}h for a reply`, sub: `${aging[0]!.childName} · ${aging[0]!.snippet}`, badge: `${aging[0]!.hours}h`, tone: 'red', href: `/m/messages/${aging[0]!.id}` });
 
   // ── Staff today: late (scheduled, not clocked in) + floats/subs on call ──
   const isoDow = ((now.getDay() + 6) % 7) + 1;
@@ -209,6 +209,14 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     const u = Array.isArray(s.users) ? s.users[0] : s.users;
     staffToday.push({ key: `sub-${s.user_id}`, name: u?.full_name ?? 'Substitute', sub: 'Float · on call', badge: 'Available', tone: 'gray' });
   }
+
+  // Drop heads-up items this admin has swiped away. Dismissals are a rolling
+  // snooze (they age out after the window), and the keys are content-aware, so an
+  // item re-surfaces when the underlying count / thread changes.
+  const cutoff = new Date(now.getTime() - HEADSUP_SNOOZE_DAYS * 86_400_000).toISOString();
+  const { data: dism } = await service.from('dismissed_alerts').select('alert_key').eq('user_id', userId).eq('center_id', centerId).gte('dismissed_at', cutoff);
+  const dismissedKeys = new Set((dism ?? []).map((d) => d.alert_key));
+  const visibleHeads = headsUp.filter((h) => !dismissedKeys.has(h.key));
 
   const childrenEnrolled = enrolledRows?.length ?? 0;
 
@@ -244,9 +252,25 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     approvals: approvalsAll.length,
     approvalsTop,
     rooms: adminRooms,
-    headsUp,
+    headsUp: visibleHeads,
     staffToday,
   };
+}
+
+/** How long a swiped-away heads-up item stays hidden before it can re-surface. */
+const HEADSUP_SNOOZE_DAYS = 7;
+
+/** Dismiss (snooze) a heads-up item for the current admin — the swipe-to-delete. */
+export async function dismissHeadsUp(key: string): Promise<void> {
+  const ctx = await requireAdmin();
+  if (!ctx) throw new Error('Forbidden');
+  const { service, centerId, userId } = ctx;
+  const { error } = await service
+    .from('dismissed_alerts')
+    .upsert({ user_id: userId, center_id: centerId, alert_key: key, dismissed_at: getClock().now().toISOString() }, { onConflict: 'user_id,center_id,alert_key' });
+  if (error) throw new Error(error.message);
+  revalidatePath('/m/admin');
+  revalidatePath('/dashboard');
 }
 
 // ── Float assignment (docs/sessions/04-ADMIN-MOBILE.md §5) ───────────────────

@@ -7,10 +7,11 @@ import { AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, CalendarDays, C
 import { Card, StatusDot, toast } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { enterRoomMode } from '../classroom/actions';
-import { applyAgeMixFix } from './actions';
+import { applyAgeMixFix, dismissHeadsUp } from './actions';
 import { nudgeStaff } from '@/app/(dashboard)/dashboard/actions';
 import { RoomModeSheet } from './RoomModeSheet';
 import { FloatSheet } from './FloatSheet';
+import { SwipeToDismiss } from '@/components/mobile/SwipeToDismiss';
 import type { AdminHome, AdminRoom, HeadsUp, ApprovalLite, StaffTodayRow } from './actions';
 
 const dot: Record<AdminRoom['status'], 'green' | 'amber' | 'red' | 'gray'> = { ok: 'green', at_minimum: 'amber', out: 'red', empty: 'gray' };
@@ -31,6 +32,7 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
   const router = useRouter();
   const [modeRoom, setModeRoom] = useState<{ id: string; name: string } | null>(null);
   const [floatRoom, setFloatRoom] = useState<{ id: string; name: string } | null>(null);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
 
   function cover(roomId: string) {
@@ -53,6 +55,14 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
       toast('Nudge sent — it lands in their Priorities');
     });
   }
+  function dismissHead(key: string) {
+    setDismissed((prev) => new Set(prev).add(key)); // optimistic — the row is already sliding off
+    start(async () => {
+      await dismissHeadsUp(key);
+      router.refresh();
+    });
+  }
+  const visibleHeads = data.headsUp.filter((h) => !dismissed.has(h.key));
 
   return (
     <div className="p-4 space-y-5">
@@ -160,12 +170,16 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
         </Card>
       </section>
 
-      {/* Heads up */}
-      {data.headsUp.length > 0 && (
+      {/* Heads up — swipe a row right to dismiss it */}
+      {visibleHeads.length > 0 && (
         <section>
           <SectionHead title="Heads up" />
           <Card padding="none" className="divide-y divide-gray-50">
-            {data.headsUp.map((h) => <HeadRow key={h.key} h={h} pending={pending} onNudge={nudge} />)}
+            {visibleHeads.map((h) => (
+              <SwipeToDismiss key={h.key} onDismiss={() => dismissHead(h.key)}>
+                <HeadRow h={h} pending={pending} onNudge={nudge} />
+              </SwipeToDismiss>
+            ))}
           </Card>
         </section>
       )}
