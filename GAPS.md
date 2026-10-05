@@ -8,6 +8,9 @@
 >
 > **Verified against `feat/timelog-demo-polish` @ `d5cfaab` (main @ `b394ec3`), 2026-10-05.**
 > Items tagged **(branch)** are built on `feat/timelog-demo-polish` and not yet merged to `main`; everything else marked `[x]` is on `main`.
+>
+> **Tally: 101 items — 45 built `[x]` · 6 partial `[~]` · 49 not started `[ ]` · 1 owner-declined · 12 P0 remaining · 8 legal-risk remaining.**
+> (Section counts — built/partial/not-started: Platform 3/4/10 · Mobile 12/1/3 · Desktop 5/0/5 · Calendar 7/0/3 · Student 7/0/4 · Compliance 4/0/10 (+1 declined) · Legal 1/0/6 · Foundations 6/1/8.)
 
 ## Corrections applied vs the imported web draft
 
@@ -69,7 +72,7 @@ The imported draft was reconciled against an older `main` and understated progre
 - [x] **Classrooms + room detail** `P0` — card grid + Overview/Activity/Staffing/Children tabs, real-time ratios.
 - [x] **Staff, Students, Reports pages** `P1` — `/students` (full module), `/staff` directory + profile, `/reports` (basic).
 - [ ] **Inbox split view (desktop)** `P0` `S7` — list + detail; lesson plans as the week grid; Return requires a comment. (Mobile inbox exists; desktop split not built.)
-- [~] **Settings — qualifications** `P0` `S7` — `/settings` page exists; per-person lead-qualified / infant-toddler-trained editing that re-evaluates the engine is **unverified / likely not wired**.
+- [ ] **Settings — qualifications** `P0` `S7` — **confirmed not built.** `/settings` covers icon, brand color, hours, kiosk mode, and staff PINs only. `lead_qualified` / `infant_toddler_trained` are read live by the engine but are **seed-only** — no UI writes them (the only `center_memberships` updates anywhere are `role` and `left_at`).
 - [ ] **Teacher desktop** `P1` `S7` — Today/Classroom/Messages/Me on a big screen (teachers use `/m` today).
 - [ ] **Lesson plan week grid + print** `P1` `S7` — desktop 5×4 grid + print stylesheet (mobile day-at-a-time built).
 - [ ] **Responsive redirects** `P2` `S7` — below 768px, desktop teacher routes → `/m`.
