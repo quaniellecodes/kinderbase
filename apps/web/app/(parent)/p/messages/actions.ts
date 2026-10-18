@@ -3,15 +3,19 @@
 import { revalidatePath } from 'next/cache';
 import { translate } from '@kinderbase/core';
 import { parentContext, assertCanWrite } from '@/lib/parent/principal';
+import type { ParentConvKind } from '@/lib/parent/messages';
 
-// Parent → room reply (docs/PARENT-DECISIONS.md §1). The parent writes in their own
-// language; we store that as the message and translate to English into
-// message_translations so staff (who read English) see it. Parent messages deliver
-// immediately — quiet-hours deferral is a staff→family courtesy, not the reverse.
+// Parent → staff reply (docs/PARENT-DECISIONS.md §1). `kind` picks the conversation:
+//   • 'family' — the classroom thread (teachers + director).
+//   • 'office' — the admins-only office line (no teachers).
+// The parent writes in their own language; we store that and translate to English
+// into message_translations so staff (who read English) see it. Parent messages
+// deliver immediately — quiet-hours deferral is a staff→family courtesy only.
 
-export async function sendParentMessage(body: string): Promise<void> {
+export async function sendParentMessage(kind: ParentConvKind, body: string): Promise<void> {
   const trimmed = body.trim();
   if (!trimmed) return;
+  if (kind !== 'family' && kind !== 'office') throw new Error('Bad request');
 
   const p = await parentContext();
   if (!p || p.childIds.length === 0) throw new Error('Not found');
@@ -23,19 +27,18 @@ export async function sendParentMessage(body: string): Promise<void> {
   if (!child) throw new Error('Not found');
 
   const { data: gs } = await svc.from('guardians').select('app_user_id, preferred_lang, is_primary').eq('child_id', childId);
-  const mine = (gs ?? []).find((g) => g.app_user_id === p.userId);
-  const primary = (gs ?? []).find((g) => g.is_primary);
-  const lang = (mine ?? primary ?? gs?.[0])?.preferred_lang ?? 'en';
+  const lang = ((gs ?? []).find((g) => g.app_user_id === p.userId) ?? (gs ?? []).find((g) => g.is_primary) ?? gs?.[0])?.preferred_lang ?? 'en';
 
-  // Get-or-create the child's family thread (one per child; student_id is UNIQUE).
+  // Get-or-create the child's thread of this kind (one per child+kind). The office
+  // line is center-level, so it carries no classroom_id; the classroom thread does.
   let threadId: string;
-  const { data: existing } = await svc.from('threads').select('id').eq('student_id', childId).eq('kind', 'family').maybeSingle();
+  const { data: existing } = await svc.from('threads').select('id').eq('student_id', childId).eq('kind', kind).maybeSingle();
   if (existing) {
     threadId = existing.id;
   } else {
     const { data: created, error: tErr } = await svc
       .from('threads')
-      .insert({ center_id: child.center_id, kind: 'family', classroom_id: child.classroom_id, student_id: childId, title: null })
+      .insert({ center_id: child.center_id, kind, classroom_id: kind === 'family' ? child.classroom_id : null, student_id: childId, title: null })
       .select('id')
       .single();
     if (tErr) throw new Error(tErr.message);

@@ -2575,7 +2575,7 @@ export type Database = {
         Row: {
           id: string;
           center_id: string;
-          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
           classroom_id: string | null;
           student_id: string | null;
           title: string | null;
@@ -2584,7 +2584,7 @@ export type Database = {
         Insert: {
           id?: string;
           center_id: string;
-          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
           classroom_id?: string | null;
           student_id?: string | null;
           title?: string | null;
@@ -2593,7 +2593,7 @@ export type Database = {
         Update: {
           id?: string;
           center_id?: string;
-          kind?: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          kind?: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
           classroom_id?: string | null;
           student_id?: string | null;
           title?: string | null;
@@ -2962,7 +2962,7 @@ export type Database = {
       credential_type_enum: 'preschool_90hr' | 'infant_toddler_9hr' | 'communication_9hr' | 'ada_training' | 'first_aid_cpr' | 'child_abuse_prevention' | 'medication_administration' | 'cda' | 'directors_certification' | 'college_degree' | 'other';
       credential_status_enum: 'active' | 'expiring_soon' | 'expired' | 'no_expiration';
       age_group_enum: 'infant' | 'toddler' | 'two_year' | 'preschool' | 'school_age';
-      thread_kind_enum: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+      thread_kind_enum: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
     };
   };
 };

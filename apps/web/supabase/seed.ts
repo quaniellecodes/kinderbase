@@ -1844,6 +1844,18 @@ async function main(): Promise<void> {
       addMsg(threadId, teacherId, 'Great day today — lots of block building and a big appetite at lunch. 🧱', hoursAgo(7), 'en');
       if (idx % 2 === 0) addMsg(threadId, gu.id, 'Love to hear it, thank you!', hoursAgo(6), 'en');
     }
+
+    // Office line (kind='office'): a private channel to management, no teachers.
+    // Guardian is a member; admins reach it via RLS. One per child (student_id,kind).
+    const officeThreadId = randomUUID();
+    threadRows.push({ id: officeThreadId, center_id: centerIds[0], kind: 'office', classroom_id: null, student_id: gu.childId, title: null });
+    threadMemberRows.push({ thread_id: officeThreadId, user_id: gu.id, role: 'guardian', last_read_at: null });
+    if (idx === 0) {
+      // The Spanish family: office also translates both ways (director EN → stored ES).
+      const oe = 'Hi Yolanda — this is the front office. You can reach us here anytime about billing, schedules, or paperwork.';
+      const om = addMsg(officeThreadId, owner.id, oe, hoursAgo(20), 'en');
+      translationRows.push({ message_id: om, lang: 'es', body: 'Hola Yolanda — le escribe la oficina. Puede comunicarse con nosotros aquí en cualquier momento sobre facturación, horarios o documentación.' });
+    }
   });
 
   await insertChunked(db, 'threads', threadRows);

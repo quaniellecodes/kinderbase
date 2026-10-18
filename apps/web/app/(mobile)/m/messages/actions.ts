@@ -29,7 +29,7 @@ async function myRoomIds(service: Service, userId: string, centerId: string, adm
 }
 
 type Ctx = { service: Service; userId: string; centerId: string; role: CenterRole; admin: boolean };
-export type ThreadKind = 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+export type ThreadKind = 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
 
 /**
  * Load a thread and this user's read/reply decision — the single source of
@@ -52,7 +52,9 @@ async function resolveThreadAccess(threadId: string, c: Ctx) {
       ? true
       : t.kind === 'room' || t.kind === 'family'
         ? c.admin || inMyRoom || !!myMember
-        : !!myMember; // dm — members only, no admin override
+        : t.kind === 'office'
+          ? c.admin || !!myMember // office — admins + the guardian; teachers excluded
+          : !!myMember; // dm — members only, no admin override
   const isFloatOnly = t.kind === 'family' && !c.admin && !myMember && !!t.classroom_id;
   const canReply = t.kind === 'announcement' ? c.admin : canAccess && !isFloatOnly;
   return { t, myMember, canAccess, canReply, isFloatOnly };
@@ -80,6 +82,7 @@ export async function getThreads(): Promise<ThreadGroups | null> {
     if (t.kind === 'announcement' || t.kind === 'idea') return true;
     if (t.kind === 'room') return admin || (t.classroom_id != null && rooms.includes(t.classroom_id));
     if (t.kind === 'family') return admin || (t.classroom_id != null && rooms.includes(t.classroom_id));
+    if (t.kind === 'office') return admin || myThreadIds.has(t.id); // admins + the guardian; teachers excluded
     if (t.kind === 'dm') return myThreadIds.has(t.id); // members only — no admin override
     return false;
   });
@@ -106,7 +109,7 @@ export async function getThreads(): Promise<ThreadGroups | null> {
     if (!guardianByThread.has(g.thread_id)) guardianByThread.set(g.thread_id, new Set());
     guardianByThread.get(g.thread_id)!.add(g.user_id);
   }
-  const studentIds = visible.filter((t) => t.kind === 'family' && t.student_id).map((t) => t.student_id as string);
+  const studentIds = visible.filter((t) => (t.kind === 'family' || t.kind === 'office') && t.student_id).map((t) => t.student_id as string);
   const { data: langs } = studentIds.length ? await service.from('guardians').select('child_id, preferred_lang').in('child_id', studentIds.length ? studentIds : noId) : { data: [] as { child_id: string; preferred_lang: string }[] };
   const langByChild = new Map<string, string>();
   for (const l of langs ?? []) if (l.preferred_lang !== 'en') langByChild.set(l.child_id, l.preferred_lang);
@@ -118,17 +121,17 @@ export async function getThreads(): Promise<ThreadGroups | null> {
     const unread = !!last && last.author_id !== userId && (!read || last.created_at > read);
     const child = Array.isArray(t.children) ? t.children[0] : t.children;
     const room = Array.isArray(t.classrooms) ? t.classrooms[0] : t.classrooms;
-    const name = t.kind === 'announcement' ? 'Management' : t.kind === 'idea' ? 'Idea Garden' : t.kind === 'room' ? (room as { name: string } | null)?.name ?? 'Room' : t.kind === 'family' ? (child ? `${childDisplayName(child)} family` : 'Family') : t.title ?? 'Direct message';
-    const lang = t.kind === 'family' && t.student_id ? langByChild.get(t.student_id) ?? null : null;
+    const name = t.kind === 'announcement' ? 'Management' : t.kind === 'idea' ? 'Idea Garden' : t.kind === 'room' ? (room as { name: string } | null)?.name ?? 'Room' : t.kind === 'family' ? (child ? `${childDisplayName(child)} family` : 'Family') : t.kind === 'office' ? (child ? `${childDisplayName(child)} · Office` : 'Office') : t.title ?? 'Direct message';
+    const lang = (t.kind === 'family' || t.kind === 'office') && t.student_id ? langByChild.get(t.student_id) ?? null : null;
     const guardians = guardianByThread.get(t.id);
     const agingHours = last ? (now - new Date(last.created_at).getTime()) / 3_600_000 : 0;
-    const aging = t.kind === 'family' && !!last && !!guardians?.has(last.author_id) && agingHours > 24;
+    const aging = (t.kind === 'family' || t.kind === 'office') && !!last && !!guardians?.has(last.author_id) && agingHours > 24;
     return {
       id: t.id,
       kind: t.kind,
       name,
-      sub: t.kind === 'family' ? ((room as { name: string } | null)?.name ?? '') : '',
-      avatar: t.kind === 'announcement' ? '📢' : t.kind === 'idea' ? '💡' : t.kind === 'room' ? '🏫' : t.kind === 'family' ? (child ? child.first_name[0]! : 'F') : '💬',
+      sub: t.kind === 'family' ? ((room as { name: string } | null)?.name ?? '') : t.kind === 'office' ? 'Front office' : '',
+      avatar: t.kind === 'announcement' ? '📢' : t.kind === 'idea' ? '💡' : t.kind === 'room' ? '🏫' : t.kind === 'family' ? (child ? child.first_name[0]! : 'F') : t.kind === 'office' ? '🏢' : '💬',
       lastAuthor: last ? (last.author_id === userId ? 'You' : last.authorName.split(' ')[0] || 'Someone') : '',
       lastBody: last?.body ?? 'No messages yet',
       lastAt: last?.created_at ?? '',
@@ -140,9 +143,9 @@ export async function getThreads(): Promise<ThreadGroups | null> {
   summaries.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1));
 
   const { data: center } = await service.from('centers').select('quiet_hours_start, quiet_hours_end').eq('id', centerId).maybeSingle();
-  const order: Record<ThreadKind, number> = { announcement: 0, room: 1, idea: 2, dm: 3, family: 4 };
-  const team = summaries.filter((s) => s.kind !== 'family').sort((a, b) => order[a.kind] - order[b.kind]);
-  const families = summaries.filter((s) => s.kind === 'family');
+  const order: Record<ThreadKind, number> = { announcement: 0, room: 1, idea: 2, dm: 3, family: 4, office: 5 };
+  const team = summaries.filter((s) => s.kind !== 'family' && s.kind !== 'office').sort((a, b) => order[a.kind] - order[b.kind]);
+  const families = summaries.filter((s) => s.kind === 'family' || s.kind === 'office');
   return { team, families, quiet: { start: center?.quiet_hours_start ?? '18:30', end: center?.quiet_hours_end ?? '07:00' } };
 }
 
@@ -188,22 +191,24 @@ export async function getThread(threadId: string): Promise<ThreadDetail | null> 
 
   const child = Array.isArray(t.children) ? t.children[0] : t.children;
   const room = Array.isArray(t.classrooms) ? t.classrooms[0] : t.classrooms;
-  const name = t.kind === 'announcement' ? 'Management' : t.kind === 'idea' ? 'Idea Garden' : t.kind === 'room' ? (room as { name: string } | null)?.name ?? 'Room' : t.kind === 'family' ? (child ? `${childDisplayName(child)} family` : 'Family') : t.title ?? 'Direct message';
+  const name = t.kind === 'announcement' ? 'Management' : t.kind === 'idea' ? 'Idea Garden' : t.kind === 'room' ? (room as { name: string } | null)?.name ?? 'Room' : t.kind === 'family' ? (child ? `${childDisplayName(child)} family` : 'Family') : t.kind === 'office' ? (child ? `${childDisplayName(child)} · Office` : 'Office') : t.title ?? 'Direct message';
   const disclosure =
     t.kind === 'family'
       ? isFloatOnly
         ? 'You can read this thread. Replies route to the room’s lead.'
         : 'Center record — directors can view this thread.'
-      : t.kind === 'dm'
-        ? 'Direct message — private. Admins cannot read this.'
-        : t.kind === 'announcement'
-          ? 'Announcement channel — replies go to management only.'
-          : t.kind === 'idea'
-            ? 'Idea Garden — visible to all staff and management.'
-            : 'Internal staff channel — families cannot see this.';
-  const lang = t.kind === 'family' && t.student_id ? await familyLang(service, t.student_id) : null;
+      : t.kind === 'office'
+        ? 'Office line — the family and center management. Teachers cannot see this.'
+        : t.kind === 'dm'
+          ? 'Direct message — private. Admins cannot read this.'
+          : t.kind === 'announcement'
+            ? 'Announcement channel — replies go to management only.'
+            : t.kind === 'idea'
+              ? 'Idea Garden — visible to all staff and management.'
+              : 'Internal staff channel — families cannot see this.';
+  const lang = (t.kind === 'family' || t.kind === 'office') && t.student_id ? await familyLang(service, t.student_id) : null;
 
-  return { id: t.id, kind: t.kind, name, sub: t.kind === 'family' ? ((room as { name: string } | null)?.name ?? '') : '', disclosure, canReply, canPromote: t.kind === 'idea' && admin, lang, messages };
+  return { id: t.id, kind: t.kind, name, sub: t.kind === 'family' ? ((room as { name: string } | null)?.name ?? '') : t.kind === 'office' ? 'Front office' : '', disclosure, canReply, canPromote: t.kind === 'idea' && admin, lang, messages };
 }
 
 /** Toggle the current user's upvote on an Idea Garden message. */
@@ -305,7 +310,7 @@ export async function sendMessage(threadId: string, body: string): Promise<void>
   // Quiet hours: to families outside 7:00 AM–6:30 PM, deliver at next 7:00 AM.
   const now = getClock().now();
   let deliverAt = now;
-  if (t.kind === 'family') {
+  if (t.kind === 'family' || t.kind === 'office') {
     const { data: center } = await service.from('centers').select('quiet_hours_start, quiet_hours_end').eq('id', centerId).maybeSingle();
     const start = center?.quiet_hours_start ?? '18:30';
     const end = center?.quiet_hours_end ?? '07:00';
@@ -323,7 +328,7 @@ export async function sendMessage(threadId: string, body: string): Promise<void>
   if (error) throw new Error(error.message);
 
   // Translate outward for a non-English family.
-  if (t.kind === 'family' && t.student_id) {
+  if ((t.kind === 'family' || t.kind === 'office') && t.student_id) {
     const lang = await familyLang(service, t.student_id);
     if (lang) {
       const translated = await translate(body.trim(), lang);
