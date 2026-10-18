@@ -10,8 +10,10 @@ import type { DemoPersona } from '@/lib/demo';
 // notch. 390 is the design width; a wider frame or a drawn notch reintroduces the
 // wrapping/truncation the app was laid out to avoid.
 const DEVICES = {
-  phone: { label: 'Phone', w: 390, h: 830, radius: 34, bezel: 10 },
-  tablet: { label: 'Tablet', w: 800, h: 1040, radius: 30, bezel: 12 },
+  // 390 width is fixed (the design width); the camera is a reserved top strip, so
+  // the app renders below it and the pill never overlaps the header (10 §1).
+  phone: { label: 'Phone', w: 390, h: 830, radius: 34, bezel: 10, camera: { h: 32, pill: true } },
+  tablet: { label: 'Tablet', w: 800, h: 1040, radius: 30, bezel: 12, camera: { h: 24, pill: false } },
 };
 type Device = keyof typeof DEVICES;
 

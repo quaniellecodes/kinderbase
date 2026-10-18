@@ -7,13 +7,14 @@ import { useEffect, useRef, useState } from 'react';
  * taking a `src`, shared by the sandbox and any future screenshots.
  *
  * The phone is the prototype's exact geometry — 390×830 usable, 10px bezel, outer
- * corner 34px, inner 26px, and crucially NO drawn notch: 390 is the width every
- * screen was laid out against, and a notch would overlap the app header. On a short
- * window we SCALE the whole phone (transform-origin: top center) rather than shrink
- * the screen box, so the 390-wide layout never reflows. The app inside owns its
- * scroll; the screen box clips.
+ * corner 34px, inner 26px. 390 is the width every screen was laid out against (the
+ * real fix for truncation), so the width never changes. A `camera` strip is an
+ * optional decoration RESERVED at the top of the screen — the app renders BELOW it,
+ * so the dynamic-island pill never overlaps the app header. On a short window we
+ * SCALE the whole phone (transform-origin: top center) rather than shrink the
+ * screen box, so the 390-wide layout never reflows.
  */
-export type DeviceSpec = { w: number; h: number; radius: number; bezel: number };
+export type DeviceSpec = { w: number; h: number; radius: number; bezel: number; camera?: { h: number; pill: boolean } };
 
 export function DeviceFrame({ src, device, title = 'KinderBase' }: { src: string; device: DeviceSpec; title?: string }) {
   const outerW = device.w + device.bezel * 2;
@@ -53,8 +54,18 @@ export function DeviceFrame({ src, device, title = 'KinderBase' }: { src: string
           transformOrigin: 'top center',
         }}
       >
-        <div className="bg-white overflow-hidden relative" style={{ width: device.w, height: device.h, borderRadius: device.radius - device.bezel }}>
-          <iframe src={src} title={title} className="block border-0" style={{ width: device.w, height: device.h }} />
+        <div className="bg-white overflow-hidden relative flex flex-col" style={{ width: device.w, height: device.h, borderRadius: device.radius - device.bezel }}>
+          {device.camera && (
+            // Camera / dynamic island — reserved above the app content, never over it.
+            <div className="relative flex-shrink-0 bg-white" style={{ height: device.camera.h }}>
+              {device.camera.pill ? (
+                <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-black" style={{ top: Math.max(4, (device.camera.h - 20) / 2), height: 20, width: 104 }} />
+              ) : (
+                <div className="absolute left-1/2 top-2 -translate-x-1/2 h-2 w-2 rounded-full bg-black/70" />
+              )}
+            </div>
+          )}
+          <iframe src={src} title={title} className="block border-0 w-full flex-1 min-h-0" style={{ width: device.w }} />
         </div>
       </div>
     </div>
