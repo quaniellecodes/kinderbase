@@ -1737,8 +1737,16 @@ async function main(): Promise<void> {
     }
   });
 
-  // Family threads (center 0). Mint a guardian user per thread.
-  const familyChildren = childrenRows.filter((c) => c.center_id === centerIds[0]).slice(0, 6);
+  // Family threads (center 0). Mint a guardian user per thread. Pick one child per
+  // distinct classroom so the seeded parents land in DIFFERENT rooms — the parent
+  // principal's adversarial tests need a guardian in room A and another in room B.
+  const oneChildPerRoom = new Map<string, ChildInsert>();
+  for (const c of childrenRows) {
+    if (c.center_id === centerIds[0] && c.classroom_id && !oneChildPerRoom.has(c.classroom_id as string)) {
+      oneChildPerRoom.set(c.classroom_id as string, c);
+    }
+  }
+  const familyChildren = [...oneChildPerRoom.values()].slice(0, 6);
   type GuardianUser = { childId: string; classroomId: string; name: string; email: string; lang: string; id: string };
   const guardianUsers: GuardianUser[] = familyChildren.map((c, idx) => {
     const g = guardianRows.find((gr) => gr.child_id === c.id && gr.is_primary);
@@ -1761,6 +1769,12 @@ async function main(): Promise<void> {
     'users',
     guardianUsers.map((gu) => ({ id: gu.id, email: gu.email, full_name: gu.name, role: 'staff' as const, profile_public: false })),
   );
+  // Link each minted guardian user to their guardian row (app_user_id) — this is
+  // the real parent principal that parentContext() resolves from (not just a
+  // messaging author). Login: family.<n>@<domain> / Sandbox!23456.
+  for (const gu of guardianUsers) {
+    await db.from('guardians').update({ app_user_id: gu.id }).eq('child_id', gu.childId).eq('is_primary', true);
+  }
 
   const classroomKeyById = new Map<string, string>();
   classroomIds.forEach((id, key) => classroomKeyById.set(id, key));

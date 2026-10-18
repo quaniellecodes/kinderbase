@@ -1795,6 +1795,8 @@ export type Database = {
           status: 'draft' | 'submitted' | 'locked';
           rated_by: string | null;
           submitted_at: string | null;
+          released_at: string | null;
+          released_by: string | null;
         };
         Insert: {
           id?: string;
@@ -1808,6 +1810,8 @@ export type Database = {
           status?: 'draft' | 'submitted' | 'locked';
           rated_by?: string | null;
           submitted_at?: string | null;
+          released_at?: string | null;
+          released_by?: string | null;
         };
         Update: {
           id?: string;
@@ -1821,6 +1825,8 @@ export type Database = {
           status?: 'draft' | 'submitted' | 'locked';
           rated_by?: string | null;
           submitted_at?: string | null;
+          released_at?: string | null;
+          released_by?: string | null;
         };
         Relationships: [
           {
