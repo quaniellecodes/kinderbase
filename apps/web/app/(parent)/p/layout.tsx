@@ -29,9 +29,16 @@ export default async function ParentLayout({ children }: { children: React.React
             {shell.centerName.slice(0, 1)}
           </div>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-gray-900 truncate leading-tight">{shell.centerName}</p>
           <p className="text-[11px] text-gray-500 truncate">{shell.childName}</p>
+        </div>
+        {/* The active context must be unmistakable (PARENT-DECISIONS §7b). */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[10px] font-semibold text-brand bg-brand/10 rounded-full px-2 py-0.5">Family view</span>
+          {shell.hasStaff && (
+            <a href="/api/context/switch?to=staff" className="text-[11px] font-semibold text-gray-500 whitespace-nowrap">Staff&nbsp;app&nbsp;›</a>
+          )}
         </div>
       </header>
 

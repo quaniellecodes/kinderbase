@@ -19,6 +19,11 @@ export type ParentShell = {
   brandRgb: string;
   iconUrl: string | null;
   childCount: number;
+  /** This person is also staff somewhere — offer "Switch to staff app". */
+  hasStaff: boolean;
+  /** Set when a director is emulating this family (Phase 6): read-only, bar shown. */
+  emulated: boolean;
+  emulatedLabel: string | null;
 };
 
 /**
@@ -43,6 +48,14 @@ export async function getParentShell(): Promise<ParentShell | null> {
   const iconPath = (org as { icon_path: string | null } | null)?.icon_path ?? null;
   const first = child.preferred_name ?? child.first_name;
 
+  // Is this person also staff? (A teacher-parent gets a "Switch to staff" link; a
+  // director emulating a family is NOT the person's own staff membership.)
+  let hasStaff = false;
+  if (!p.emulated) {
+    const { data: m } = await p.service.from('center_memberships').select('id').eq('user_id', p.userId).is('left_at', null).limit(1);
+    hasStaff = !!(m && m.length);
+  }
+
   return {
     childId,
     firstName: first,
@@ -52,5 +65,8 @@ export async function getParentShell(): Promise<ParentShell | null> {
     brandRgb: hexToRgb(color),
     iconUrl: iconPath ? getOrgIconPublicUrl(iconPath) : null,
     childCount: p.childIds.length,
+    hasStaff,
+    emulated: p.emulated,
+    emulatedLabel: p.emulatedLabel ?? null,
   };
 }

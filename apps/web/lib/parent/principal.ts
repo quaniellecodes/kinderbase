@@ -13,6 +13,8 @@ export type ParentPrincipal = {
   permissionsByChild: Record<string, GuardianPermission[]>;
   /** Set when a director is emulating this guardian (Phase 6): all writes refused. */
   emulated: boolean;
+  /** "Emulating <guardian> · <child>" for the persistent bar (Phase 6). */
+  emulatedLabel?: string | null;
 };
 
 /**

@@ -11,6 +11,7 @@ import {
   Clock,
   CalendarClock,
   ClipboardList,
+  Sprout,
   BarChart3,
   Settings,
 } from 'lucide-react';
@@ -88,6 +89,14 @@ async function getOrgBranding(centerId: string): Promise<{ iconUrl: string | nul
   return { iconUrl };
 }
 
+/** Is the current user also a guardian? (A teacher-parent gets a "Family view" link.) */
+async function isGuardian(): Promise<boolean> {
+  const { data: { user } } = await createClient().auth.getUser();
+  if (!user) return false;
+  const { data } = await createServiceClient().from('guardians').select('id').eq('app_user_id', user.id).limit(1);
+  return !!(data && data.length);
+}
+
 export async function Sidebar() {
   const memberships = await getMemberships();
   const active = getActiveContextFromCookies();
@@ -101,6 +110,7 @@ export async function Sidebar() {
 
   const nav = isAdmin(active.role) ? adminNav : teacherNav;
   const { iconUrl } = await getOrgBranding(active.centerId);
+  const guardian = await isGuardian();
 
   return (
     <aside className="flex flex-col w-full h-full">
@@ -132,6 +142,11 @@ export async function Sidebar() {
 
       {/* Footer */}
       <div className="px-4 py-4 border-t border-gray-100 space-y-3">
+        {guardian && (
+          <a href="/api/context/switch?to=parent" className="flex items-center gap-2 text-[13px] font-medium text-brand">
+            <Sprout size={15} /> Family view
+          </a>
+        )}
         <LogoutButton />
         <p className="text-[10px] text-gray-400 text-center">Powered by KinderBase</p>
       </div>
