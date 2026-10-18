@@ -10,8 +10,7 @@ import { parentContext } from './principal';
 // data. Read-only agenda of what's coming up.
 
 export type ParentCalEntry = { id: string; date: string; title: string; detail?: string; timeLabel?: string; icon: string; colour: string };
-export type ParentCalDay = { key: string; label: string; entries: ParentCalEntry[] };
-export type ParentCalendar = { centerName: string; days: ParentCalDay[] };
+export type ParentCalendar = { centerName: string; entries: ParentCalEntry[] };
 
 function localDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -55,10 +54,8 @@ export async function getParentCalendar(): Promise<ParentCalendar | null> {
   });
   const visible = filterVisible(items, byKey, 'family');
 
-  const byDay = new Map<string, ParentCalDay>();
-  for (const it of visible) {
-    if (!byDay.has(it.date)) byDay.set(it.date, { key: it.date, label: dayLabel(it.date, from), entries: [] });
-    byDay.get(it.date)!.entries.push({
+  const entries: ParentCalEntry[] = visible
+    .map((it) => ({
       id: it.id ?? it.date + it.title,
       date: it.date,
       title: it.title,
@@ -66,13 +63,7 @@ export async function getParentCalendar(): Promise<ParentCalendar | null> {
       timeLabel: it.timeLabel,
       icon: meta[it.typeKey]?.icon ?? '📅',
       colour: meta[it.typeKey]?.colour ?? '#6b7280',
-    });
-  }
-  return { centerName, days: [...byDay.values()].sort((a, b) => a.key.localeCompare(b.key)) };
-}
-
-function dayLabel(key: string, today: string): string {
-  const d = new Date(`${key}T12:00:00`);
-  if (key === today) return 'Today';
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return { centerName, entries };
 }

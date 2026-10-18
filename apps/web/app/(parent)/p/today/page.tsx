@@ -1,14 +1,16 @@
 import Link from 'next/link';
-import { CalendarDays } from 'lucide-react';
 import { Avatar } from '@/components/ui';
-import { clockTime } from '@/lib/format';
+import { clockTime, formatDate } from '@/lib/format';
 import { getParentFeed } from '@/lib/parent/feed';
+import { getParentCalendar } from '@/lib/parent/calendar';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ParentTodayPage() {
-  const feed = await getParentFeed();
+export default async function ParentHomePage() {
+  const [feed, cal] = await Promise.all([getParentFeed(), getParentCalendar()]);
   if (!feed) return <div className="p-5 text-sm text-gray-500">Nothing to show yet.</div>;
+
+  const upcoming = (cal?.entries ?? []).slice(0, 3);
 
   return (
     <div className="p-4 space-y-4">
@@ -19,17 +21,38 @@ export default async function ParentTodayPage() {
           <div className="text-lg font-semibold text-gray-900 truncate">{feed.childFirst}</div>
           <div className="text-xs text-gray-500 truncate">{feed.room}{feed.signedInLabel ? ` · ${feed.signedInLabel}` : ''}</div>
         </div>
-        <Link href="/p/calendar" aria-label="Center calendar" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
-          <CalendarDays className="w-4 h-4" />
-        </Link>
       </div>
 
-      {/* Announcement */}
+      {/* Announcements */}
       {feed.announcement && (
-        <div className="flex gap-2.5 items-start bg-[#FFF4EC] border border-[#F3D3BC] rounded-xl p-3">
-          <span className="text-base flex-shrink-0">📣</span>
-          <p className="text-[13px] text-[#7A3A10] leading-snug">{feed.announcement}</p>
-        </div>
+        <section>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Announcements</p>
+          <div className="flex gap-2.5 items-start bg-[#FFF4EC] border border-[#F3D3BC] rounded-xl p-3">
+            <span className="text-base flex-shrink-0">📣</span>
+            <p className="text-[13px] text-[#7A3A10] leading-snug">{feed.announcement}</p>
+          </div>
+        </section>
+      )}
+
+      {/* Upcoming events */}
+      {upcoming.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Coming up</p>
+            <Link href="/p/calendar" className="text-[11px] font-semibold text-brand">See calendar ›</Link>
+          </div>
+          <div className="space-y-2">
+            {upcoming.map((e) => (
+              <Link key={e.id} href="/p/calendar" className="flex items-start gap-3 bg-white border border-gray-100 rounded-xl p-3" style={{ borderLeft: `3px solid ${e.colour}` }}>
+                <span className="text-base flex-shrink-0">{e.icon}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium text-gray-900">{e.title}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{[formatDate(e.date), e.timeLabel].filter(Boolean).join(' · ')}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Day-grouped moments + care */}
