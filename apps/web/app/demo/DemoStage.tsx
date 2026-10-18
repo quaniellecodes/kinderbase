@@ -106,17 +106,22 @@ export function DemoStage({
   const dev = DEVICES[device];
   const chip = 'text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors text-left';
 
+  // A parent persona shows the family app (/p); staff show the teacher/admin app (/m).
+  const currentPersona = personas.find((p) => p.userId === currentUserId);
+  const isParent = currentPersona?.kind === 'parent';
+  const src = isParent ? '/p' : '/m';
+
   return (
     <div className="min-h-screen bg-[#eceae4] flex flex-col lg:flex-row items-start justify-center gap-6 p-4 lg:p-8">
       {/* Device frame */}
       <div className="flex-shrink-0 w-full lg:w-auto lg:flex-1 lg:max-w-[720px]">
-        <DeviceFrame src="/m" device={dev} title="KinderBase mobile" />
+        <DeviceFrame key={src} src={src} device={dev} title={isParent ? 'KinderBase parent' : 'KinderBase mobile'} />
       </div>
 
       {/* Control panel */}
       <div className="w-full lg:w-[300px] flex-shrink-0 space-y-5">
         <div>
-          <h1 className="text-[15px] font-semibold text-gray-900">KinderBase — mobile</h1>
+          <h1 className="text-[15px] font-semibold text-gray-900">KinderBase — {isParent ? 'parent app' : 'mobile'}</h1>
           <p className="text-xs text-gray-500">Live app in a phone. Switch persona, time, and device.</p>
         </div>
 

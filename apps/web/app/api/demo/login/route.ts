@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { setActiveContext } from '@/lib/session/active-context';
+import { setActiveContext, clearActiveContext } from '@/lib/session/active-context';
 import { isDemo, assertNotProd } from '@/lib/demo';
 import { hasValidGate } from '@/lib/demo-gate';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
@@ -38,6 +38,10 @@ export async function POST(req: Request) {
   if (m) {
     const center = Array.isArray(m.centers) ? m.centers[0] : m.centers;
     await setActiveContext({ centerId: m.center_id, centerName: (center as { name: string } | null)?.name ?? 'Center', role: m.role as CenterRole });
+  } else {
+    // A parent persona (guardian) has no staff membership — clear any stale staff
+    // context so /demo renders the family app, not a previous persona's.
+    await clearActiveContext();
   }
   return NextResponse.json({ ok: true });
 }
