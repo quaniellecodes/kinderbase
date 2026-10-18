@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { CalendarDays } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import { clockTime } from '@/lib/format';
 import { getParentFeed } from '@/lib/parent/feed';
@@ -13,10 +15,13 @@ export default async function ParentTodayPage() {
       {/* Hero */}
       <div className="flex items-center gap-3">
         <Avatar name={feed.childFirst} size="lg" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-lg font-semibold text-gray-900 truncate">{feed.childFirst}</div>
           <div className="text-xs text-gray-500 truncate">{feed.room}{feed.signedInLabel ? ` · ${feed.signedInLabel}` : ''}</div>
         </div>
+        <Link href="/p/calendar" aria-label="Center calendar" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+          <CalendarDays className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* Announcement */}
