@@ -2613,6 +2613,40 @@ export type Database = {
           }
         ];
       };
+      dismissed_alerts: {
+        Row: {
+          user_id: string;
+          center_id: string;
+          alert_key: string;
+          dismissed_at: string;
+        };
+        Insert: {
+          user_id: string;
+          center_id: string;
+          alert_key: string;
+          dismissed_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          center_id?: string;
+          alert_key?: string;
+          dismissed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dismissed_alerts_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dismissed_alerts_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       dashboard_widgets: {
         Row: {
           user_id: string;

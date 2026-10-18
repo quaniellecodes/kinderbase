@@ -9,6 +9,7 @@ import {
   Calendar,
   CalendarDays,
   Clock,
+  CalendarClock,
   ClipboardList,
   BarChart3,
   Settings,
@@ -57,6 +58,7 @@ const adminNav = [
   { href: '/students', label: 'Students', icon: Baby },
   { href: '/staff', label: 'Staff', icon: Users },
   { href: '/classrooms', label: 'Classrooms', icon: DoorOpen },
+  { href: '/timelog', label: 'Time log', icon: CalendarClock },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/requests', label: 'Requests', icon: ClipboardList },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
@@ -69,7 +71,8 @@ const teacherNav = [
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/credentials', label: 'Credentials', icon: FileCheck },
   { href: '/schedule', label: 'Schedule', icon: Calendar },
-  { href: '/time', label: 'Time', icon: Clock },
+  { href: '/timelog', label: 'Timesheet', icon: CalendarClock },
+  { href: '/time', label: 'Clock in/out', icon: Clock },
   { href: '/requests', label: 'Requests', icon: ClipboardList },
 ];
 

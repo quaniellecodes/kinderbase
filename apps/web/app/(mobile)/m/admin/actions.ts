@@ -23,9 +23,12 @@ async function requireAdmin(): Promise<{ service: Service; centerId: string; cen
   return { service: createServiceClient(), centerId: active.centerId, centerName: active.centerName, role: active.role, userId: user.id };
 }
 
-export type AdminRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out'; ratio: string; required: number; present: number; children: number; mixText: string; staffNames: string };
+// `empty` = a room with no children present: COMAR applies to children who are
+// there, so an empty room is not evaluated — grey, never a computed ratio or a
+// claimed pass (docs/sessions/10-DEMO-PHONE-POLISH.md §2).
+export type AdminRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out' | 'empty'; ratio: string; required: number; present: number; children: number; mixText: string; staffNames: string };
 export type HeadsUp = { key: string; title: string; sub: string; badge?: string; tone: 'red' | 'amber' | 'green'; href?: string; avatar?: string; nudgeUserId?: string };
-export type ApprovalLite = { id: string; kind: 'time' | 'leave' | 'sched' | 'plan'; who: string; detail: string };
+export type ApprovalLite = { id: string; kind: 'time' | 'leave' | 'sched' | 'plan'; title: string; who: string; detail: string };
 export type StaffTodayRow = { key: string; name: string; sub: string; badge?: string; tone: 'ok' | 'amber' | 'gray' };
 export type AdminHome = {
   centerName: string;
@@ -35,7 +38,11 @@ export type AdminHome = {
     | { roomId: string; name: string; mixText: string; citation: string; required: number; present: number; missingLead: boolean; ageFix: { names: string[]; toRoomId: string; toRoom: string } | null }
     | null;
   moreOut: number;
+  // `compliant`/`roomsTotal` count ONLY occupied rooms — "8/8 compliant" when all
+  // eight are empty is true and useless. `complianceLabel` is the sentence form.
   stats: { staffOnFloor: number; staffScheduled: number; children: number; childrenEnrolled: number; compliant: number; roomsTotal: number };
+  complianceLabel: string;
+  unseeded: boolean;
   approvals: number;
   approvalsTop: ApprovalLite[];
   rooms: AdminRoom[];
@@ -50,7 +57,7 @@ const surnameOf = (full: string) => full.trim().split(' ').slice(-1)[0] ?? full;
 export async function getAdminHome(): Promise<AdminHome | null> {
   const ctx = await requireAdmin();
   if (!ctx) return null;
-  const { service, centerId, centerName, role } = ctx;
+  const { service, centerId, centerName, role, userId } = ctx;
   const clock = getClock();
   const now = clock.now();
 
@@ -59,6 +66,9 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   const rooms = classrooms ?? [];
   const roomIds = rooms.map((r) => r.id);
   const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
+
+  // Enrolled children (center-wide) for the "Children" stat denominator.
+  const { data: enrolledRows } = await service.from('children').select('id').eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null);
   const inputs = await Promise.all(rooms.map((r) => loadRoomInput(r.id, clock, service)));
   const evals: { id: string; name: string; input: RoomInput | null; e: Evaluation | null }[] = rooms.map((r, i) => ({
     id: r.id,
@@ -75,17 +85,21 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   const floorNameById = new Map((floorUsers ?? []).map((u) => [u.id, u.full_name]));
   const staffNamesOf = (ev: (typeof evals)[number]) => (ev.input && ev.input.staff.length ? ev.input.staff.map((s) => surnameOf(floorNameById.get(s.id) ?? 'Staff')).join(' · ') : 'No staff');
 
-  const adminRooms: AdminRoom[] = evals.map((ev) => ({
-    id: ev.id,
-    name: ev.name,
-    status: ev.e?.status ?? 'ok',
-    ratio: ev.input ? ratioText(ev.input.children.length, ev.input.staff.length) : '—',
-    required: ev.e?.requiredNow ?? 0,
-    present: ev.input?.staff.length ?? 0,
-    children: ev.input?.children.length ?? 0,
-    mixText: ev.e ? mixText(ev.e.mix) : 'no children',
-    staffNames: staffNamesOf(ev),
-  }));
+  const adminRooms: AdminRoom[] = evals.map((ev) => {
+    const children = ev.input?.children.length ?? 0;
+    const empty = !!ev.input && children === 0;
+    return {
+      id: ev.id,
+      name: ev.name,
+      status: empty ? 'empty' : (ev.e?.status ?? 'ok'),
+      ratio: empty || !ev.input ? '—' : ratioText(ev.input.children.length, ev.input.staff.length),
+      required: empty ? 0 : (ev.e?.requiredNow ?? 0),
+      present: ev.input?.staff.length ?? 0,
+      children,
+      mixText: empty ? 'No children signed in' : (ev.e ? mixText(ev.e.mix) : 'no children'),
+      staffNames: staffNamesOf(ev),
+    };
+  });
 
   const outRooms = evals.filter((ev) => ev.e?.status === 'out');
   let alert: AdminHome['alert'] = null;
@@ -106,7 +120,7 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   // Approvals (list + count) — shared with the Inbox resolver.
   const approvalsAll = await getApprovals();
   const KIND_LABEL: Record<ApprovalLite['kind'], string> = { time: 'Time correction', leave: 'Leave', sched: 'Schedule change', plan: 'Lesson plan' };
-  const approvalsTop: ApprovalLite[] = approvalsAll.slice(0, 3).map((a) => ({ id: a.id, kind: a.kind, who: a.who, detail: a.meta || a.detail || a.title }));
+  const approvalsTop: ApprovalLite[] = approvalsAll.slice(0, 3).map((a) => ({ id: a.id, kind: a.kind, title: a.title, who: a.who, detail: a.meta || a.detail || '' }));
 
   // ── Heads up ──
   const headsUp: HeadsUp[] = [];
@@ -139,7 +153,7 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   if (worst && (worst.count <= 2 || worst.days >= 7)) {
     const room = roomOfUser.get(worst.userId);
     headsUp.push({
-      key: 'acc',
+      key: `acc:${worst.userId}`,
       title: worst.days >= 99 ? `${worst.name.split(' ')[0]} hasn't posted recently` : `${worst.name.split(' ')[0]} hasn't posted in ${worst.days} days`,
       sub: `${room ? room + ' · ' : ''}${worst.count} post${worst.count === 1 ? '' : 's'} this period`,
       tone: 'amber',
@@ -163,13 +177,13 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   if (ids.length) {
     const { data: creds } = await service.from('credentials').select('expires_at').in('user_id', ids).is('deleted_at', null);
     const exp = (creds ?? []).filter((c) => ['expiring_soon', 'expired'].includes(computeCredentialStatus(c.expires_at))).length;
-    if (exp) headsUp.push({ key: 'cred', title: `${exp} credential${exp > 1 ? 's' : ''} expire this month`, sub: 'Staff renewals due', badge: String(exp), tone: 'red' });
+    if (exp) headsUp.push({ key: `cred:${exp}`, title: `${exp} credential${exp > 1 ? 's' : ''} expire this month`, sub: 'Staff renewals due', badge: String(exp), tone: 'red', href: '/m/admin/heads/credentials' });
   }
   const { count: missingDocs } = roomIds.length ? await service.from('student_documents').select('child_id', { count: 'exact', head: true }).eq('is_required', true).eq('status', 'missing').is('superseded_by', null) : { count: 0 };
-  if (missingDocs) headsUp.push({ key: 'docs', title: `${missingDocs} student document${missingDocs > 1 ? 's' : ''} missing`, sub: 'Emergency medical authorization most common', badge: String(missingDocs), tone: 'amber' });
+  if (missingDocs) headsUp.push({ key: `docs:${missingDocs}`, title: `${missingDocs} student document${missingDocs > 1 ? 's' : ''} missing`, sub: 'Emergency medical authorization most common', badge: String(missingDocs), tone: 'amber', href: '/m/admin/heads/documents' });
 
   const aging = await getAgingFamilyThreads();
-  if (aging.length) headsUp.push({ key: 'aging', title: `A parent has waited ${aging[0]!.hours}h for a reply`, sub: `${aging[0]!.childName} · ${aging[0]!.snippet}`, badge: `${aging[0]!.hours}h`, tone: 'red', href: `/m/messages/${aging[0]!.id}` });
+  if (aging.length) headsUp.push({ key: `aging:${aging[0]!.id}`, title: `A parent has waited ${aging[0]!.hours}h for a reply`, sub: `${aging[0]!.childName} · ${aging[0]!.snippet}`, badge: `${aging[0]!.hours}h`, tone: 'red', href: `/m/messages/${aging[0]!.id}` });
 
   // ── Staff today: late (scheduled, not clocked in) + floats/subs on call ──
   const isoDow = ((now.getDay() + 6) % 7) + 1;
@@ -196,7 +210,28 @@ export async function getAdminHome(): Promise<AdminHome | null> {
     staffToday.push({ key: `sub-${s.user_id}`, name: u?.full_name ?? 'Substitute', sub: 'Float · on call', badge: 'Available', tone: 'gray' });
   }
 
-  const childrenEnrolled = (await service.from('children').select('id', { count: 'exact', head: true }).eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null)).count ?? 0;
+  // Drop heads-up items this admin has swiped away. Dismissals are a rolling
+  // snooze (they age out after the window), and the keys are content-aware, so an
+  // item re-surfaces when the underlying count / thread changes.
+  const cutoff = new Date(now.getTime() - HEADSUP_SNOOZE_DAYS * 86_400_000).toISOString();
+  const { data: dism } = await service.from('dismissed_alerts').select('alert_key').eq('user_id', userId).eq('center_id', centerId).gte('dismissed_at', cutoff);
+  const dismissedKeys = new Set((dism ?? []).map((d) => d.alert_key));
+  const visibleHeads = headsUp.filter((h) => !dismissedKeys.has(h.key));
+
+  const childrenEnrolled = enrolledRows?.length ?? 0;
+
+  // Compliance counts occupied rooms only. An empty room was never evaluated, so
+  // it is neither compliant nor a violation — it simply doesn't count.
+  const occupiedEvals = evals.filter((ev) => ev.input && ev.input.children.length > 0);
+  const compliantCount = occupiedEvals.filter((ev) => ev.e && ev.e.status !== 'out').length;
+  const unseeded = rooms.length === 0;
+  const complianceLabel = unseeded
+    ? 'No sample data for this center'
+    : occupiedEvals.length === 0
+      ? 'No rooms occupied right now'
+      : compliantCount === occupiedEvals.length
+        ? `${occupiedEvals.length} room${occupiedEvals.length === 1 ? '' : 's'} occupied · all in ratio`
+        : `${occupiedEvals.length - compliantCount} of ${occupiedEvals.length} occupied rooms out of ratio`;
 
   return {
     centerName,
@@ -209,17 +244,33 @@ export async function getAdminHome(): Promise<AdminHome | null> {
       staffScheduled: ids.length,
       children: evals.reduce((a, ev) => a + (ev.input?.children.length ?? 0), 0),
       childrenEnrolled,
-      // Only count rooms we could actually evaluate — a room whose data failed
-      // to load must not be counted as compliant (fail safe, not open).
-      compliant: evals.filter((ev) => ev.e && ev.e.status !== 'out').length,
-      roomsTotal: evals.length,
+      compliant: compliantCount,
+      roomsTotal: occupiedEvals.length,
     },
+    complianceLabel,
+    unseeded,
     approvals: approvalsAll.length,
     approvalsTop,
     rooms: adminRooms,
-    headsUp,
+    headsUp: visibleHeads,
     staffToday,
   };
+}
+
+/** How long a swiped-away heads-up item stays hidden before it can re-surface. */
+const HEADSUP_SNOOZE_DAYS = 7;
+
+/** Dismiss (snooze) a heads-up item for the current admin — the swipe-to-delete. */
+export async function dismissHeadsUp(key: string): Promise<void> {
+  const ctx = await requireAdmin();
+  if (!ctx) throw new Error('Forbidden');
+  const { service, centerId, userId } = ctx;
+  const { error } = await service
+    .from('dismissed_alerts')
+    .upsert({ user_id: userId, center_id: centerId, alert_key: key, dismissed_at: getClock().now().toISOString() }, { onConflict: 'user_id,center_id,alert_key' });
+  if (error) throw new Error(error.message);
+  revalidatePath('/m/admin');
+  revalidatePath('/dashboard');
 }
 
 // ── Float assignment (docs/sessions/04-ADMIN-MOBILE.md §5) ───────────────────

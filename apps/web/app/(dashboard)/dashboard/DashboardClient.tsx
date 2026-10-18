@@ -12,7 +12,7 @@ import { resolveApproval } from '@/app/(mobile)/m/admin/approvals-actions';
 import { WIDGET_BY_KEY, WIDGETS, type WidgetKey, type WidgetLayoutRow } from './widgets';
 import { saveDashboardLayout, nudgeStaff, type DirectorDashboard } from './actions';
 
-const statusEdge: Record<string, string> = { ok: 'border-l-status-green', at_minimum: 'border-l-status-amber', out: 'border-l-status-red' };
+const statusEdge: Record<string, string> = { ok: 'border-l-status-green', at_minimum: 'border-l-status-amber', out: 'border-l-status-red', empty: 'border-l-gray-300' };
 const toneText: Record<string, string> = { ok: 'text-status-green', amber: 'text-status-amber', red: 'text-status-red', gray: 'text-gray-400' };
 const toneBg: Record<string, string> = { red: 'bg-red-50 text-status-red', amber: 'bg-amber-50 text-status-amber', green: 'bg-green-50 text-status-green', gray: 'bg-gray-100 text-gray-500' };
 
@@ -203,7 +203,7 @@ function WidgetBody({ keyName, data, onFloat, act, pending }: { keyName: WidgetK
             <Link key={r.id} href={`/classrooms/${r.id}`} className={cn('rounded-xl border border-gray-200 border-l-[3px] bg-white p-3 hover:shadow-sm', statusEdge[r.status])}>
               <p className="text-[12px] font-semibold text-gray-900 truncate">{r.name}</p>
               <p className="text-xl font-semibold text-gray-900 mt-1.5">{r.ratio}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">{r.present} of {r.required} staff · {r.children} children</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{r.status === 'empty' ? 'No children signed in' : `${r.present} of ${r.required} staff · ${r.children} children`}</p>
               {r.status === 'out' && <p className="text-[10px] font-bold text-status-red mt-1">Out of ratio</p>}
             </Link>
           ))}
@@ -215,7 +215,7 @@ function WidgetBody({ keyName, data, onFloat, act, pending }: { keyName: WidgetK
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
           <StatCard label="Staff on floor" value={`${k.staffOnFloor}`} sub={`of ${k.staffScheduled} scheduled`} />
           <StatCard label="Children present" value={`${k.children}`} sub={`of ${k.childrenEnrolled} enrolled`} />
-          <StatCard label="Rooms compliant" value={`${k.compliant}/${k.roomsTotal}`} tone={k.compliant === k.roomsTotal ? 'green' : 'red'} />
+          <StatCard label="Occupied in ratio" value={k.roomsTotal === 0 ? '—' : `${k.compliant}/${k.roomsTotal}`} tone={k.compliant === k.roomsTotal ? 'green' : 'red'} />
           <StatCard label="Approvals" value={`${k.approvals}`} />
           <StatCard label="Unanswered families" value={`${k.unanswered}`} tone={k.unanswered ? 'red' : 'green'} />
         </div>
@@ -251,7 +251,7 @@ function WidgetBody({ keyName, data, onFloat, act, pending }: { keyName: WidgetK
                   <td className="px-2 py-2.5">{r.ruleName}<p className="text-[10.5px] text-gray-400">{r.citation}</p></td>
                   <td className="px-2 py-2.5"><b className={cn(r.present < r.required && 'text-status-red')}>{r.present}</b> / {r.required}</td>
                   <td className="px-2 py-2.5">{r.leadOk ? '✓' : <span className="text-status-red font-bold">✕</span>}</td>
-                  <td className="px-4 py-2.5"><span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', r.status === 'out' ? toneBg.red : r.status === 'at_minimum' ? toneBg.amber : toneBg.green)}>{r.ratio}</span></td>
+                  <td className="px-4 py-2.5"><span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', r.status === 'out' ? toneBg.red : r.status === 'at_minimum' ? toneBg.amber : r.status === 'empty' ? toneBg.gray : toneBg.green)}>{r.ratio}</span></td>
                 </tr>
               ))}
             </tbody>

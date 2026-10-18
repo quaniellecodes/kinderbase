@@ -3,7 +3,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Megaphone, Check, DoorOpen, ChevronRight, CalendarDays } from 'lucide-react';
+import { Megaphone, Check, DoorOpen, ChevronRight, CalendarDays, Clock } from 'lucide-react';
 import { Card, Avatar, buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { completeTask, type TodayData, type Priority } from './actions';
@@ -28,9 +28,14 @@ export function TodayClient({ data }: { data: TodayData }) {
           </h1>
           <p className="text-xs text-gray-500">{data.dateLabel} · {data.timeLabel}</p>
         </div>
-        <Link href="/m/calendar" aria-label="Calendar" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
-          <CalendarDays className="w-4 h-4" />
-        </Link>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link href="/m/timelog" aria-label="My timesheet" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500">
+            <Clock className="w-4 h-4" />
+          </Link>
+          <Link href="/m/calendar" aria-label="Calendar" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500">
+            <CalendarDays className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Float hero */}

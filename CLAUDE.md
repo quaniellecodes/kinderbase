@@ -11,6 +11,9 @@ Living document. Update after every session.
   switcher and clock on the right to see every role. Its inline `band()` uses a 12-month cutoff —
   a known prototype bug; DECISIONS §3 (18-month center band) wins.
 - Session prompts live in `docs/sessions/` (01 engine → 06 demo sandbox). Do one at a time.
+- `GAPS.md` (repo root) is the forward-looking gap register — what's built `[x]` / partial `[~]` /
+  not started `[ ]`, by priority. Run **`pnpm gaps`** for an interactive checklist at
+  http://localhost:3002 (ticking a box writes straight back to `GAPS.md`). Keep it in sync as work lands.
 - **Mobile track (in progress on `feat/mobile-engine`, stacked on `feat/students`):** the phone
   apps (teacher/float/director) + real COMAR staffing engine + `/demo` phone simulator. Doc↔repo
   mappings adopted: `students→children`, `activity_posts→child_updates` (+ SAEO `observations`),

@@ -3,18 +3,19 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, CalendarDays, Bell, Clock, Calendar, FileText, Star, MessageSquare } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, CalendarDays, Clock, Calendar, FileText, Star, MessageSquare, DoorClosed } from 'lucide-react';
 import { Card, StatusDot, toast } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { enterRoomMode } from '../classroom/actions';
-import { applyAgeMixFix } from './actions';
+import { applyAgeMixFix, dismissHeadsUp } from './actions';
 import { nudgeStaff } from '@/app/(dashboard)/dashboard/actions';
 import { RoomModeSheet } from './RoomModeSheet';
 import { FloatSheet } from './FloatSheet';
+import { SwipeToDismiss } from '@/components/mobile/SwipeToDismiss';
 import type { AdminHome, AdminRoom, HeadsUp, ApprovalLite, StaffTodayRow } from './actions';
 
-const dot: Record<AdminRoom['status'], 'green' | 'amber' | 'red'> = { ok: 'green', at_minimum: 'amber', out: 'red' };
-const ratioColor: Record<AdminRoom['status'], string> = { ok: 'text-status-green', at_minimum: 'text-status-amber', out: 'text-status-red' };
+const dot: Record<AdminRoom['status'], 'green' | 'amber' | 'red' | 'gray'> = { ok: 'green', at_minimum: 'amber', out: 'red', empty: 'gray' };
+const ratioColor: Record<AdminRoom['status'], string> = { ok: 'text-status-green', at_minimum: 'text-status-amber', out: 'text-status-red', empty: 'text-gray-400' };
 const toneBadge: Record<string, string> = { red: 'bg-red-50 text-red-800', amber: 'bg-amber-50 text-amber-800', green: 'bg-green-50 text-green-800', gray: 'bg-gray-100 text-gray-500' };
 const AV_PALETTE = ['#D35400', '#185FA5', '#0F6E56', '#7B4FBB', '#993C1D', '#534AB7', '#1D9E75', '#854F0B'];
 const avColor = (s: string) => AV_PALETTE[(s.charCodeAt(0) + (s.charCodeAt(1) || 0)) % AV_PALETTE.length];
@@ -31,6 +32,7 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
   const router = useRouter();
   const [modeRoom, setModeRoom] = useState<{ id: string; name: string } | null>(null);
   const [floatRoom, setFloatRoom] = useState<{ id: string; name: string } | null>(null);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
 
   function cover(roomId: string) {
@@ -53,6 +55,14 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
       toast('Nudge sent — it lands in their Priorities');
     });
   }
+  function dismissHead(key: string) {
+    setDismissed((prev) => new Set(prev).add(key)); // optimistic — the row is already sliding off
+    start(async () => {
+      await dismissHeadsUp(key);
+      router.refresh();
+    });
+  }
+  const visibleHeads = data.headsUp.filter((h) => !dismissed.has(h.key));
 
   return (
     <div className="p-4 space-y-5">
@@ -69,9 +79,8 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
         <Link href="/m/calendar" aria-label="Calendar" className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
           <CalendarDays className="w-4 h-4" />
         </Link>
-        <Link href="/m/admin/inbox" aria-label="Inbox" className="relative w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
-          <Bell className="w-4 h-4" />
-          {data.approvals > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-status-red border border-white" />}
+        <Link href="/m/timelog" aria-label="Time log" className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+          <Clock className="w-4 h-4" />
         </Link>
       </div>
 
@@ -95,33 +104,50 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
           </div>
           {data.moreOut > 0 && <p className="text-[11px] text-gray-500 mt-2">{data.moreOut} more room{data.moreOut > 1 ? 's' : ''} also need attention.</p>}
         </Card>
+      ) : data.unseeded ? (
+        <Card className="border-gray-200 bg-gray-50">
+          <div className="flex gap-3 items-center">
+            <span className="w-8 h-8 rounded-lg bg-gray-300 flex items-center justify-center flex-shrink-0"><DoorClosed className="w-4 h-4 text-white" /></span>
+            <div><p className="text-[13px] font-semibold text-gray-700">No sample data for this center</p><p className="text-[12px] text-gray-500">The demo is seeded for Old Mother Hubbard — switch back to explore it.</p></div>
+          </div>
+        </Card>
+      ) : data.stats.roomsTotal === 0 ? (
+        <Card className="border-gray-200 bg-gray-50">
+          <div className="flex gap-3 items-center">
+            <span className="w-8 h-8 rounded-lg bg-gray-300 flex items-center justify-center flex-shrink-0"><DoorClosed className="w-4 h-4 text-white" /></span>
+            <div><p className="text-[13px] font-semibold text-gray-700">No rooms occupied right now</p><p className="text-[12px] text-gray-500">{data.stats.childrenEnrolled > 0 ? 'Nobody has signed in yet — nothing to evaluate.' : 'No children enrolled.'}</p></div>
+          </div>
+        </Card>
       ) : (
         <Card className="border-green-200 bg-green-50/40">
           <div className="flex gap-3 items-center">
             <span className="w-8 h-8 rounded-lg bg-status-green flex items-center justify-center flex-shrink-0"><CheckCircle2 className="w-4 h-4 text-white" /></span>
-            <div><p className="text-[13px] font-semibold text-green-800">All rooms in compliance</p><p className="text-[12px] text-green-700">Ratio, group size, age mix, and lead all check out.</p></div>
+            <div><p className="text-[13px] font-semibold text-green-800">{data.complianceLabel}</p><p className="text-[12px] text-green-700">Ratio, group size, age mix, and lead all check out.</p></div>
           </div>
         </Card>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-px bg-gray-100 rounded-card overflow-hidden border border-gray-100">
-        <Stat value={data.stats.staffOnFloor} denom={data.stats.staffScheduled} label="Staff on floor" />
-        <Stat value={data.stats.children} denom={data.stats.childrenEnrolled} label="Children" />
-        <Stat value={data.stats.compliant} denom={data.stats.roomsTotal} label="Compliant" tone={data.stats.compliant < data.stats.roomsTotal ? 'red' : 'green'} />
+      <div>
+        <div className="grid grid-cols-3 gap-px bg-gray-100 rounded-card overflow-hidden border border-gray-100">
+          <Stat value={data.stats.staffOnFloor} denom={data.stats.staffScheduled} label="Staff on floor" />
+          <Stat value={data.stats.children} denom={data.stats.childrenEnrolled} label="Children" />
+          <Stat value={data.stats.roomsTotal === 0 ? '—' : data.stats.compliant} denom={data.stats.roomsTotal === 0 ? undefined : data.stats.roomsTotal} label="In ratio" tone={data.stats.compliant < data.stats.roomsTotal ? 'red' : 'green'} />
+        </div>
+        <p className="text-[11px] text-gray-500 mt-1.5 px-0.5">{data.complianceLabel}</p>
       </div>
 
       {/* Needs your approval */}
       {data.approvalsTop.length > 0 && (
         <section>
-          <SectionHead title="Needs your approval" right={<Link href="/m/admin/inbox" className="text-[11px] font-semibold text-brand">{data.approvals} waiting</Link>} />
+          <SectionHead title="Needs your approval" right={<Link href="/m/admin/inbox" className="text-[11px] font-semibold text-brand">{data.approvals} waiting{data.approvals > data.approvalsTop.length ? ` · showing ${data.approvalsTop.length}` : ''}</Link>} />
           <Card padding="none" className="divide-y divide-gray-50">
             {data.approvalsTop.map((a) => {
               const I = APPROVAL_ICON[a.kind];
               return (
                 <Link key={a.id} href="/m/admin/inbox" className="flex items-center gap-3 px-4 py-3">
                   <span className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', I.bg)}><I.icon className={cn('w-4 h-4', I.fg)} /></span>
-                  <div className="flex-1 min-w-0"><p className="text-[13px] font-semibold text-gray-900 truncate">{I.label} · {a.who}</p><p className="text-[11px] text-gray-500 truncate">{a.detail}</p></div>
+                  <div className="flex-1 min-w-0"><p className="text-[13px] font-semibold text-gray-900 truncate">{a.title}</p><p className="text-[11px] text-gray-500 line-clamp-2">{a.kind === 'plan' ? a.detail : `${a.who} · ${a.detail}`}</p></div>
                   <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
                 </Link>
               );
@@ -138,18 +164,22 @@ export function AdminHomeClient({ data }: { data: AdminHome }) {
             <button key={r.id} onClick={() => setModeRoom({ id: r.id, name: r.name })} className="w-full flex items-center gap-3 px-4 py-3 text-left">
               <StatusDot tone={dot[r.status]} />
               <div className="flex-1 min-w-0"><p className="text-[13px] font-medium text-gray-900 truncate">{r.name}</p><p className="text-[11px] text-gray-400 truncate">{r.staffNames} · {r.children} children</p></div>
-              <div className="text-right flex-shrink-0"><div className={cn('text-[13px] font-semibold', ratioColor[r.status])}>{r.ratio}</div><div className="text-[10px] text-gray-400">needs {r.required}</div></div>
+              <div className="text-right flex-shrink-0"><div className={cn('text-[13px] font-semibold', ratioColor[r.status])}>{r.ratio}</div><div className="text-[10px] text-gray-400">{r.status === 'empty' ? 'no children' : `needs ${r.required}`}</div></div>
             </button>
           ))}
         </Card>
       </section>
 
-      {/* Heads up */}
-      {data.headsUp.length > 0 && (
+      {/* Heads up — swipe a row right to dismiss it */}
+      {visibleHeads.length > 0 && (
         <section>
           <SectionHead title="Heads up" />
           <Card padding="none" className="divide-y divide-gray-50">
-            {data.headsUp.map((h) => <HeadRow key={h.key} h={h} pending={pending} onNudge={nudge} />)}
+            {visibleHeads.map((h) => (
+              <SwipeToDismiss key={h.key} onDismiss={() => dismissHead(h.key)}>
+                <HeadRow h={h} pending={pending} onNudge={nudge} />
+              </SwipeToDismiss>
+            ))}
           </Card>
         </section>
       )}
@@ -179,7 +209,7 @@ function SectionHead({ title, right }: { title: string; right?: React.ReactNode 
   );
 }
 
-function Stat({ value, denom, label, tone }: { value: number; denom?: number; label: string; tone?: 'green' | 'red' }) {
+function Stat({ value, denom, label, tone }: { value: number | string; denom?: number; label: string; tone?: 'green' | 'red' }) {
   return (
     <div className="bg-white py-3 text-center">
       <div className="text-lg font-semibold">
@@ -210,7 +240,10 @@ function HeadRow({ h, pending, onNudge }: { h: HeadsUp; pending: boolean; onNudg
       {h.nudgeUserId ? (
         <button onClick={(e) => { e.preventDefault(); onNudge(h.nudgeUserId!); }} disabled={pending} className="text-[11px] font-semibold rounded-full px-2.5 py-1 bg-red-50 text-status-red flex-shrink-0">Nudge</button>
       ) : (
-        h.badge && <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5 flex-shrink-0', toneBadge[h.tone])}>{h.badge}</span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {h.badge && <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5', toneBadge[h.tone])}>{h.badge}</span>}
+          {h.href && <ChevronRight className="w-4 h-4 text-gray-300" />}
+        </div>
       )}
     </>
   );

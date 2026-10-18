@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { DeviceFrame } from '@/components/demo/DeviceFrame';
 import type { DemoPersona } from '@/lib/demo';
 
+// Exact prototype geometry (10 §1): 390×830 usable, 10px bezel, 34/26 corners, no
+// notch. 390 is the design width; a wider frame or a drawn notch reintroduces the
+// wrapping/truncation the app was laid out to avoid.
 const DEVICES = {
-  // `notch` reserves the top space a real phone's camera / status bar takes, so
-  // the app inside the frame previews the same way it renders on a device.
-  phone: { label: 'Phone', w: 420, h: 910, radius: 46, bezel: 12, notch: { h: 30, pill: true } },
-  tablet: { label: 'Tablet', w: 800, h: 1040, radius: 26, bezel: 14, notch: { h: 22, pill: false } },
+  phone: { label: 'Phone', w: 390, h: 830, radius: 34, bezel: 10 },
+  tablet: { label: 'Tablet', w: 800, h: 1040, radius: 30, bezel: 12 },
 };
 type Device = keyof typeof DEVICES;
 
@@ -51,7 +53,6 @@ export function DemoStage({
 }) {
   const [device, setDevice] = useState<Device>('phone');
   const [busy, setBusy] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('kb_demo_device') as Device | null;
@@ -108,20 +109,8 @@ export function DemoStage({
   return (
     <div className="min-h-screen bg-[#eceae4] flex flex-col lg:flex-row items-start justify-center gap-6 p-4 lg:p-8">
       {/* Device frame */}
-      <div className="flex-shrink-0 mx-auto">
-        <div className="bg-[#1a1a18] shadow-2xl" style={{ borderRadius: dev.radius, padding: dev.bezel, width: 'min(100%, ' + (dev.w + dev.bezel * 2) + 'px)' }}>
-          <div className="bg-white overflow-hidden relative flex flex-col" style={{ borderRadius: dev.radius - dev.bezel, height: `min(${dev.h}px, 84vh)` }}>
-            {/* Status bar / camera notch — reserves the top safe area so app content isn't cut off */}
-            <div className="relative flex-shrink-0 bg-white" style={{ height: dev.notch.h }}>
-              {dev.notch.pill ? (
-                <div className="absolute left-1/2 top-1.5 -translate-x-1/2 h-[18px] w-[112px] rounded-full bg-black" />
-              ) : (
-                <div className="absolute left-1/2 top-2 -translate-x-1/2 h-2 w-2 rounded-full bg-black/70" />
-              )}
-            </div>
-            <iframe ref={iframeRef} src="/m" title="KinderBase mobile" className="w-full flex-1 border-0" />
-          </div>
-        </div>
+      <div className="flex-shrink-0 w-full lg:w-auto lg:flex-1 lg:max-w-[720px]">
+        <DeviceFrame src="/m" device={dev} title="KinderBase mobile" />
       </div>
 
       {/* Control panel */}
@@ -138,10 +127,10 @@ export function DemoStage({
               <button
                 key={p.userId}
                 onClick={() => loginAs(p.userId)}
-                className={cn('rounded-xl border p-2.5 text-left', p.userId === currentUserId ? 'border-brand bg-[#FFF8F2]' : 'border-gray-200 bg-white')}
+                className={cn('rounded-xl border p-2.5 text-left min-w-0', p.userId === currentUserId ? 'border-brand bg-[#FFF8F2]' : 'border-gray-200 bg-white')}
               >
-                <div className="text-[13px] font-semibold text-gray-900">{p.roleLabel === 'Director' ? 'Director' : p.label}</div>
-                <div className="text-[10px] text-gray-500">{p.roleLabel}</div>
+                <div className="text-[13px] font-semibold text-gray-900 truncate">{p.roleLabel === 'Director' ? 'Director' : p.label}</div>
+                <div className="text-[10px] text-gray-500 truncate">{p.roleLabel}</div>
               </button>
             ))}
           </div>

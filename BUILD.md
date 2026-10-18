@@ -225,3 +225,26 @@ A `DEMO_MODE`-only floating dev bar (bottom-right) for manual testing on **both*
 
 ### Landing note
 - Merge order on GitHub stranded this work: PR #5 (`mobile-engine`→`students`) and #6 (`students`→`main`) merged while `mobile-engine` was at `c081dbf`; PR #7 then merged `dashboard-calendar`→`mobile-engine` *after* those, so the 8 commits never reached `main`. Re-landed via a direct `feat/dashboard-calendar` → `main` PR (base `c081dbf` already in `main`, so the diff is exactly this work).
+
+## Session 9 + 10 — Time log + demo phone polish (this session)
+
+Branch `feat/timelog-demo-polish` (off `main`). Both sessions reuse the existing
+schema — **no new migration**: `time_entries` (007), `staff_breaks` /
+`staff_assignments` (023), `child_attendance` + `guardians` (017/020) already cover it.
+
+### Session 9 — Time log (09-TIME-LOG.md; done)
+- [x] Core `packages/core/attendance.ts` (pure) — `staffState` (in/break/late/out/oncall + `rosterMismatch`), `hoursWorked` (clocked − every break, open-break aware, clamped), `breakHours`, `childState`. **15 Vitest cases** (`attendance.test.ts`), 92 core total. The punch is authoritative; no compensation-classification vocabulary anywhere (§2).
+- [x] `app/(dashboard)/timelog/actions.ts` — `getTimeLog({date})` (admin-only, **throws** for anyone else — a teacher never receives another person's punch data) returns staff + children rows with summaries; `getMyTimesheet({weekOf})` returns the caller's own week + totals. Scheduled start from `staff_shift_slots`; "counted toward ratio" from `staff_assignments`; who-signed-in from `guardians` (plain uuid, queried by id). Both carry server `now` so live timers stay correct under the demo clock.
+- [x] `components/time/TimeLogView.tsx` (shared desktop+mobile) + `LiveElapsed.tsx` (counts up from a server baseline). Admin: Staff/Students tabs · summary strip · search · filter chips with counts · live elapsed / break timers · **roster-mismatch** warning row (no status dot on the avatar). Teacher: week header + progress vs scheduled + per-day rows (today live, off day "No shift") + **Request a correction** (→ existing approvals). Footer: "Punches come from the kiosk — nobody edits one here" (read-only; corrections via `staff_requests.time_correction`).
+- [x] Desktop `/timelog` + mobile `/m/timelog` (role-split). Clock icon added to teacher **Today** + admin **Home** headers → `/m/timelog`; the admin **bell removed** (it duplicated the Inbox tab). Sidebar: **Time log** (admin) / **Timesheet** (teacher, alongside the kept Clock-in/out).
+- [x] Seed: one staff member on an **open break** + one **ended break** (in a room with ratio slack so the break stays legal); a rostered teacher **assigned but not punched** (roster mismatch); on-call subs with no punch; children's `signed_in_by` = primary guardian (kiosk) + two non-focus children signed out early. Reset clears `staff_breaks`.
+
+### Session 10 — Demo phone frame + the bugs it exposed (10-DEMO-PHONE-POLISH.md; done)
+- [x] `components/demo/DeviceFrame.tsx` — exact prototype geometry: **390×830 usable, 10px bezel, 34/26 corners, NO notch**, scale-to-fit (transform-origin top center) so the 390-wide layout never reflows; screen box clips, app owns its scroll. `DemoStage` refactored to use it (phone 390/830/34/10, tablet 800/1040). *(User chose spec-exact over the earlier 420+notch; real-device safe-area padding still lives in the `/m` layout CSS.)*
+- [x] **Three-state room compliance** (mobile `getAdminHome` + desktop `getDirectorDashboard`): empty room (0 children present) → grey `empty` status, "No children signed in", ratio `—`, never a computed ratio or "needs 0". Compliance counts **occupied rooms only** — `complianceLabel` = "N rooms occupied · all in ratio" / "No rooms occupied right now"; tile shows `—` when none occupied. **Unseeded center** (no classrooms) says so in its own words ("seeded for Old Mother Hubbard"), distinct from a pre-open center.
+- [x] **Heads-up data-quality item**: a room open with children enrolled but none signed in → "Room: N enrolled, none signed in" (amber, in Heads up — never the compliance strip). Same class as the roster-vs-punch mismatch.
+- [x] **Approvals**: dedup lesson-plan rows on `(classroom_id, week_of)`; title names the classroom, teacher moves to the detail line, date formatted ("Week of Sep 28"); count reads "13 waiting · showing 3"; detail wraps two lines (`line-clamp-2`).
+- [x] **Dates**: `lib/format.ts` gains `formatDate`/`formatWeekOf`/`formatDayLabel`/`formatHours`; raw ISO "Week of 2026-09-28" replaced in the lesson-plan tab + approvals. Demo persona buttons truncate.
+- [x] Seed: the **last room** is enrolled-but-nobody-signed-in so the grey state + data-quality heads-up are visible; verified in sandbox (8 rooms, 7 occupied, 1 empty-but-enrolled).
+- Verified: tsc clean · 92 core tests · `next build` green · sandbox reseeded.
+- Deferred: no persistent ratio-compliance *log* table exists, so "no children present" is surfaced in the UI (not a stored licensing record); desktop unseeded-center message is light-touch (demo is phone-first).
