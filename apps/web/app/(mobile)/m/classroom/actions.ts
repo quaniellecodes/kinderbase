@@ -122,6 +122,7 @@ export async function getMobileRoom(classroomId: string): Promise<MobileRoom | n
     .select('id, first_name, last_name, birthdate')
     .eq('classroom_id', classroomId)
     .eq('status', 'enrolled')
+    .eq('is_sample', false)
     .is('deleted_at', null)
     .order('first_name');
   const kidIds = (kids ?? []).map((k) => k.id);

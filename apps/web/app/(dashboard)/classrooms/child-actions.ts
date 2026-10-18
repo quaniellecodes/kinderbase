@@ -168,6 +168,7 @@ export async function getCenterDashboard(centerId: string): Promise<DashboardDat
     .select('id', { count: 'exact', head: true })
     .eq('center_id', centerId)
     .eq('status', 'enrolled')
+    .eq('is_sample', false)
     .is('deleted_at', null);
 
   // Aggregate present + scheduled staff (distinct users, center-wide, from roster).
@@ -305,6 +306,7 @@ export async function getClassroomOverview(classroomId: string): Promise<Classro
     .select('id, first_name, last_name, birthdate')
     .eq('classroom_id', classroomId)
     .eq('status', 'enrolled')
+    .eq('is_sample', false)
     .is('deleted_at', null)
     .order('first_name');
 
@@ -425,6 +427,7 @@ export async function getClassroomChildren(classroomId: string): Promise<ChildCa
     .select('id, first_name, last_name, birthdate')
     .eq('classroom_id', classroomId)
     .eq('status', 'enrolled')
+    .eq('is_sample', false)
     .is('deleted_at', null)
     .order('first_name');
 

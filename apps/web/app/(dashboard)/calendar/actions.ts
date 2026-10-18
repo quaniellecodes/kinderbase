@@ -153,7 +153,7 @@ export async function getCalendar({ from, to }: { from: string; to: string }): P
 
   // 5. Birthdays → bday_s (respecting birthday_visible).
   const fromY = Number(from.slice(0, 4));
-  const { data: kids } = await service.from('children').select('id, first_name, last_name, birthdate, birthday_visible').eq('center_id', centerId).is('deleted_at', null).eq('birthday_visible', true);
+  const { data: kids } = await service.from('children').select('id, first_name, last_name, birthdate, birthday_visible').eq('center_id', centerId).eq('is_sample', false).is('deleted_at', null).eq('birthday_visible', true);
   for (const k of kids ?? []) {
     if (!k.birthdate) continue;
     const [, mm, dd] = k.birthdate.split('-');

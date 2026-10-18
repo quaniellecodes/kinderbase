@@ -1221,6 +1221,33 @@ async function main(): Promise<void> {
   await insertChunked(db, 'authorized_pickups', pickupRows);
   await insertChunked(db, 'student_siblings', siblingRows);
 
+  // ── Sample family per center (docs/PARENT-DECISIONS.md §7c) ──────────────────
+  // An admin-only demo child with realistic content, EXCLUDED from every
+  // operational count (ratios, enrollment, reports, the engine) via
+  // children.is_sample / enrollments.status='sample'. It exists so nobody creates
+  // a fake enrollment to see the parent app (which corrupts the roster).
+  for (let ci = 0; ci < centerIds.length; ci++) {
+    const roomKey = classrooms.find((r) => r.centerIndex === ci)?.key;
+    const cid = roomKey ? classroomIds.get(roomKey) : null;
+    if (!cid) continue;
+    const famId = randomUUID();
+    const sampleChildId = randomUUID();
+    await db.from('families').insert({ id: famId, display_name: 'Sample Family', is_sample: true });
+    await db.from('children').insert({ id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, family_id: famId, is_sample: true, first_name: 'Sample', last_name: 'Family', birthdate: isoDate(daysAgo(330)), enrolled_at: isoDate(daysAgo(200)), status: 'enrolled', enrollment_status: 'active', tags: [] });
+    await db.from('enrollments').insert({ child_id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, starts_on: isoDate(daysAgo(200)), status: 'sample' });
+    await db.from('guardians').insert({ id: randomUUID(), child_id: sampleChildId, full_name: 'Sample Parent', relationship: 'mother', is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: 'en' });
+    const sampleUpdates: { type: 'meal' | 'nap' | 'milestone'; body: string; goals: string[] }[] = [
+      { type: 'milestone', body: 'Picked up a blueberry with thumb and finger — first pincer grasp!', goals: ['IT-PMP-7'] },
+      { type: 'nap', body: 'Napped 12:10–1:30, woke happy.', goals: [] },
+      { type: 'meal', body: 'Finished the full bottle — great appetite.', goals: [] },
+      { type: 'milestone', body: 'Babbled "ba-ba-ba" back and forth during a nappy change.', goals: ['IT-LC-4'] },
+    ];
+    for (const u of sampleUpdates) {
+      const { data: row } = await db.from('child_updates').insert({ classroom_id: cid, author_id: owner.id, update_type: u.type, body: u.body, goal_codes: u.goals }).select('id').single();
+      if (row) await db.from('child_update_children').insert({ update_id: row.id, child_id: sampleChildId });
+    }
+  }
+
   // ── 9c-quater. "All About Me" + attendance schedule ─────────────────────────
   type AboutInsert = Database['public']['Tables']['student_about']['Insert'];
   type SchedInsert = Database['public']['Tables']['student_schedule']['Insert'];

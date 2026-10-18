@@ -89,6 +89,7 @@ export async function getStudentDirectory(centerId: string): Promise<StudentDire
     .from('children')
     .select('id, first_name, last_name, preferred_name, birthdate, classroom_id, enrollment_status, tags')
     .eq('center_id', centerId)
+    .eq('is_sample', false)
     .is('deleted_at', null)
     .order('first_name');
   const children = kids ?? [];
