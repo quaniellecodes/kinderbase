@@ -7,3 +7,4 @@ export * from './translate';
 export * from './speech';
 export * from './calendar';
 export * from './attendance';
+export * from './parent-scrub';
