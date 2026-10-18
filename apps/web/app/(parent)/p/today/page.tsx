@@ -1,16 +1,22 @@
 import Link from 'next/link';
 import { Avatar } from '@/components/ui';
 import { clockTime, formatDate } from '@/lib/format';
+import { getClock } from '@/lib/clock';
 import { getParentFeed } from '@/lib/parent/feed';
 import { getParentCalendar } from '@/lib/parent/calendar';
+import { getParentAbsences, localDate } from '@/lib/parent/absences';
+import { AbsencePanel } from '@/components/parent/AbsencePanel';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ParentHomePage() {
-  const [feed, cal] = await Promise.all([getParentFeed(), getParentCalendar()]);
+  const [feed, cal, absences] = await Promise.all([getParentFeed(), getParentCalendar(), getParentAbsences()]);
   if (!feed) return <div className="p-5 text-sm text-gray-500">Nothing to show yet.</div>;
 
   const upcoming = (cal?.entries ?? []).slice(0, 3);
+  const now = getClock().now();
+  const todayIso = localDate(now);
+  const tomorrowIso = localDate(new Date(now.getTime() + 86_400_000));
 
   return (
     <div className="p-4 space-y-4">
@@ -54,6 +60,9 @@ export default async function ParentHomePage() {
           </div>
         </section>
       )}
+
+      {/* Absence reporting — one tap, reaches staffing */}
+      {absences && <AbsencePanel childFirst={absences.childFirst} upcoming={absences.upcoming} todayIso={todayIso} tomorrowIso={tomorrowIso} />}
 
       {/* Day-grouped moments + care */}
       {feed.days.length === 0 ? (

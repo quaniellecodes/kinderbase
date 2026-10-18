@@ -76,7 +76,7 @@ export function monthCells(year: number, month: number): { iso: string; outside:
   return out;
 }
 
-/** The 11 built-in type defaults — mirrors migration 031 (source of truth is the DB). */
+/** The built-in type defaults — mirrors migrations 031 + 038 (source of truth is the DB). */
 export const BUILTIN_CAL_TYPES: CalType[] = [
   { key: 'closure', label: 'Closures & holidays', colour: '#E24B4A', icon: '🚫', isSystem: true, isDerived: false, visibleAdmin: true, visibleStaff: true, visibleFamily: true },
   { key: 'trip', label: 'Field trips', colour: '#1D9E75', icon: '🚌', isSystem: true, isDerived: false, visibleAdmin: true, visibleStaff: true, visibleFamily: true },
@@ -89,4 +89,5 @@ export const BUILTIN_CAL_TYPES: CalType[] = [
   { key: 'licensing', label: 'Licensing & compliance', colour: '#993C1D', icon: '⚖️', isSystem: true, isDerived: true, visibleAdmin: true, visibleStaff: false, visibleFamily: false },
   { key: 'drill', label: 'Drills', colour: '#5f5e5a', icon: '🧯', isSystem: true, isDerived: false, visibleAdmin: true, visibleStaff: true, visibleFamily: false },
   { key: 'ratio', label: 'Ratio changes', colour: '#854F0B', icon: '⚠️', isSystem: true, isDerived: true, visibleAdmin: true, visibleStaff: true, visibleFamily: false },
+  { key: 'absence', label: 'Absences', colour: '#B45309', icon: '🤒', isSystem: true, isDerived: true, visibleAdmin: true, visibleStaff: true, visibleFamily: false },
 ];

@@ -1836,6 +1836,8 @@ async function main(): Promise<void> {
       const { data: row } = await db.from('child_updates').insert({ classroom_id: siblingRoomId, author_id: sibTeacher, update_type: u.type, body: u.body, goal_codes: [] }).select('id').single();
       if (row) await db.from('child_update_children').insert({ update_id: row.id, child_id: siblingId });
     }
+    // A reported absence (PARENT-DECISIONS §6) so the parent + staff calendar show it.
+    await db.from('child_absences').insert({ child_id: g0.childId, center_id: centerIds[0], absent_on: isoDate(daysFromNow(1)), reason: 'sick', note: 'Low fever overnight', reported_by: g0.id });
   }
 
   const classroomKeyById = new Map<string, string>();

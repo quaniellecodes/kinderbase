@@ -167,6 +167,28 @@ export async function getCalendar({ from, to }: { from: string; to: string }): P
     }
   }
 
+  // 6. Parent-reported absences → absence (so a reported absence reaches staffing).
+  const { data: absences } = await service
+    .from('child_absences')
+    .select('id, child_id, absent_on, reason, children(first_name, last_name, classroom_id)')
+    .eq('center_id', centerId)
+    .gte('absent_on', from)
+    .lte('absent_on', to);
+  for (const a of absences ?? []) {
+    const ch = Array.isArray(a.children) ? a.children[0] : a.children;
+    if (!ch) continue;
+    items.push({
+      id: `absence-${a.id}`,
+      date: a.absent_on,
+      typeKey: 'absence',
+      title: `${childDisplayName(ch)} out`,
+      detail: a.reason === 'other' ? undefined : a.reason,
+      childId: a.child_id,
+      classroomIds: ch.classroom_id ? [ch.classroom_id] : [],
+      derived: true,
+    });
+  }
+
   // Server-side visibility filter (the whole permission model).
   const visible = items.filter((item) => {
     const t = byKey[item.typeKey];

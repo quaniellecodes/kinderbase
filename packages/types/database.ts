@@ -856,6 +856,52 @@ export type Database = {
           }
         ];
       };
+      child_absences: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          absent_on: string;
+          reason: string;
+          note: string | null;
+          reported_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          absent_on: string;
+          reason?: string;
+          note?: string | null;
+          reported_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          absent_on?: string;
+          reason?: string;
+          note?: string | null;
+          reported_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'child_absences_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'child_absences_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       child_attendance: {
         Row: {
           id: string;
