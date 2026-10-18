@@ -5,7 +5,10 @@ type Service = ReturnType<typeof createServiceClient>;
 
 /** Is this user a guardian of this child? (One identity, many memberships — §7b.) */
 export async function isGuardianOfChild(service: Service, userId: string, childId: string): Promise<boolean> {
-  const { data } = await service.from('guardians').select('id').eq('app_user_id', userId).eq('child_id', childId).limit(1);
+  const { data, error } = await service.from('guardians').select('id').eq('app_user_id', userId).eq('child_id', childId).limit(1);
+  // Fail CLOSED: a lookup error must never be read as "not a guardian" and let an
+  // own-child assessment through — the caller's guard would silently permit it.
+  if (error) throw new Error(error.message);
   return !!(data && data.length);
 }
 

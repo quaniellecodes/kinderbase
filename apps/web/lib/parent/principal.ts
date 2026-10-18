@@ -4,18 +4,22 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 type Service = ReturnType<typeof createServiceClient>;
 
 export type GuardianPermission = 'pickup' | 'account' | 'edit_record';
+const GUARDIAN_PERMISSIONS: readonly GuardianPermission[] = ['pickup', 'account', 'edit_record'];
+function isGuardianPermission(p: string): p is GuardianPermission {
+  return (GUARDIAN_PERMISSIONS as readonly string[]).includes(p);
+}
 
-export type ParentPrincipal = {
+type ParentBase = {
   service: Service;
   userId: string;
   /** Every child this guardian may reach. Parent queries start here and join outward. */
   childIds: string[];
   permissionsByChild: Record<string, GuardianPermission[]>;
-  /** Set when a director is emulating this guardian (Phase 6): all writes refused. */
-  emulated: boolean;
-  /** "Emulating <guardian> · <child>" for the persistent bar (Phase 6). */
-  emulatedLabel?: string | null;
 };
+// Discriminated so an emulated principal CANNOT exist without its label — the label
+// renders the persistent "you are emulating" bar, so the two must never diverge.
+export type ParentPrincipal = ParentBase &
+  ({ emulated: false } | { emulated: true; emulatedLabel: string });
 
 /**
  * The parent principal (docs/PARENT-DECISIONS.md §1): deny by default. Resolve the
@@ -34,7 +38,7 @@ export async function parentContext(): Promise<ParentPrincipal | null> {
 
   // Effective principal: an open emulation session makes this resolve to the
   // emulated family instead of the viewer's own — read-only (emulated: true).
-  const { data: emu } = await service
+  const { data: emu, error: emuErr } = await service
     .from('emulation_sessions')
     .select('child_id, guardian_id, is_sample')
     .eq('viewer_id', user.id)
@@ -42,6 +46,9 @@ export async function parentContext(): Promise<ParentPrincipal | null> {
     .order('started_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+  // Fail closed: if we can't tell whether an emulation is active, deny rather than
+  // fall through to the viewer's OWN family (which would silently drop read-only).
+  if (emuErr) return null;
   if (emu) {
     const { data: child } = await service.from('children').select('first_name, preferred_name, last_name').eq('id', emu.child_id).maybeSingle();
     const first = child ? child.preferred_name ?? child.first_name : 'child';
@@ -56,8 +63,11 @@ export async function parentContext(): Promise<ParentPrincipal | null> {
   const { data: rows } = await service.from('guardians').select('child_id, permissions').eq('app_user_id', user.id);
   if (!rows || rows.length === 0) return null;
   const permissionsByChild: Record<string, GuardianPermission[]> = {};
-  for (const r of rows) permissionsByChild[r.child_id] = (r.permissions ?? []) as GuardianPermission[];
-  return { service, userId: user.id, childIds: Object.keys(permissionsByChild), permissionsByChild, emulated: false, emulatedLabel: null };
+  // Validate at the boundary rather than `as`-casting the DB's string[] into the
+  // union — an unknown value (typo, renamed/removed permission) is dropped here
+  // instead of laundering through the type system.
+  for (const r of rows) permissionsByChild[r.child_id] = (r.permissions ?? []).filter(isGuardianPermission);
+  return { service, userId: user.id, childIds: Object.keys(permissionsByChild), permissionsByChild, emulated: false };
 }
 
 /**

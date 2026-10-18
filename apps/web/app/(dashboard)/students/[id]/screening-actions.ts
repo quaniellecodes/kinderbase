@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { studentContext, isEditor } from '../access';
+import { assertNotOwnChildAssessment } from '@/lib/parent/staff-guard';
 
 export type ScreeningOutcome = 'pass' | 'refer' | 'rescreen' | 'scheduled';
 
@@ -60,6 +61,7 @@ export async function recordScreening(
   const ctx = await studentContext(childId);
   if (!ctx || !isEditor(ctx.role)) throw new Error('Forbidden');
   const { service, centerId, userId } = ctx;
+  await assertNotOwnChildAssessment(service, userId, childId); // a screening about your own child goes through the family conversation, not staff (§7b)
 
   const { data: created, error } = await service
     .from('screenings')

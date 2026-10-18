@@ -42,7 +42,10 @@ ALTER TABLE children ADD COLUMN is_sample boolean NOT NULL DEFAULT false;
 CREATE INDEX children_family ON children (family_id);
 
 -- Explicit guardian permission levels (§1): pickup | account | edit_record.
+-- Constrained to the closed set so a typo/renamed value can't be persisted.
 ALTER TABLE guardians ADD COLUMN permissions text[] NOT NULL DEFAULT '{}';
+ALTER TABLE guardians ADD CONSTRAINT guardians_permissions_valid
+  CHECK (permissions <@ ARRAY['pickup', 'account', 'edit_record']::text[]);
 
 -- ── Backfill existing data (in the same migration — a half-migrated identity
 --    model is worse than none) ─────────────────────────────────────────────────
@@ -95,4 +98,6 @@ CREATE POLICY "families_read" ON families FOR SELECT
   );
 CREATE POLICY "families_admin_write" ON families FOR ALL
   USING (id IN (SELECT family_id FROM children WHERE center_id IN (SELECT center_id FROM center_memberships WHERE user_id = auth.uid() AND left_at IS NULL AND role IN ('director', 'admin'))))
-  WITH CHECK (true);
+  -- On INSERT only WITH CHECK applies (the row has no children yet), so require the
+  -- inserter be a director/admin of some center — never an unconstrained `true`.
+  WITH CHECK (EXISTS (SELECT 1 FROM center_memberships WHERE user_id = auth.uid() AND left_at IS NULL AND role IN ('director', 'admin')));

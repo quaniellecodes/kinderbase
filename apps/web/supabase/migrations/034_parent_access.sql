@@ -23,10 +23,6 @@ CREATE OR REPLACE FUNCTION guardian_child_ids()
   RETURNS SETOF uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
   AS $$ SELECT child_id FROM guardians WHERE app_user_id = auth.uid() $$;
 
-CREATE OR REPLACE FUNCTION guardian_update_ids()
-  RETURNS SETOF uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-  AS $$ SELECT update_id FROM child_update_children WHERE child_id IN (SELECT guardian_child_ids()) $$;
-
 -- A guardian reads only their own guardian rows.
 CREATE POLICY "guardians_self_read" ON guardians FOR SELECT
   USING (app_user_id = auth.uid());
@@ -37,21 +33,15 @@ CREATE POLICY "children_guardian_read" ON children FOR SELECT
 CREATE POLICY "child_attendance_guardian_read" ON child_attendance FOR SELECT
   USING (child_id IN (SELECT guardian_child_ids()));
 
--- The guardian sees an update tagged to their child (via the definer helper), and
--- only their own child's tag row — a sibling or classmate tagged on the same
--- update never arrives (name scrub enforced at the row level).
-CREATE POLICY "child_updates_guardian_read" ON child_updates FOR SELECT
-  USING (id IN (SELECT guardian_update_ids()));
-CREATE POLICY "child_update_children_guardian_read" ON child_update_children FOR SELECT
-  USING (child_id IN (SELECT guardian_child_ids()));
+-- NOTE: no guardian read policy on child_updates / child_update_children /
+-- observations / observation_goals. Those carry free-text bodies/captions a
+-- teacher wrote for the room, which can name another child — and RLS cannot
+-- rewrite text. Parents reach that content ONLY through the server-side scrubbed
+-- reader (redactNames, Session 12), so until then they are denied here. Granting
+-- a raw-row SELECT would leak classmate names in `body`/`title` via the anon API.
 
--- Observations are live.
-CREATE POLICY "observations_guardian_read" ON observations FOR SELECT
-  USING (child_id IN (SELECT guardian_child_ids()));
-CREATE POLICY "observation_goals_guardian_read" ON observation_goals FOR SELECT
-  USING (observation_id IN (SELECT id FROM observations WHERE child_id IN (SELECT guardian_child_ids())));
-
--- Checkpoints + ratings: visible only once released.
+-- Checkpoints + ratings: visible only once released (the release IS the
+-- family-facing gate; the teacher's narrative is attached deliberately).
 CREATE POLICY "checkpoints_guardian_read" ON checkpoints FOR SELECT
   USING (released_at IS NOT NULL AND child_id IN (SELECT guardian_child_ids()));
 CREATE POLICY "checkpoint_ratings_guardian_read" ON checkpoint_ratings FOR SELECT

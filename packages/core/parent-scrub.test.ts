@@ -30,6 +30,37 @@ describe('redactNames', () => {
   it('ignores one-letter names (too risky to redact)', () => {
     expect(redactNames('A is for apple', ['A'])).toBe('A is for apple');
   });
+
+  it('redacts a possessive and leaves punctuation', () => {
+    expect(redactNames("Jordan's cup was next to Maya", ['Jordan'])).toBe("a friend's cup was next to Maya");
+    expect(redactNames('Jordan, Maya, and Max played', ['Jordan', 'Max'])).toBe('a friend, Maya, and a friend played');
+  });
+
+  it('replaces every occurrence of a repeated name', () => {
+    expect(redactNames('Jordan and Jordan again', ['Jordan'])).toBe('a friend and a friend again');
+  });
+
+  it('handles regex-special characters in a name (escaped)', () => {
+    expect(redactNames("D'Angelo shared", ["D'Angelo"])).toBe('a friend shared');
+    expect(redactNames('Mary-Kate waved', ['Mary-Kate'])).toBe('a friend waved');
+  });
+
+  it('honors a custom replacement', () => {
+    expect(redactNames('Jordan napped', ['Jordan'], 'another child')).toBe('another child napped');
+  });
+});
+
+describe('ownTaggedOnly edge cases', () => {
+  const rows = [{ childId: 'a' }, { childId: 'b' }];
+  it('empty allowed set → nothing', () => {
+    expect(ownTaggedOnly(rows, (r) => r.childId, new Set())).toEqual([]);
+  });
+  it('empty input → empty', () => {
+    expect(ownTaggedOnly([], (r: { childId: string }) => r.childId, new Set(['a']))).toEqual([]);
+  });
+  it('allowed id not present → nothing kept', () => {
+    expect(ownTaggedOnly(rows, (r) => r.childId, new Set(['zzz']))).toEqual([]);
+  });
 });
 
 describe('ownTaggedOnly', () => {

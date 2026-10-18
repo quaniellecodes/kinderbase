@@ -90,21 +90,22 @@ describe.skipIf(!ready)('parent principal — adversarial access', () => {
     expect(data ?? []).toEqual([]);
   });
 
-  it('name-scrub: a cross-tagged update exposes only the guardian’s own tag row', async () => {
+  it('CANNOT read room updates/observations directly (free-text goes via the scrubbed reader)', async () => {
     const roomOfMine = (await service.from('children').select('classroom_id').eq('id', myChild).single()).data?.classroom_id;
-    const { data: upd } = await service.from('child_updates').insert({ classroom_id: roomOfMine!, update_type: 'milestone', body: 'Tagged to two children' }).select('id').single();
+    // A real update tagged to the guardian's OWN child (plus a classmate) exists —
+    // so the empty results below mean "denied", not "nothing there".
+    const { data: upd } = await service.from('child_updates').insert({ classroom_id: roomOfMine!, update_type: 'milestone', body: 'Napped alongside a classmate' }).select('id').single();
     createdUpdates.push(upd!.id);
     await service.from('child_update_children').insert([
       { update_id: upd!.id, child_id: myChild },
       { update_id: upd!.id, child_id: otherChild },
     ]);
-
-    // Parent sees the update (via their own tag)…
-    const seenUpdate = await parent.from('child_updates').select('id').eq('id', upd!.id);
-    expect(seenUpdate.data?.length).toBe(1);
-    // …but only their own child's tag row — never the other child's.
-    const tags = await parent.from('child_update_children').select('child_id').eq('update_id', upd!.id);
-    expect((tags.data ?? []).map((r) => r.child_id)).toEqual([myChild]);
+    // A raw body can name a classmate and RLS can't rewrite text, so the guardian
+    // gets NO direct read on these free-text tables — the parent feed reaches them
+    // only through the server-side scrubbed reader (redactNames).
+    expect((await parent.from('child_updates').select('id').eq('id', upd!.id)).data ?? []).toEqual([]);
+    expect((await parent.from('child_update_children').select('child_id').eq('update_id', upd!.id)).data ?? []).toEqual([]);
+    expect((await parent.from('observations').select('id').limit(1)).data ?? []).toEqual([]);
   });
 
   it('checkpoint ratings are hidden until released, and never across families', async () => {
@@ -127,8 +128,22 @@ describe.skipIf(!ready)('parent principal — adversarial access', () => {
     expect(visible.has(othersReleased)).toBe(false); // another family, even released → hidden
   });
 
+  it('CANNOT self-publish a checkpoint (set released_at) on its own child', async () => {
+    const fw = (await service.from('frameworks').select('id').limit(1).single()).data!.id;
+    const cp = (await service.from('checkpoints').insert({ child_id: myChild, center_id: myCenter, framework_id: fw, view: 'infant_toddler', period_label: 'Test-selfpub', period_start: '2026-09-01', period_end: '2026-12-01', status: 'locked' }).select('id').single()).data!;
+    createdCheckpoints.push(cp.id);
+    // released_at is the family-visibility switch — a guardian must not flip it.
+    const { data } = await parent.from('checkpoints').update({ released_at: new Date().toISOString() }).eq('id', cp.id).select('id');
+    expect(data ?? []).toEqual([]); // no write policy → RLS refuses
+    const after = (await service.from('checkpoints').select('released_at').eq('id', cp.id).single()).data!;
+    expect(after.released_at).toBeNull();
+  });
+
   it('deny-by-default: no access to staffing/time/score tables', async () => {
     for (const t of ['staff_assignments', 'time_entries', 'teacher_scores'] as const) {
+      // The table HAS rows (seeded), so an empty parent result means denied, not empty.
+      const total = await service.from(t).select('id', { count: 'exact', head: true });
+      expect(total.count ?? 0).toBeGreaterThan(0);
       const { data } = await parent.from(t).select('id').limit(5);
       expect(data ?? []).toEqual([]);
     }

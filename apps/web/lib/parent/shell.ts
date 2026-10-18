@@ -67,6 +67,6 @@ export async function getParentShell(): Promise<ParentShell | null> {
     childCount: p.childIds.length,
     hasStaff,
     emulated: p.emulated,
-    emulatedLabel: p.emulatedLabel ?? null,
+    emulatedLabel: p.emulated ? p.emulatedLabel : null,
   };
 }
