@@ -810,6 +810,52 @@ export type Database = {
           }
         ];
       };
+      emulation_sessions: {
+        Row: {
+          id: string;
+          viewer_id: string;
+          guardian_id: string | null;
+          child_id: string;
+          center_id: string;
+          is_sample: boolean;
+          started_at: string;
+          ended_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          viewer_id: string;
+          guardian_id?: string | null;
+          child_id: string;
+          center_id: string;
+          is_sample?: boolean;
+          started_at?: string;
+          ended_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          viewer_id?: string;
+          guardian_id?: string | null;
+          child_id?: string;
+          center_id?: string;
+          is_sample?: boolean;
+          started_at?: string;
+          ended_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'emulation_sessions_viewer_id_fkey';
+            columns: ['viewer_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'emulation_sessions_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       child_attendance: {
         Row: {
           id: string;

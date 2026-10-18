@@ -134,3 +134,46 @@ describe.skipIf(!ready)('parent principal — adversarial access', () => {
     }
   });
 });
+
+describe.skipIf(!ready)('emulation — permission gate (owner/director only)', () => {
+  let svc: DB;
+  let centerId: string;
+  let childId: string;
+  let ownerEmail = 'owner@sandbox.kb';
+  let teacherEmail = '';
+  const created: string[] = [];
+
+  beforeAll(async () => {
+    svc = createClient<Database>(URL!, SERVICE!, { auth: { persistSession: false } });
+    const dir = await svc.from('center_memberships').select('center_id, users!center_memberships_user_id_fkey(email)').eq('role', 'director').is('left_at', null).limit(1).single();
+    centerId = dir.data!.center_id;
+    const u = Array.isArray(dir.data!.users) ? dir.data!.users[0] : dir.data!.users;
+    ownerEmail = (u as { email: string }).email;
+    childId = (await svc.from('children').select('id').eq('center_id', centerId).eq('is_sample', false).limit(1).single()).data!.id;
+    const teacher = await svc.from('center_memberships').select('users!center_memberships_user_id_fkey(email)').eq('center_id', centerId).in('role', ['lead_teacher', 'assistant_teacher', 'aide']).is('left_at', null).limit(1).single();
+    const tu = Array.isArray(teacher.data!.users) ? teacher.data!.users[0] : teacher.data!.users;
+    teacherEmail = (tu as { email: string }).email;
+  });
+
+  afterAll(async () => {
+    if (created.length) await svc.from('emulation_sessions').delete().in('id', created);
+  });
+
+  it('a director can open an emulation session', async () => {
+    const dir = createClient<Database>(URL!, ANON!, { auth: { persistSession: false } });
+    await dir.auth.signInWithPassword({ email: ownerEmail, password: PASSWORD });
+    const { data, error } = await dir.from('emulation_sessions').insert({ viewer_id: (await dir.auth.getUser()).data.user!.id, center_id: centerId, child_id: childId, is_sample: false }).select('id').single();
+    expect(error).toBeNull();
+    if (data) created.push(data.id);
+    await dir.auth.signOut();
+  });
+
+  it('a non-director (teacher) CANNOT open an emulation session', async () => {
+    const t = createClient<Database>(URL!, ANON!, { auth: { persistSession: false } });
+    await t.auth.signInWithPassword({ email: teacherEmail, password: PASSWORD });
+    const { data, error } = await t.from('emulation_sessions').insert({ viewer_id: (await t.auth.getUser()).data.user!.id, center_id: centerId, child_id: childId, is_sample: false }).select('id');
+    expect(error).not.toBeNull(); // RLS refuses
+    expect(data ?? []).toEqual([]);
+    await t.auth.signOut();
+  });
+});

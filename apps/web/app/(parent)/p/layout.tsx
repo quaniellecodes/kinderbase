@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getParentShell } from '@/lib/parent/shell';
+import { endEmulation } from '@/lib/parent/emulation';
 import { ParentNav } from '@/components/parent/ParentNav';
 
 // The parent app shell (PARENT-DECISIONS §7). Guardian-gated: a non-guardian who
@@ -17,9 +18,18 @@ export default async function ParentLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col" style={{ '--color-brand-rgb': shell.brandRgb } as React.CSSProperties}>
+      {/* Emulation: loudly visible while active, read-only, with an exit (§7c). */}
+      {shell.emulated && (
+        <div className="bg-status-red text-white px-4 py-2 flex items-center justify-between gap-2 flex-shrink-0" style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
+          <span className="text-[12px] font-medium truncate">Viewing as {shell.emulatedLabel} · read-only</span>
+          <form action={endEmulation}>
+            <button type="submit" className="text-[12px] font-semibold underline whitespace-nowrap">Exit</button>
+          </form>
+        </div>
+      )}
       <header
         className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-2.5 flex-shrink-0"
-        style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}
+        style={shell.emulated ? undefined : { paddingTop: 'max(12px, env(safe-area-inset-top))' }}
       >
         {shell.iconUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
