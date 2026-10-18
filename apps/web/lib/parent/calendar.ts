@@ -20,7 +20,7 @@ export async function getParentCalendar(): Promise<ParentCalendar | null> {
   const p = await parentContext();
   if (!p || p.childIds.length === 0) return null;
   const svc = p.service;
-  const { data: child } = await svc.from('children').select('center_id, centers(name)').eq('id', p.childIds[0]!).maybeSingle();
+  const { data: child } = await svc.from('children').select('center_id, centers(name)').eq('id', p.activeChildId).maybeSingle();
   if (!child) return null;
   const centerId = child.center_id;
   const centerName = (Array.isArray(child.centers) ? child.centers[0] : child.centers)?.name ?? '';

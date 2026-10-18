@@ -20,7 +20,7 @@ export async function sendParentMessage(kind: ParentConvKind, body: string): Pro
   const p = await parentContext();
   if (!p || p.childIds.length === 0) throw new Error('Not found');
   assertCanWrite(p); // refuse writes while emulating a family
-  const childId = p.childIds[0]!;
+  const childId = p.activeChildId;
   const svc = p.service;
 
   const { data: child } = await svc.from('children').select('center_id, classroom_id').eq('id', childId).maybeSingle();

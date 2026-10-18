@@ -26,7 +26,7 @@ const KIND_ORDER: ParentConvKind[] = ['family', 'office'];
 export async function getParentMessages(): Promise<ParentMessages | null> {
   const p = await parentContext();
   if (!p || p.childIds.length === 0) return null;
-  const childId = p.childIds[0]!;
+  const childId = p.activeChildId;
   const svc = p.service;
 
   const { data: child } = await svc

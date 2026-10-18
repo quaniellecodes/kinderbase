@@ -20,7 +20,7 @@ export async function getParentProgress(): Promise<ParentProgress | null> {
   const p = await parentContext();
   if (!p || p.childIds.length === 0) return null;
   const svc = p.service;
-  const childId = p.childIds[0]!;
+  const childId = p.activeChildId;
 
   const { data: child } = await svc.from('children').select('first_name, preferred_name, classroom_id').eq('id', childId).maybeSingle();
   if (!child) return null;

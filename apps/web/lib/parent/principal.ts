@@ -1,7 +1,11 @@
 import 'server-only';
+import { cookies } from 'next/headers';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 type Service = ReturnType<typeof createServiceClient>;
+
+/** Cookie holding the guardian's selected child (multi-child switcher). */
+export const ACTIVE_CHILD_COOKIE = 'kb_active_child';
 
 export type GuardianPermission = 'pickup' | 'account' | 'edit_record';
 const GUARDIAN_PERMISSIONS: readonly GuardianPermission[] = ['pickup', 'account', 'edit_record'];
@@ -14,6 +18,8 @@ type ParentBase = {
   userId: string;
   /** Every child this guardian may reach. Parent queries start here and join outward. */
   childIds: string[];
+  /** The selected child (cookie) when valid, else the first — what readers resolve to. */
+  activeChildId: string;
   permissionsByChild: Record<string, GuardianPermission[]>;
 };
 // Discriminated so an emulated principal CANNOT exist without its label — the label
@@ -57,7 +63,7 @@ export async function parentContext(): Promise<ParentPrincipal | null> {
       const { data: g } = await service.from('guardians').select('full_name').eq('id', emu.guardian_id).maybeSingle();
       if (g?.full_name) label = `${g.full_name} · ${first}`;
     }
-    return { service, userId: user.id, childIds: [emu.child_id], permissionsByChild: { [emu.child_id]: ['account'] }, emulated: true, emulatedLabel: label };
+    return { service, userId: user.id, childIds: [emu.child_id], activeChildId: emu.child_id, permissionsByChild: { [emu.child_id]: ['account'] }, emulated: true, emulatedLabel: label };
   }
 
   const { data: rows } = await service.from('guardians').select('child_id, permissions').eq('app_user_id', user.id);
@@ -67,7 +73,11 @@ export async function parentContext(): Promise<ParentPrincipal | null> {
   // union — an unknown value (typo, renamed/removed permission) is dropped here
   // instead of laundering through the type system.
   for (const r of rows) permissionsByChild[r.child_id] = (r.permissions ?? []).filter(isGuardianPermission);
-  return { service, userId: user.id, childIds: Object.keys(permissionsByChild), permissionsByChild, emulated: false };
+  const childIds = Object.keys(permissionsByChild);
+  // The switcher's selected child, if it's still one this guardian may reach.
+  const selected = cookies().get(ACTIVE_CHILD_COOKIE)?.value;
+  const activeChildId = selected && childIds.includes(selected) ? selected : childIds[0]!;
+  return { service, userId: user.id, childIds, activeChildId, permissionsByChild, emulated: false };
 }
 
 /**

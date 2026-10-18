@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getParentShell } from '@/lib/parent/shell';
 import { endEmulation } from '@/lib/parent/emulation';
 import { ParentNav } from '@/components/parent/ParentNav';
+import { ChildSwitcher } from '@/components/parent/ChildSwitcher';
 
 // The parent app shell (PARENT-DECISIONS §7). Guardian-gated: a non-guardian who
 // reaches /p (e.g. a staff-only account) is sent to the staff app rather than
@@ -43,7 +44,11 @@ export default async function ParentLayout({ children }: { children: React.React
         )}
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-gray-900 truncate leading-tight">{shell.centerName}</p>
-          <p className="text-[11px] text-gray-500 truncate">{shell.childName}</p>
+          {shell.childCount > 1 && !shell.emulated ? (
+            <ChildSwitcher children={shell.children} activeId={shell.childId} activeLabel={shell.firstName} />
+          ) : (
+            <p className="text-[11px] text-gray-500 truncate">{shell.childName}</p>
+          )}
         </div>
         {/* Staff-app switch keeps the active context unmistakable for teacher-parents
             (PARENT-DECISIONS §7b); the calendar lives here, top-right, on every tab. */}

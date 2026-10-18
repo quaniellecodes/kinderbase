@@ -1232,10 +1232,10 @@ async function main(): Promise<void> {
     if (!cid) continue;
     const famId = randomUUID();
     const sampleChildId = randomUUID();
-    await db.from('families').insert({ id: famId, display_name: 'Sample Family', is_sample: true });
-    await db.from('children').insert({ id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, family_id: famId, is_sample: true, first_name: 'Sample', last_name: 'Family', birthdate: isoDate(daysAgo(330)), enrolled_at: isoDate(daysAgo(200)), status: 'enrolled', enrollment_status: 'active', tags: [] });
+    await db.from('families').insert({ id: famId, display_name: 'Brooks (Sample)', is_sample: true });
+    await db.from('children').insert({ id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, family_id: famId, is_sample: true, first_name: 'Darius', last_name: 'Brooks', birthdate: isoDate(daysAgo(330)), enrolled_at: isoDate(daysAgo(200)), status: 'enrolled', enrollment_status: 'active', tags: [] });
     await db.from('enrollments').insert({ child_id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, starts_on: isoDate(daysAgo(200)), status: 'sample' });
-    await db.from('guardians').insert({ id: randomUUID(), child_id: sampleChildId, full_name: 'Sample Parent', relationship: 'mother', is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: 'en' });
+    await db.from('guardians').insert({ id: randomUUID(), child_id: sampleChildId, full_name: 'Alicia Brooks', relationship: 'mother', is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: 'en' });
     const sampleUpdates: { type: 'meal' | 'nap' | 'milestone'; body: string; goals: string[] }[] = [
       { type: 'milestone', body: 'Picked up a blueberry with thumb and finger — first pincer grasp!', goals: ['IT-PMP-7'] },
       { type: 'nap', body: 'Napped 12:10–1:30, woke happy.', goals: [] },
@@ -1814,6 +1814,28 @@ async function main(): Promise<void> {
   // messaging author). Login: family.<n>@<domain> / Sandbox!23456.
   for (const gu of guardianUsers) {
     await db.from('guardians').update({ app_user_id: gu.id }).eq('child_id', gu.childId).eq('is_primary', true);
+  }
+
+  // Give the first seeded guardian a SECOND child (a sibling in another room) so the
+  // multi-child switcher has something to switch between. Same family_id → true
+  // siblings; same app_user_id → both resolve from one parent login (family.0).
+  const g0 = guardianUsers[0];
+  const g0child = g0 ? childrenRows.find((c) => c.id === g0.childId) : undefined;
+  const siblingRoom = g0 ? classrooms.find((r) => r.centerIndex === 0 && classroomIds.get(r.key) !== g0.classroomId) : undefined;
+  if (g0 && g0child && siblingRoom) {
+    const siblingRoomId = classroomIds.get(siblingRoom.key)!;
+    const sibTeacher = (rosterByRoom.get(siblingRoom.key) ?? [])[0]?.userId ?? owner.id;
+    const siblingId = randomUUID();
+    await db.from('children').insert({ id: siblingId, center_id: centerIds[0], classroom_id: siblingRoomId, family_id: g0child.family_id, is_sample: false, first_name: 'Mateo', last_name: (g0child.last_name as string) ?? 'Mendez', birthdate: isoDate(daysAgo(42 * 30)), enrolled_at: isoDate(daysAgo(300)), status: 'enrolled', enrollment_status: 'active', tags: [] });
+    await db.from('enrollments').insert({ child_id: siblingId, center_id: centerIds[0], classroom_id: siblingRoomId, starts_on: isoDate(daysAgo(300)), status: 'active' });
+    await db.from('guardians').insert({ id: randomUUID(), child_id: siblingId, full_name: g0.name, relationship: 'mother', email: g0.email, is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: g0.lang, app_user_id: g0.id });
+    for (const u of [
+      { type: 'milestone' as const, body: 'Wrote the first letter of his name all by himself today — beaming about it.' },
+      { type: 'meal' as const, body: 'Ate all of his lunch and asked for seconds of the black beans.' },
+    ]) {
+      const { data: row } = await db.from('child_updates').insert({ classroom_id: siblingRoomId, author_id: sibTeacher, update_type: u.type, body: u.body, goal_codes: [] }).select('id').single();
+      if (row) await db.from('child_update_children').insert({ update_id: row.id, child_id: siblingId });
+    }
   }
 
   const classroomKeyById = new Map<string, string>();

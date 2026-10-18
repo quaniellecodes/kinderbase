@@ -47,7 +47,10 @@ describe.skipIf(!ready)('parent principal — adversarial access', () => {
     });
     rows.sort((a, b) => a.email.localeCompare(b.email));
     const me = rows[0]!;
-    const other = rows.find((r) => r.childId !== me.childId && r.room !== me.room)!;
+    // "Another family" = a DIFFERENT guardian in a different room. (A guardian may
+    // have more than one child, so keying off childId/room alone could pick the
+    // guardian's own sibling — the target must be a different app_user_id.)
+    const other = rows.find((r) => r.userId !== me.userId && r.room !== me.room)!;
     myChild = me.childId;
     myCenter = me.center;
     otherChild = other.childId;

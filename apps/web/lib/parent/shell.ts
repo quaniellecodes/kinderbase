@@ -10,6 +10,7 @@ function hexToRgb(hex: string): string {
   return `${r} ${g} ${b}`;
 }
 
+export type ParentChildOption = { id: string; name: string };
 export type ParentShell = {
   childId: string;
   firstName: string;
@@ -19,6 +20,8 @@ export type ParentShell = {
   brandRgb: string;
   iconUrl: string | null;
   childCount: number;
+  /** All children this guardian may reach, for the switcher (empty while emulating). */
+  children: ParentChildOption[];
   /** This person is also staff somewhere — offer "Switch to staff app". */
   hasStaff: boolean;
   /** Set when a director is emulating this family (Phase 6): read-only, bar shown. */
@@ -28,13 +31,14 @@ export type ParentShell = {
 
 /**
  * The parent shell: the active child + the center's branding (name/logo/colour),
- * same source as kiosk branding (PARENT-DECISIONS §7). v1 shows the first child;
- * multi-child switching is a later feature. Returns null for a non-guardian.
+ * same source as kiosk branding (PARENT-DECISIONS §7). The active child comes from
+ * the switcher cookie (principal.activeChildId); `children` lists all reachable
+ * children for the switcher. Returns null for a non-guardian.
  */
 export async function getParentShell(): Promise<ParentShell | null> {
   const p = await parentContext();
   if (!p || p.childIds.length === 0) return null;
-  const childId = p.childIds[0]!;
+  const childId = p.activeChildId;
   const { data: child } = await p.service
     .from('children')
     .select('first_name, preferred_name, last_name, center_id, centers(name, organizations(primary_color, icon_path))')
@@ -56,6 +60,16 @@ export async function getParentShell(): Promise<ParentShell | null> {
     hasStaff = !!(m && m.length);
   }
 
+  // The switcher's options — every reachable child. Emulation is single-child, so
+  // no switcher there. Ordered by first name for a stable menu.
+  let children: ParentChildOption[] = [];
+  if (!p.emulated && p.childIds.length > 1) {
+    const { data: kids } = await p.service.from('children').select('id, first_name, preferred_name').in('id', p.childIds);
+    children = (kids ?? [])
+      .map((k) => ({ id: k.id, name: k.preferred_name ?? k.first_name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   return {
     childId,
     firstName: first,
@@ -65,6 +79,7 @@ export async function getParentShell(): Promise<ParentShell | null> {
     brandRgb: hexToRgb(color),
     iconUrl: iconPath ? getOrgIconPublicUrl(iconPath) : null,
     childCount: p.childIds.length,
+    children,
     hasStaff,
     emulated: p.emulated,
     emulatedLabel: p.emulated ? p.emulatedLabel : null,
