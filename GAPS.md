@@ -122,6 +122,20 @@ The imported draft was reconciled against an older `main` and understated progre
 - [ ] **Unended break policy** `P1` — auto-close at clock-out, kiosk prompt, or director flag.
 - [~] **Unused-kiosk signal** `S10` — **built then removed at the owner's request** (the "N enrolled, none signed in" heads-up). Declined, not pending. Revisit only if asked.
 
+## 👪 Parent app (Session 11 — `feat/parent-foundation`)
+
+Foundation only; parent *features* (feed/digest, messaging, two-step sign-in, progress, billing) are Session 12+.
+
+- [x] **Child identity & enrollment model** `P0` `S11` `⚠️ LEGAL` — `families`/`enrollments`/`children.family_id` (migration 033, additive; `center_id` kept as mirror). Full backfill; a child is a person in a family, enrollment a dated center relationship.
+- [x] **Parent principal + RLS** `P0` `S11` `⚠️ LEGAL` — `parentContext()` deny-by-default; guardian read policies (034) via SECURITY DEFINER helpers; name-scrub (`redactNames`); checkpoint release gate (`released_at`). **9 adversarial DB tests** prove cross-family denial.
+- [x] **Identity, memberships & context switcher** `P1` `S11` — audited staff↔family switch; reuses `guardians` + `center_memberships` (no generic memberships table).
+- [x] **Parent app shell & branding** `P1` `S11` — `/p` route group, guardian-gated, center branding, 4-tab nav (stubs).
+- [x] **Sample family per center** `P1` `S11` — seeded, admin-only, excluded from every operational count.
+- [x] **Parent view emulation** `P1` `S11` `⚠️ LEGAL` — `emulation_sessions` (035), read-only, director-only, audited; persistent bar + exit; Settings entry.
+- [x] **Staff-parent assessment guard** `P0` `S11` `⚠️ LEGAL` — a guardian-staff is never the assessor of record for their own child; observations/ratings/referrals refused from staff; own-child access logged.
+- [ ] **Remaining emulation entry points** `P2` `S11` — student-profile "View as parent" + mobile People→Students (the engine works for any child; two buttons unwired).
+- [ ] **Parent prototype in repo + DECISIONS reconcile** `P2` `S11` — add `docs/prototypes/kb-parent.html`; fold §11b/§12/§13 into the repo `DECISIONS.md`.
+
 ## 🔒 Legal & data protection
 
 - [x] **Photo consent per child** `P0` `⚠️ LEGAL` — consent captured on the child record. *Enforcement at photo-post time is unverified.*

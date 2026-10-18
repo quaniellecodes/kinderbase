@@ -25,6 +25,22 @@ Living document. Update after every session.
 
 ---
 
+## Session end state (2026-10-18) — Parent foundation (Session 11)
+
+**Branch `feat/parent-foundation`** (stacked on `feat/timelog-demo-polish`; not merged). Foundation only — parent *features* are Session 12+. See [BUILD.md](BUILD.md) Session 11.
+
+- **Identity model (irreversible core):** a child is a person in a `families` row; `enrollments` is the dated, center-scoped relationship. Migrations **033–035** additive; `children.center_id` kept as a denormalized mirror (engine reads attendance by classroom, never center_id). `guardians` IS the guardian-membership (`app_user_id`, `permissions[]`); no generic memberships table.
+- **Parent principal:** `lib/parent/principal.ts` `parentContext()` — deny-by-default, resolves children from `guardians.app_user_id`, starts every parent query from the guardian. RLS guardian read policies use **SECURITY DEFINER** helpers (`guardian_child_ids`/`guardian_update_ids`) to avoid children↔guardians recursion. Name-scrub in `packages/core/parent-scrub.ts`. Checkpoint ratings gated on `checkpoints.released_at` (observations stay live).
+- **Adversarial suite (the deliverable):** `apps/web/lib/parent/parent-access.test.ts` — first DB-integration tests; a real guardian signs in and the DB refuses every cross-family read. `pnpm --filter @kinderbase/web test` (needs `.env.local`). 9/9.
+- **`/p` parent app** (`app/(parent)/p`), guardian-gated, center-branded, 4 stub tabs. Landing router: staff→/dashboard, guardian→/p. **Context switcher** (audited `/api/context/switch`). **Sample family** per center, excluded from operations via `children.is_sample`. **Emulation** (`emulation_sessions`, director-only, read-only, audited) via `lib/parent/emulation.ts` + Settings → "Open sample family". **Staff-parent guard** (`lib/parent/staff-guard.ts`): a guardian-staff is never the assessor of record for their own child.
+- **Try it:** `family.0@sandbox.kb` → parent app; `owner@sandbox.kb` → Settings → Open sample family (emulation); `tiana.washington@sandbox.kb` (lead teacher + guardian of Samuel) → the staff↔family switch + assessment guard. All `/ Sandbox!23456`.
+
+⚠️ **Prod migrations 030–035 are sandbox-only** — `db:link:prod` + `db:push` + regenerate `database.ts` at merge.
+
+**Deferred:** student-profile/mobile emulation entry points; add `docs/prototypes/kb-parent.html` + fold `DECISIONS.md` §11b/§12/§13 into the repo copy; parent features (Session 12+).
+
+---
+
 ## Session end state (2026-10-04) — Director dashboard + Calendar landed on `main`
 
 **Everything is now merged to `main`** (`origin/main` @ the PR #8 merge). The stack (students → mobile track → dashboard+calendar) is fully landed; no long-lived feature branch is in flight.

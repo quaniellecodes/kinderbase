@@ -248,3 +248,17 @@ schema — **no new migration**: `time_entries` (007), `staff_breaks` /
 - [x] Seed: the **last room** is enrolled-but-nobody-signed-in so the grey state + data-quality heads-up are visible; verified in sandbox (8 rooms, 7 occupied, 1 empty-but-enrolled).
 - Verified: tsc clean · 92 core tests · `next build` green · sandbox reseeded.
 - Deferred: no persistent ratio-compliance *log* table exists, so "no children present" is surfaced in the UI (not a stored licensing record); desktop unseeded-center message is light-touch (demo is phone-first).
+
+## Session 11 — Parent foundation: identity, access, shell, emulation (this session)
+
+Branch `feat/parent-foundation` (stacked on `feat/timelog-demo-polish`). Foundation only — parent *features* are Session 12+. Decisions: additive schema (keep `children.center_id` as a mirror; reuse `guardians`), whole session in one branch. Migrations **033–035** applied to **sandbox**; prod `db:push` pending.
+
+- **Phase 1 — identity model** (`033_identity.sql`): `families` + `enrollments` (dated, center-scoped) + `children.family_id`/`children.is_sample` + `guardians.permissions[]`; in-migration backfill (one family + enrollment per child; guardian perms from existing flags). RLS: center-staff OR guardian-of-child. Seed + reset updated. Verified: 48 families + 48 matching enrollments.
+- **Phase 2 — parent principal + RLS + scrub** (`034_parent_access.sql`): `parentContext()` deny-by-default (resolves children from `guardians.app_user_id`, `assertReachable` returns "Not found"); guardian SELECT policies via **SECURITY DEFINER** helpers (`guardian_child_ids`/`guardian_update_ids`) that break the children↔guardians RLS recursion; `checkpoints.released_at` gate (ratings parent-visible only once released); pure `redactNames` scrub (7 tests). **First DB-integration tests**: a real guardian signs in and the DB refuses every cross-family read — **9/9 green**.
+- **Phase 3 — `/p` shell**: `(parent)/p` route group, guardian-gated layout, center branding, 4 stub tabs (Today·Progress·Messages·child); landing router (staff→/dashboard, guardian→/p).
+- **Phase 4 — context switcher**: audited `/api/context/switch`; "Family view" in the staff Sidebar + "Family view" pill / "Staff app" link in `/p`.
+- **Phase 5 — sample family**: admin-only sample child per center with content, excluded via `is_sample` at the `loadRoomInput` chokepoint + count/directory reads. Verified absent from counts.
+- **Phase 6 — emulation** (`035_emulation.sql`): `emulation_sessions` (director-only RLS); effective-principal `parentContext`; read-only bar + Exit; Settings → "Open sample family". Tests: director can open, teacher refused.
+- **Phase 7 — staff-parent guard**: `assertNotOwnChildAssessment` on observations/ratings/referrals (a guardian-staff is never the assessor of record for their own child); own-child staff access logged. Seeded a teacher-parent (`tiana.washington` = lead_teacher + guardian) so the switcher + guard are demoable.
+- Verified: tsc clean · 99 core + 9 parent tests · `next build` green · sandbox reseeded.
+- Deferred: student-profile/mobile emulation entry points; `kb-parent.html` + DECISIONS §11b/§12/§13 into the repo; prod `db:push` of 030–035.
