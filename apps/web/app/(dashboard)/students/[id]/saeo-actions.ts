@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { ageInMonths } from '@kinderbase/types';
 import { studentContext, isEditor } from '../access';
+import { assertNotOwnChildAssessment } from '@/lib/parent/staff-guard';
 import { uploadStudentDocFile, getStudentDocSignedUrl } from '@/lib/storage/student-documents';
 
 export type ElofView = 'infant_toddler' | 'preschool';
@@ -124,6 +125,7 @@ export async function createObservation(childId: string, formData: FormData): Pr
   const ctx = await studentContext(childId);
   if (!ctx) throw new Error('Forbidden');
   const { service, userId, centerId } = ctx;
+  await assertNotOwnChildAssessment(service, userId, childId); // never assess your own child from staff (§7b)
 
   const title = String(formData.get('title') ?? '').trim();
   const body = String(formData.get('body') ?? '').trim();

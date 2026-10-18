@@ -40,7 +40,7 @@ export async function getNewStudentOptions(): Promise<NewStudentOptions> {
     .eq('center_id', centerId)
     .is('deleted_at', null)
     .order('name');
-  const { data: kids } = await service.from('children').select('home_languages, tags').eq('center_id', centerId).is('deleted_at', null);
+  const { data: kids } = await service.from('children').select('home_languages, tags').eq('center_id', centerId).eq('is_sample', false).is('deleted_at', null);
   const langs = new Set<string>(['English', 'Spanish']);
   const tags = new Set<string>();
   for (const k of kids ?? []) {

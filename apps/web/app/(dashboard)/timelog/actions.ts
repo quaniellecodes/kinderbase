@@ -183,7 +183,7 @@ export async function getTimeLog({ date }: { date?: string } = {}): Promise<Time
   const { data: guardians } = guardianIds.length ? await service.from('guardians').select('id, full_name').in('id', guardianIds) : { data: [] as { id: string; full_name: string }[] };
   const guardianName = new Map((guardians ?? []).map((g) => [g.id, g.full_name]));
 
-  const { data: enrolled } = await service.from('children').select('id, first_name, last_name, classroom_id').eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null);
+  const { data: enrolled } = await service.from('children').select('id, first_name, last_name, classroom_id').eq('center_id', centerId).eq('status', 'enrolled').eq('is_sample', false).is('deleted_at', null);
   const hasRow = new Set((att ?? []).map((a) => a.child_id));
 
   const children: ChildLogRow[] = [

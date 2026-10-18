@@ -4,12 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { ageInMonths, childDisplayName, type CenterRole } from '@kinderbase/types';
 import type { Database } from '@kinderbase/types/database';
+import { assertNotOwnChildAssessment } from '@/lib/parent/staff-guard';
 
 type Service = ReturnType<typeof createServiceClient>;
 
 async function checkpointContext(
   cpId: string,
-): Promise<{ service: Service; childId: string; centerId: string; role: CenterRole } | null> {
+): Promise<{ service: Service; childId: string; centerId: string; role: CenterRole; userId: string } | null> {
   const supabase = createClient();
   const {
     data: { user },
@@ -26,7 +27,7 @@ async function checkpointContext(
     .is('left_at', null)
     .maybeSingle();
   if (!m) return null;
-  return { service, childId: cp.child_id, centerId: cp.center_id, role: m.role as CenterRole };
+  return { service, childId: cp.child_id, centerId: cp.center_id, role: m.role as CenterRole, userId: user.id };
 }
 
 function isEditor(role: CenterRole): boolean {
@@ -170,7 +171,8 @@ export async function getCheckpointDetail(cpId: string): Promise<CheckpointDetai
 export async function rateGoal(cpId: string, goalId: string, ratingLevelId: string | null, note: string): Promise<void> {
   const ctx = await checkpointContext(cpId);
   if (!ctx || !isEditor(ctx.role)) throw new Error('Forbidden');
-  const { service, childId } = ctx;
+  const { service, childId, userId } = ctx;
+  await assertNotOwnChildAssessment(service, userId, childId); // never the assessor of record for your own child (§7b)
   const { data: cp } = await service.from('checkpoints').select('status').eq('id', cpId).single();
   if (cp?.status !== 'draft') throw new Error('Checkpoint is locked');
 

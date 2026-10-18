@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { logOwnChildAccess } from '@/lib/parent/staff-guard';
 import {
   childDisplayName,
   ageInMonths,
@@ -89,6 +90,7 @@ export async function getStudentDirectory(centerId: string): Promise<StudentDire
     .from('children')
     .select('id, first_name, last_name, preferred_name, birthdate, classroom_id, enrollment_status, tags')
     .eq('center_id', centerId)
+    .eq('is_sample', false)
     .is('deleted_at', null)
     .order('first_name');
   const children = kids ?? [];
@@ -211,6 +213,10 @@ export async function getStudentHeader(childId: string): Promise<StudentHeader |
     .is('left_at', null)
     .maybeSingle();
   if (!m) return null; // not a member of this student's center
+
+  // A teacher-parent reaching their own child's record from the staff context is
+  // logged (never blocked) — the record belongs in the family context (§7b).
+  await logOwnChildAccess(service, user.id, childId, child.center_id);
 
   const today = todayISO();
   const { data: att } = await service

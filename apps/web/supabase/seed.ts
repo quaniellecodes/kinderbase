@@ -875,6 +875,12 @@ async function main(): Promise<void> {
   type AttInsert = Database['public']['Tables']['child_attendance']['Insert'];
   const childrenRows: ChildInsert[] = [];
   const attendanceRows: AttInsert[] = [];
+  // Identity model (Session 11): a child is a person in a family, enrolled via a
+  // dated center relationship. One family per child here (sibling grouping later).
+  type FamilyInsert = Database['public']['Tables']['families']['Insert'];
+  type EnrollmentInsert = Database['public']['Tables']['enrollments']['Insert'];
+  const familyRows: FamilyInsert[] = [];
+  const enrollmentRows: EnrollmentInsert[] = [];
   const childrenByRoom = new Map<string, { id: string; present: boolean }[]>();
   const presentRosterUserIds = new Set<string>();
   const today = localTodayISO();
@@ -923,14 +929,19 @@ async function main(): Promise<void> {
         bd = d;
         boundaryPlaced = true;
       }
+      const lastName = rng.pick(LAST_NAMES);
+      const enrolledAt = isoDate(daysAgo(rng.int(30, 400)));
+      const familyId = randomUUID();
+      familyRows.push({ id: familyId, display_name: lastName });
       childrenRows.push({
         id,
         center_id: centerIds[room.centerIndex],
         classroom_id: cid,
+        family_id: familyId,
         first_name: rng.pick(FIRST_NAMES),
-        last_name: rng.pick(LAST_NAMES),
+        last_name: lastName,
         birthdate: isoDate(bd),
-        enrolled_at: isoDate(daysAgo(rng.int(30, 400))),
+        enrolled_at: enrolledAt,
         status: 'enrolled',
         // Student-module columns are NOT NULL; set on every row so the batch
         // insert is homogeneous (PostgREST fills omitted keys with NULL, not the
@@ -938,6 +949,7 @@ async function main(): Promise<void> {
         enrollment_status: 'active',
         tags: [],
       });
+      enrollmentRows.push({ child_id: id, center_id: centerIds[room.centerIndex], classroom_id: cid, starts_on: enrolledAt, status: 'active' });
       kids.push({ id, present: false });
     }
 
@@ -1135,6 +1147,7 @@ async function main(): Promise<void> {
       is_primary: true,
       is_emergency: true,
       is_pickup_restricted: false,
+      permissions: ['pickup', 'account', 'edit_record'], // primary guardian
       sort_order: 0,
       preferred_lang: c.id === spanishChildId ? 'es' : 'en',
     });
@@ -1153,6 +1166,7 @@ async function main(): Promise<void> {
         is_primary: false,
         is_emergency: true,
         is_pickup_restricted: false,
+        permissions: ['pickup', 'account'], // secondary guardian: collect + view, not edit
         sort_order: 1,
         preferred_lang: 'en',
       });
@@ -1195,7 +1209,9 @@ async function main(): Promise<void> {
     }
   }
 
+  await insertChunked(db, 'families', familyRows);
   await insertChunked(db, 'children', childrenRows);
+  await insertChunked(db, 'enrollments', enrollmentRows);
   await insertChunked(db, 'child_attendance', attendanceRows);
   await insertChunked(db, 'staff_assignments', assignmentRows);
   await insertChunked(db, 'student_health', healthRows);
@@ -1204,6 +1220,46 @@ async function main(): Promise<void> {
   await insertChunked(db, 'guardians', guardianRows);
   await insertChunked(db, 'authorized_pickups', pickupRows);
   await insertChunked(db, 'student_siblings', siblingRows);
+
+  // ── Sample family per center (docs/PARENT-DECISIONS.md §7c) ──────────────────
+  // An admin-only demo child with realistic content, EXCLUDED from every
+  // operational count (ratios, enrollment, reports, the engine) via
+  // children.is_sample / enrollments.status='sample'. It exists so nobody creates
+  // a fake enrollment to see the parent app (which corrupts the roster).
+  for (let ci = 0; ci < centerIds.length; ci++) {
+    const roomKey = classrooms.find((r) => r.centerIndex === ci)?.key;
+    const cid = roomKey ? classroomIds.get(roomKey) : null;
+    if (!cid) continue;
+    const famId = randomUUID();
+    const sampleChildId = randomUUID();
+    await db.from('families').insert({ id: famId, display_name: 'Sample Family', is_sample: true });
+    await db.from('children').insert({ id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, family_id: famId, is_sample: true, first_name: 'Sample', last_name: 'Family', birthdate: isoDate(daysAgo(330)), enrolled_at: isoDate(daysAgo(200)), status: 'enrolled', enrollment_status: 'active', tags: [] });
+    await db.from('enrollments').insert({ child_id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, starts_on: isoDate(daysAgo(200)), status: 'sample' });
+    await db.from('guardians').insert({ id: randomUUID(), child_id: sampleChildId, full_name: 'Sample Parent', relationship: 'mother', is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: 'en' });
+    const sampleUpdates: { type: 'meal' | 'nap' | 'milestone'; body: string; goals: string[] }[] = [
+      { type: 'milestone', body: 'Picked up a blueberry with thumb and finger — first pincer grasp!', goals: ['IT-PMP-7'] },
+      { type: 'nap', body: 'Napped 12:10–1:30, woke happy.', goals: [] },
+      { type: 'meal', body: 'Finished the full bottle — great appetite.', goals: [] },
+      { type: 'milestone', body: 'Babbled "ba-ba-ba" back and forth during a nappy change.', goals: ['IT-LC-4'] },
+    ];
+    for (const u of sampleUpdates) {
+      const { data: row } = await db.from('child_updates').insert({ classroom_id: cid, author_id: owner.id, update_type: u.type, body: u.body, goal_codes: u.goals }).select('id').single();
+      if (row) await db.from('child_update_children').insert({ update_id: row.id, child_id: sampleChildId });
+    }
+  }
+
+  // ── A teacher who is also a parent (one identity, many memberships, §7b) ─────
+  // Enables the context switcher (Family view) and the staff-parent assessment
+  // guard: the first lead teacher becomes a guardian of a child. Login is their
+  // staff account; "Family view" reaches their child.
+  {
+    const { data: lt } = await db.from('center_memberships').select('user_id, users(full_name)').eq('center_id', centerIds[0]).eq('role', 'lead_teacher').is('left_at', null).limit(1).maybeSingle();
+    const { data: kid } = await db.from('children').select('id').eq('center_id', centerIds[0]).eq('is_sample', false).limit(1).maybeSingle();
+    if (lt && kid) {
+      const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
+      await db.from('guardians').insert({ id: randomUUID(), child_id: kid.id, full_name: (u as { full_name: string } | null)?.full_name ?? 'Teacher Parent', relationship: 'mother', is_primary: false, is_emergency: false, is_pickup_restricted: false, permissions: ['pickup', 'account'], app_user_id: lt.user_id, sort_order: 3, preferred_lang: 'en' });
+    }
+  }
 
   // ── 9c-quater. "All About Me" + attendance schedule ─────────────────────────
   type AboutInsert = Database['public']['Tables']['student_about']['Insert'];
@@ -1721,8 +1777,16 @@ async function main(): Promise<void> {
     }
   });
 
-  // Family threads (center 0). Mint a guardian user per thread.
-  const familyChildren = childrenRows.filter((c) => c.center_id === centerIds[0]).slice(0, 6);
+  // Family threads (center 0). Mint a guardian user per thread. Pick one child per
+  // distinct classroom so the seeded parents land in DIFFERENT rooms — the parent
+  // principal's adversarial tests need a guardian in room A and another in room B.
+  const oneChildPerRoom = new Map<string, ChildInsert>();
+  for (const c of childrenRows) {
+    if (c.center_id === centerIds[0] && c.classroom_id && !oneChildPerRoom.has(c.classroom_id as string)) {
+      oneChildPerRoom.set(c.classroom_id as string, c);
+    }
+  }
+  const familyChildren = [...oneChildPerRoom.values()].slice(0, 6);
   type GuardianUser = { childId: string; classroomId: string; name: string; email: string; lang: string; id: string };
   const guardianUsers: GuardianUser[] = familyChildren.map((c, idx) => {
     const g = guardianRows.find((gr) => gr.child_id === c.id && gr.is_primary);
@@ -1745,6 +1809,12 @@ async function main(): Promise<void> {
     'users',
     guardianUsers.map((gu) => ({ id: gu.id, email: gu.email, full_name: gu.name, role: 'staff' as const, profile_public: false })),
   );
+  // Link each minted guardian user to their guardian row (app_user_id) — this is
+  // the real parent principal that parentContext() resolves from (not just a
+  // messaging author). Login: family.<n>@<domain> / Sandbox!23456.
+  for (const gu of guardianUsers) {
+    await db.from('guardians').update({ app_user_id: gu.id }).eq('child_id', gu.childId).eq('is_primary', true);
+  }
 
   const classroomKeyById = new Map<string, string>();
   classroomIds.forEach((id, key) => classroomKeyById.set(id, key));
@@ -1879,7 +1949,14 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
 
   // Children first, respecting FK order (children.center_id has no cascade;
   // classroom-scoped tables cascade when classrooms are deleted below).
-  if (centerIds.length) await db.from('children').delete().in('center_id', centerIds);
+  // Enrollments cascade from the child delete; families do not (children.family_id
+  // → families), so capture their ids first and remove them after the children.
+  if (centerIds.length) {
+    const { data: famRows } = await db.from('children').select('family_id').in('center_id', centerIds).not('family_id', 'is', null);
+    const familyIds = Array.from(new Set((famRows ?? []).map((c) => c.family_id as string)));
+    await db.from('children').delete().in('center_id', centerIds);
+    if (familyIds.length) await db.from('families').delete().in('id', familyIds);
+  }
   if (classIds.length) await db.from('staffing_patterns').delete().in('classroom_id', classIds);
   if (classIds.length) await db.from('staff_breaks').delete().in('classroom_id', classIds);
   if (centerIds.length) {

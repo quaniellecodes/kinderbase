@@ -649,6 +649,8 @@ export type Database = {
           photo_consent: boolean;
           admin_notes: string | null;
           birthday_visible: boolean;
+          family_id: string | null;
+          is_sample: boolean;
         };
         Insert: {
           id?: string;
@@ -679,6 +681,8 @@ export type Database = {
           photo_consent?: boolean;
           admin_notes?: string | null;
           birthday_visible?: boolean;
+          family_id?: string | null;
+          is_sample?: boolean;
         };
         Update: {
           id?: string;
@@ -709,6 +713,8 @@ export type Database = {
           photo_consent?: boolean;
           admin_notes?: string | null;
           birthday_visible?: boolean;
+          family_id?: string | null;
+          is_sample?: boolean;
         };
         Relationships: [
           {
@@ -721,6 +727,131 @@ export type Database = {
             foreignKeyName: 'children_classroom_id_fkey';
             columns: ['classroom_id'];
             referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'children_family_id_fkey';
+            columns: ['family_id'];
+            referencedRelation: 'families';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      families: {
+        Row: {
+          id: string;
+          display_name: string | null;
+          is_sample: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          display_name?: string | null;
+          is_sample?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          display_name?: string | null;
+          is_sample?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      enrollments: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          classroom_id: string | null;
+          starts_on: string;
+          ends_on: string | null;
+          status: 'active' | 'ended' | 'waitlist' | 'sample';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          classroom_id?: string | null;
+          starts_on: string;
+          ends_on?: string | null;
+          status?: 'active' | 'ended' | 'waitlist' | 'sample';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          classroom_id?: string | null;
+          starts_on?: string;
+          ends_on?: string | null;
+          status?: 'active' | 'ended' | 'waitlist' | 'sample';
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'enrollments_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'enrollments_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'enrollments_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      emulation_sessions: {
+        Row: {
+          id: string;
+          viewer_id: string;
+          guardian_id: string | null;
+          child_id: string;
+          center_id: string;
+          is_sample: boolean;
+          started_at: string;
+          ended_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          viewer_id: string;
+          guardian_id?: string | null;
+          child_id: string;
+          center_id: string;
+          is_sample?: boolean;
+          started_at?: string;
+          ended_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          viewer_id?: string;
+          guardian_id?: string | null;
+          child_id?: string;
+          center_id?: string;
+          is_sample?: boolean;
+          started_at?: string;
+          ended_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'emulation_sessions_viewer_id_fkey';
+            columns: ['viewer_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'emulation_sessions_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
             referencedColumns: ['id'];
           }
         ];
@@ -1125,6 +1256,7 @@ export type Database = {
           invited_at: string | null;
           sort_order: number;
           preferred_lang: string;
+          permissions: string[];
         };
         Insert: {
           id?: string;
@@ -1144,6 +1276,7 @@ export type Database = {
           invited_at?: string | null;
           sort_order?: number;
           preferred_lang?: string;
+          permissions?: string[];
         };
         Update: {
           id?: string;
@@ -1163,6 +1296,7 @@ export type Database = {
           invited_at?: string | null;
           sort_order?: number;
           preferred_lang?: string;
+          permissions?: string[];
         };
         Relationships: [
           {
@@ -1707,6 +1841,8 @@ export type Database = {
           status: 'draft' | 'submitted' | 'locked';
           rated_by: string | null;
           submitted_at: string | null;
+          released_at: string | null;
+          released_by: string | null;
         };
         Insert: {
           id?: string;
@@ -1720,6 +1856,8 @@ export type Database = {
           status?: 'draft' | 'submitted' | 'locked';
           rated_by?: string | null;
           submitted_at?: string | null;
+          released_at?: string | null;
+          released_by?: string | null;
         };
         Update: {
           id?: string;
@@ -1733,6 +1871,8 @@ export type Database = {
           status?: 'draft' | 'submitted' | 'locked';
           rated_by?: string | null;
           submitted_at?: string | null;
+          released_at?: string | null;
+          released_by?: string | null;
         };
         Relationships: [
           {

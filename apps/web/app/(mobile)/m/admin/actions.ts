@@ -68,7 +68,7 @@ export async function getAdminHome(): Promise<AdminHome | null> {
   const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
 
   // Enrolled children (center-wide) for the "Children" stat denominator.
-  const { data: enrolledRows } = await service.from('children').select('id').eq('center_id', centerId).eq('status', 'enrolled').is('deleted_at', null);
+  const { data: enrolledRows } = await service.from('children').select('id').eq('center_id', centerId).eq('status', 'enrolled').eq('is_sample', false).is('deleted_at', null);
   const inputs = await Promise.all(rooms.map((r) => loadRoomInput(r.id, clock, service)));
   const evals: { id: string; name: string; input: RoomInput | null; e: Evaluation | null }[] = rooms.map((r, i) => ({
     id: r.id,

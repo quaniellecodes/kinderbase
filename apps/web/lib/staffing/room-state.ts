@@ -23,17 +23,19 @@ export async function loadRoomInput(classroomId: string, clock: Clock, db?: Serv
   const { data: classroom } = await service.from('classrooms').select('id, center_id').eq('id', classroomId).maybeSingle();
   if (!classroom) return null;
 
-  // Children present now: signed in today, not signed out.
+  // Children present now: signed in today, not signed out. The sample family
+  // (children.is_sample) is EXCLUDED here — this is the one chokepoint that keeps
+  // a demo child out of every ratio, present-count, and engine evaluation.
   const { data: attendance } = await service
     .from('child_attendance')
-    .select('children(id, birthdate)')
+    .select('children(id, birthdate, is_sample)')
     .eq('classroom_id', classroomId)
     .eq('attendance_date', today)
     .not('signed_in_at', 'is', null)
     .is('signed_out_at', null);
   const children: Child[] = (attendance ?? [])
     .map((a) => (Array.isArray(a.children) ? a.children[0] : a.children))
-    .filter((c): c is { id: string; birthdate: string } => !!c)
+    .filter((c): c is { id: string; birthdate: string; is_sample: boolean } => !!c && !c.is_sample)
     .map((c) => ({ id: c.id, dob: new Date(`${c.birthdate}T00:00:00`) }));
 
   // Staff assigned to this room right now.
