@@ -6,6 +6,8 @@ Living document. Update after every session.
 
 ## Source of truth
 - `docs/DECISIONS.md` overrides the original brief wherever they conflict.
+- `docs/PARENT-DECISIONS.md` governs the **family-facing app** (`/p` routes) — it wins over
+  `DECISIONS.md` for parent surfaces. Prototype: `docs/prototypes/kb-parent.html`.
 - `docs/prototypes/kb-full.html` is the executable spec for the **mobile app** (`/m` routes).
   Open it in a browser and match its layout, copy, states, and interactions. Use the persona
   switcher and clock on the right to see every role. Its inline `band()` uses a 12-month cutoff —
