@@ -875,6 +875,12 @@ async function main(): Promise<void> {
   type AttInsert = Database['public']['Tables']['child_attendance']['Insert'];
   const childrenRows: ChildInsert[] = [];
   const attendanceRows: AttInsert[] = [];
+  // Identity model (Session 11): a child is a person in a family, enrolled via a
+  // dated center relationship. One family per child here (sibling grouping later).
+  type FamilyInsert = Database['public']['Tables']['families']['Insert'];
+  type EnrollmentInsert = Database['public']['Tables']['enrollments']['Insert'];
+  const familyRows: FamilyInsert[] = [];
+  const enrollmentRows: EnrollmentInsert[] = [];
   const childrenByRoom = new Map<string, { id: string; present: boolean }[]>();
   const presentRosterUserIds = new Set<string>();
   const today = localTodayISO();
@@ -923,14 +929,19 @@ async function main(): Promise<void> {
         bd = d;
         boundaryPlaced = true;
       }
+      const lastName = rng.pick(LAST_NAMES);
+      const enrolledAt = isoDate(daysAgo(rng.int(30, 400)));
+      const familyId = randomUUID();
+      familyRows.push({ id: familyId, display_name: lastName });
       childrenRows.push({
         id,
         center_id: centerIds[room.centerIndex],
         classroom_id: cid,
+        family_id: familyId,
         first_name: rng.pick(FIRST_NAMES),
-        last_name: rng.pick(LAST_NAMES),
+        last_name: lastName,
         birthdate: isoDate(bd),
-        enrolled_at: isoDate(daysAgo(rng.int(30, 400))),
+        enrolled_at: enrolledAt,
         status: 'enrolled',
         // Student-module columns are NOT NULL; set on every row so the batch
         // insert is homogeneous (PostgREST fills omitted keys with NULL, not the
@@ -938,6 +949,7 @@ async function main(): Promise<void> {
         enrollment_status: 'active',
         tags: [],
       });
+      enrollmentRows.push({ child_id: id, center_id: centerIds[room.centerIndex], classroom_id: cid, starts_on: enrolledAt, status: 'active' });
       kids.push({ id, present: false });
     }
 
@@ -1135,6 +1147,7 @@ async function main(): Promise<void> {
       is_primary: true,
       is_emergency: true,
       is_pickup_restricted: false,
+      permissions: ['pickup', 'account', 'edit_record'], // primary guardian
       sort_order: 0,
       preferred_lang: c.id === spanishChildId ? 'es' : 'en',
     });
@@ -1153,6 +1166,7 @@ async function main(): Promise<void> {
         is_primary: false,
         is_emergency: true,
         is_pickup_restricted: false,
+        permissions: ['pickup', 'account'], // secondary guardian: collect + view, not edit
         sort_order: 1,
         preferred_lang: 'en',
       });
@@ -1195,7 +1209,9 @@ async function main(): Promise<void> {
     }
   }
 
+  await insertChunked(db, 'families', familyRows);
   await insertChunked(db, 'children', childrenRows);
+  await insertChunked(db, 'enrollments', enrollmentRows);
   await insertChunked(db, 'child_attendance', attendanceRows);
   await insertChunked(db, 'staff_assignments', assignmentRows);
   await insertChunked(db, 'student_health', healthRows);
@@ -1879,7 +1895,14 @@ async function resetSandbox(db: Db, orgSlug: string, domain: string, ownerEmail:
 
   // Children first, respecting FK order (children.center_id has no cascade;
   // classroom-scoped tables cascade when classrooms are deleted below).
-  if (centerIds.length) await db.from('children').delete().in('center_id', centerIds);
+  // Enrollments cascade from the child delete; families do not (children.family_id
+  // → families), so capture their ids first and remove them after the children.
+  if (centerIds.length) {
+    const { data: famRows } = await db.from('children').select('family_id').in('center_id', centerIds).not('family_id', 'is', null);
+    const familyIds = Array.from(new Set((famRows ?? []).map((c) => c.family_id as string)));
+    await db.from('children').delete().in('center_id', centerIds);
+    if (familyIds.length) await db.from('families').delete().in('id', familyIds);
+  }
   if (classIds.length) await db.from('staffing_patterns').delete().in('classroom_id', classIds);
   if (classIds.length) await db.from('staff_breaks').delete().in('classroom_id', classIds);
   if (centerIds.length) {
