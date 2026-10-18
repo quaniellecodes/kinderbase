@@ -1248,6 +1248,19 @@ async function main(): Promise<void> {
     }
   }
 
+  // ── A teacher who is also a parent (one identity, many memberships, §7b) ─────
+  // Enables the context switcher (Family view) and the staff-parent assessment
+  // guard: the first lead teacher becomes a guardian of a child. Login is their
+  // staff account; "Family view" reaches their child.
+  {
+    const { data: lt } = await db.from('center_memberships').select('user_id, users(full_name)').eq('center_id', centerIds[0]).eq('role', 'lead_teacher').is('left_at', null).limit(1).maybeSingle();
+    const { data: kid } = await db.from('children').select('id').eq('center_id', centerIds[0]).eq('is_sample', false).limit(1).maybeSingle();
+    if (lt && kid) {
+      const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
+      await db.from('guardians').insert({ id: randomUUID(), child_id: kid.id, full_name: (u as { full_name: string } | null)?.full_name ?? 'Teacher Parent', relationship: 'mother', is_primary: false, is_emergency: false, is_pickup_restricted: false, permissions: ['pickup', 'account'], app_user_id: lt.user_id, sort_order: 3, preferred_lang: 'en' });
+    }
+  }
+
   // ── 9c-quater. "All About Me" + attendance schedule ─────────────────────────
   type AboutInsert = Database['public']['Tables']['student_about']['Insert'];
   type SchedInsert = Database['public']['Tables']['student_schedule']['Insert'];

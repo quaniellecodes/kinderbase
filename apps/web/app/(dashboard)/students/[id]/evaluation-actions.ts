@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { ageInMonths } from '@kinderbase/types';
 import type { Database } from '@kinderbase/types/database';
 import { studentContext, isEditor, orNull } from '../access';
+import { assertNotOwnChildAssessment } from '@/lib/parent/staff-guard';
 import type { ReferralStage } from './evaluation-constants';
 
 export type ReferralInput = { id: string; body: string; author: string; observationCount: number; submittedAt: string };
@@ -115,6 +116,7 @@ export async function createReferral(childId: string, input: { concernSummary: s
   const ctx = await studentContext(childId);
   if (!ctx || !isEditor(ctx.role)) throw new Error('Forbidden');
   const { service, centerId, userId } = ctx;
+  await assertNotOwnChildAssessment(service, userId, childId); // concerns about your own child go through the family conversation, not staff (§7b)
   const { error } = await service.from('referrals').insert({
     child_id: childId,
     center_id: centerId,

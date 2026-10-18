@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { getClock } from '@/lib/clock';
 import { loadRoomInput } from '@/lib/staffing/room-state';
+import { assertNotOwnChildAssessment } from '@/lib/parent/staff-guard';
 import {
   evaluate,
   canStepOut,
@@ -461,6 +462,8 @@ export async function postObservation(classroomId: string, input: { childIds: st
   await assertNotPreview(service, classroomId, userId);
   if (!input.body.trim()) throw new Error('Observation text required');
   if (!input.childIds.length) throw new Error('Tag at least one child');
+  // Never post an observation about your own child from the staff context (§7b).
+  for (const cid of input.childIds) await assertNotOwnChildAssessment(service, userId, cid);
   const { data: update, error } = await service
     .from('child_updates')
     .insert({ classroom_id: classroomId, author_id: userId, update_type: 'milestone', body: input.body.trim(), covering: isAdmin(role), goal_codes: input.goalCodes })
