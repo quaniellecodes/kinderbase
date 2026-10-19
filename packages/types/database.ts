@@ -856,6 +856,76 @@ export type Database = {
           }
         ];
       };
+      change_requests: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          requested_by: string | null;
+          field_key: string;
+          target_id: string | null;
+          label: string;
+          old_value: string | null;
+          new_value: string | null;
+          apply_value: Json | null;
+          severity: string;
+          status: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          requested_by?: string | null;
+          field_key: string;
+          target_id?: string | null;
+          label: string;
+          old_value?: string | null;
+          new_value?: string | null;
+          apply_value?: Json | null;
+          severity?: string;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          requested_by?: string | null;
+          field_key?: string;
+          target_id?: string | null;
+          label?: string;
+          old_value?: string | null;
+          new_value?: string | null;
+          apply_value?: Json | null;
+          severity?: string;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'change_requests_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'change_requests_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       child_absences: {
         Row: {
           id: string;

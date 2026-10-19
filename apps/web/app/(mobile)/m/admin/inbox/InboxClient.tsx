@@ -15,6 +15,7 @@ const KIND: Record<Approval['kind'], { label: string; tone: BadgeTone }> = {
   leave: { label: 'Sick day', tone: 'amber' },
   sched: { label: 'Schedule change', tone: 'blue' },
   plan: { label: 'Lesson plan', tone: 'purple' },
+  profile: { label: 'Profile change', tone: 'sky' },
 };
 const toneCls: Record<BadgeTone, string> = {
   green: 'bg-green-50 text-green-700', amber: 'bg-amber-50 text-amber-700', blue: 'bg-blue-50 text-blue-700', purple: 'bg-indigo-50 text-indigo-700',

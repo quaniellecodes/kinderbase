@@ -1924,6 +1924,15 @@ async function main(): Promise<void> {
 
     // A reported absence (PARENT-DECISIONS §6) so the parent + staff calendar show it.
     await db.from('child_absences').insert({ child_id: g0.childId, center_id: centerIds[0], absent_on: isoDate(daysFromNow(1)), reason: 'sick', note: 'Low fever overnight', reported_by: g0.id });
+
+    // A pending profile-change request (PARENT-DECISIONS §17): the parent proposed a
+    // birthday change (a MAJOR change) — shows the admin approval queue + the parent's
+    // "pending review" badge.
+    const bOld = new Date(`${g0child.birthdate}T12:00:00`);
+    const bNew = new Date(bOld);
+    bNew.setDate(bNew.getDate() + 7);
+    const fmtDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    await db.from('change_requests').insert({ child_id: g0.childId, center_id: centerIds[0], requested_by: g0.id, field_key: 'child.birthdate', target_id: null, label: `${g0child.first_name}'s birthday`, old_value: fmtDay(bOld), new_value: fmtDay(bNew), apply_value: isoDate(bNew), severity: 'major', status: 'pending' });
   }
 
   const classroomKeyById = new Map<string, string>();

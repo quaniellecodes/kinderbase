@@ -1,21 +1,25 @@
 import 'server-only';
-import { parentContext } from './principal';
+import { parentContext, hasPermission } from './principal';
 
 // The Child & guardians tab (docs/PARENT-DECISIONS.md §17 Phase 1: child/guardian
-// info + authorized pickups). Read-only in v1 — a guardian with `edit_record` will
-// get inline editing in a later slice; for now, changes route through the Office
-// line. Everything here is the viewer's OWN family, so no name-scrub is needed.
+// info + authorized pickups). A guardian with `edit_record` may PROPOSE changes
+// (phone, email, birthday, home language, removing a health item) — each files a
+// pending request an admin approves before it applies (see lib/change-requests.ts).
+// Everything here is the viewer's OWN family, so no name-scrub is needed.
 // Admin-only fields (custody notes, pickup restrictions) are deliberately omitted.
 
 export type ChildGuardian = { id: string; name: string; relationship: string; email: string | null; phone: string | null; isPrimary: boolean; canPickup: boolean; canAccount: boolean; isYou: boolean };
 export type ChildPickup = { id: string; name: string; relationship: string | null; phone: string | null };
 export type ChildHealth = { id: string; kind: string; name: string; detail: string | null; severity: string | null };
+/** Open change requests, keyed `${field_key}:${target_id ?? ''}` → the pending badge. */
+export type PendingMap = Record<string, { id: string; label: string; severity: string }>;
 export type ParentChild = {
   childName: string;
   firstName: string;
   room: string;
   ageLabel: string | null;
   birthdayLabel: string | null;
+  birthdateIso: string | null;
   enrollmentStatus: string;
   languages: string[];
   scheduleDays: string[];
@@ -24,6 +28,8 @@ export type ParentChild = {
   guardians: ChildGuardian[];
   pickups: ChildPickup[];
   health: ChildHealth[];
+  canEdit: boolean;
+  pending: PendingMap;
 };
 
 const DOW = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; // ISO: 1=Mon … 7=Sun
@@ -85,12 +91,18 @@ export async function getParentChild(): Promise<ParentChild | null> {
   const dayNums = (sched?.days as { days?: number[] } | null)?.days ?? [];
   const scheduleDays = dayNums.filter((n) => n >= 1 && n <= 7).map((n) => DOW[n]!);
 
+  // Open change requests → the "pending review" badges.
+  const { data: reqs } = await svc.from('change_requests').select('id, field_key, target_id, label, severity').eq('child_id', childId).eq('status', 'pending');
+  const pending: PendingMap = {};
+  for (const r of reqs ?? []) pending[`${r.field_key}:${r.target_id ?? ''}`] = { id: r.id, label: r.label, severity: r.severity };
+
   return {
     childName: `${firstName} ${child.last_name}`.trim(),
     firstName,
     room,
     ageLabel: ageLabel(child.birthdate),
     birthdayLabel,
+    birthdateIso: child.birthdate ?? null,
     enrollmentStatus: child.enrollment_status,
     languages: child.home_languages ?? [],
     scheduleDays,
@@ -99,5 +111,7 @@ export async function getParentChild(): Promise<ParentChild | null> {
     guardians,
     pickups,
     health,
+    canEdit: hasPermission(p, childId, 'edit_record'),
+    pending,
   };
 }
