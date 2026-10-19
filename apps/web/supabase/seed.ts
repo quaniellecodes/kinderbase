@@ -1839,7 +1839,14 @@ async function main(): Promise<void> {
     const g0RoomKey = classrooms.find((r) => classroomIds.get(r.key) === g0.classroomId)?.key;
     const g0Teacher = (g0RoomKey ? rosterByRoom.get(g0RoomKey) ?? [] : [])[0]?.userId ?? owner.id;
     const dayAt = (d: number, h: number): string => { const t = daysAgo(d); t.setHours(h, 0, 0, 0); return t.toISOString(); };
-    const seedRich = async (o: { childId: string; roomId: string; teacherId: string; view: 'infant_toddler' | 'preschool' }) => {
+    // ELOF goal + rating-level lookups so observations/ratings can be tagged (drives
+    // the Progress Areas bars + Journey goal pills). Keep in sync with lib/parent/elof-labels.ts.
+    const usedGoalCodes = ['IT-C 1', 'IT-SE 1', 'IT-PMP 2', 'IT-LC 1', 'IT-PMP 1', 'P-LIT 1', 'P-MATH 1', 'P-ATL 1', 'P-SE 1', 'P-SCI 1'];
+    const { data: goalIdRows } = await db.from('framework_goals').select('id, code').in('code', usedGoalCodes);
+    const goalIdByCode = new Map((goalIdRows ?? []).map((g) => [g.code as string, g.id as string]));
+    const { data: rlRows } = await db.from('rating_levels').select('id, level_number').is('center_id', null);
+    const ratingIdByLevel = new Map((rlRows ?? []).map((r) => [r.level_number as number, r.id as string]));
+    const seedRich = async (o: { childId: string; roomId: string; teacherId: string; view: 'infant_toddler' | 'preschool'; obsGoals: string[]; ratings: { code: string; level: number }[] }) => {
       const infant = o.view === 'infant_toddler';
       const meals = infant
         ? ['Ate most of the sweet potato and all of the pears.', 'Took 5oz at the morning bottle.', 'Tried avocado for the first time — made a face but kept eating!', 'Full lunch today, loved the oatmeal.', 'Good appetite — finished the banana and yogurt.', 'Drank 6oz and settled right down.']
@@ -1873,21 +1880,47 @@ async function main(): Promise<void> {
       addU('incident', incident, dayAt(4, 11));
       await insertChunked(db, 'child_updates', upd);
       await insertChunked(db, 'child_update_children', tags);
-      const obs: RO[] = ot.map((t, i) => ({ child_id: o.childId, classroom_id: o.roomId, center_id: centerIds[0], observed_by: o.teacherId, observed_on: isoDate(daysAgo((i + 1) * 2)), title: t, body: ob[i]! }));
+      type RG = Database['public']['Tables']['observation_goals']['Insert'];
+      const obs: RO[] = ot.map((t, i) => ({ id: randomUUID(), child_id: o.childId, classroom_id: o.roomId, center_id: centerIds[0], observed_by: o.teacherId, observed_on: isoDate(daysAgo((i + 1) * 2)), title: t, body: ob[i]! }));
       await insertChunked(db, 'observations', obs);
+      const ogs: RG[] = [];
+      obs.forEach((row, i) => { const gid = goalIdByCode.get(o.obsGoals[i] ?? ''); if (gid && row.id) ogs.push({ observation_id: row.id, goal_id: gid }); });
+      if (ogs.length) await insertChunked(db, 'observation_goals', ogs);
       if (fw) {
         // Two released checkpoints (upsert so Samuel's existing SAEO 'Fall 2026' draft is released, not duplicated).
-        await db.from('checkpoints').upsert(
-          [
-            { child_id: o.childId, center_id: centerIds[0], framework_id: fw.id, view: o.view, period_label: 'Summer 2026', period_start: isoDate(daysAgo(120)), period_end: isoDate(daysAgo(95)), status: 'locked', rated_by: o.teacherId, submitted_at: daysAgo(110).toISOString(), released_at: daysAgo(108).toISOString(), released_by: owner.id },
-            { child_id: o.childId, center_id: centerIds[0], framework_id: fw.id, view: o.view, period_label: 'Fall 2026', period_start: isoDate(daysAgo(20)), period_end: isoDate(daysFromNow(80)), status: 'locked', rated_by: o.teacherId, submitted_at: daysAgo(12).toISOString(), released_at: daysAgo(10).toISOString(), released_by: owner.id },
-          ],
-          { onConflict: 'child_id,period_label' },
-        );
+        const { data: cpRows } = await db
+          .from('checkpoints')
+          .upsert(
+            [
+              { child_id: o.childId, center_id: centerIds[0], framework_id: fw.id, view: o.view, period_label: 'Summer 2026', period_start: isoDate(daysAgo(120)), period_end: isoDate(daysAgo(95)), status: 'locked', rated_by: o.teacherId, submitted_at: daysAgo(110).toISOString(), released_at: daysAgo(108).toISOString(), released_by: owner.id },
+              { child_id: o.childId, center_id: centerIds[0], framework_id: fw.id, view: o.view, period_label: 'Fall 2026', period_start: isoDate(daysAgo(20)), period_end: isoDate(daysFromNow(80)), status: 'locked', rated_by: o.teacherId, submitted_at: daysAgo(12).toISOString(), released_at: daysAgo(10).toISOString(), released_by: owner.id },
+            ],
+            { onConflict: 'child_id,period_label' },
+          )
+          .select('id, period_label');
+        const fallId = (cpRows ?? []).find((c) => c.period_label === 'Fall 2026')?.id as string | undefined;
+        if (fallId) {
+          type RR = Database['public']['Tables']['checkpoint_ratings']['Insert'];
+          const rrows: RR[] = [];
+          for (const rr of o.ratings) {
+            const gid = goalIdByCode.get(rr.code);
+            const rlid = ratingIdByLevel.get(rr.level);
+            if (gid && rlid) rrows.push({ checkpoint_id: fallId, goal_id: gid, rating_level_id: rlid, rated_at: daysAgo(10).toISOString() });
+          }
+          if (rrows.length) await db.from('checkpoint_ratings').upsert(rrows, { onConflict: 'checkpoint_id,goal_id' });
+        }
       }
     };
-    await seedRich({ childId: g0.childId, roomId: g0.classroomId, teacherId: g0Teacher, view: 'infant_toddler' });
-    await seedRich({ childId: siblingId, roomId: siblingRoomId, teacherId: sibTeacher, view: 'preschool' });
+    await seedRich({
+      childId: g0.childId, roomId: g0.classroomId, teacherId: g0Teacher, view: 'infant_toddler',
+      obsGoals: ['IT-C 1', 'IT-SE 1', 'IT-PMP 2', 'IT-LC 1', 'IT-PMP 1'],
+      ratings: [{ code: 'IT-SE 1', level: 3 }, { code: 'IT-LC 1', level: 2 }, { code: 'IT-C 1', level: 3 }, { code: 'IT-PMP 1', level: 3 }, { code: 'IT-PMP 2', level: 3 }],
+    });
+    await seedRich({
+      childId: siblingId, roomId: siblingRoomId, teacherId: sibTeacher, view: 'preschool',
+      obsGoals: ['P-LIT 1', 'P-MATH 1', 'P-ATL 1', 'P-SE 1', 'P-SCI 1'],
+      ratings: [{ code: 'P-LIT 1', level: 3 }, { code: 'P-MATH 1', level: 3 }, { code: 'P-ATL 1', level: 2 }, { code: 'P-SE 1', level: 3 }, { code: 'P-SCI 1', level: 3 }],
+    });
 
     // A reported absence (PARENT-DECISIONS §6) so the parent + staff calendar show it.
     await db.from('child_absences').insert({ child_id: g0.childId, center_id: centerIds[0], absent_on: isoDate(daysFromNow(1)), reason: 'sick', note: 'Low fever overnight', reported_by: g0.id });
