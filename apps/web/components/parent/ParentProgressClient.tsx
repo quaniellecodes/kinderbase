@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
 import type { ParentProgress, AreaDomain, JourneyEntry } from '@/lib/parent/progress';
@@ -56,13 +58,14 @@ function Areas({ data }: { data: ParentProgress }) {
 
 function AreaCard({ a }: { a: AreaDomain }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-3.5" style={{ borderLeft: `4px solid ${a.colour}` }}>
+    <Link href={`/p/progress/${encodeURIComponent(a.code)}`} className="block bg-white border border-gray-100 rounded-xl p-3.5" style={{ borderLeft: `4px solid ${a.colour}` }}>
       <div className="flex items-center gap-2.5">
         <span className="text-xl flex-shrink-0">{a.icon}</span>
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-gray-900">{a.name}</p>
           <p className="text-[11px] text-gray-400">{a.subtitle}</p>
         </div>
+        <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
       </div>
 
       {a.level != null && (
@@ -82,7 +85,7 @@ function AreaCard({ a }: { a: AreaDomain }) {
       <p className="text-[11px] text-gray-400 mt-1.5">
         {a.momentsThisMonth > 0 ? `${a.momentsThisMonth} moment${a.momentsThisMonth > 1 ? 's' : ''} this month · last ${formatDate(a.lastOn!)}` : 'Nothing written down yet this month'}
       </p>
-    </div>
+    </Link>
   );
 }
 

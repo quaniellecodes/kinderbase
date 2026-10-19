@@ -2,7 +2,7 @@ import 'server-only';
 import { redactNames } from '@kinderbase/core';
 import { getClock } from '@/lib/clock';
 import { parentContext } from './principal';
-import { domainMeta, friendlyGoal } from './elof-labels';
+import { domainMeta, friendlyGoal, isParentGoal, shortStep } from './elof-labels';
 
 // The Progress tab (docs/PARENT-DECISIONS.md §2 + §3c), two views:
 //   • Areas   — which ELOF domains got attention + what she's doing now. The bar is
@@ -197,4 +197,111 @@ export async function getParentProgress(): Promise<ParentProgress | null> {
   const monthsWithUs = enr?.starts_on ? monthsBetween(enr.starts_on, iso(now)) ?? 0 : 0;
 
   return { childFirst, monthsWithUs, momentCount, banner, areas, journey };
+}
+
+// ── Area drill-in (one ELOF domain) ──────────────────────────────────────────
+export type AreaGoal = { id: string; label: string; momentCount: number };
+export type AreaMoment = { id: string; on: string; author: string; body: string; icon: string };
+export type ParentArea = {
+  childFirst: string;
+  domainName: string;
+  subtitle: string;
+  icon: string;
+  colour: string;
+  goals: AreaGoal[];
+  recentMoments: AreaMoment[];
+  momentsThisMonth: number;
+};
+
+async function childView(svc: ReturnType<typeof import('@/lib/supabase/server').createServiceClient>, childId: string): Promise<{ first: string; birthdate: string | null; classroomId: string | null; otherNames: string[]; view: 'infant_toddler' | 'preschool' } | null> {
+  const { data: child } = await svc.from('children').select('first_name, preferred_name, birthdate, classroom_id').eq('id', childId).maybeSingle();
+  if (!child) return null;
+  const { data: roommates } = child.classroom_id
+    ? await svc.from('children').select('first_name, preferred_name').eq('classroom_id', child.classroom_id).neq('id', childId)
+    : { data: [] as { first_name: string; preferred_name: string | null }[] };
+  const otherNames = (roommates ?? []).flatMap((r) => [r.first_name, r.preferred_name]).filter((n): n is string => !!n);
+  const ageMonths = monthsBetween(child.birthdate, iso(getClock().now()));
+  return { first: child.preferred_name ?? child.first_name, birthdate: child.birthdate, classroomId: child.classroom_id, otherNames, view: ageMonths != null && ageMonths < 36 ? 'infant_toddler' : 'preschool' };
+}
+
+export async function getParentArea(domainCode: string): Promise<ParentArea | null> {
+  const p = await parentContext();
+  if (!p || p.childIds.length === 0) return null;
+  const svc = p.service;
+  const c = await childView(svc, p.activeChildId);
+  if (!c) return null;
+
+  const { data: fw } = await svc.from('frameworks').select('id').eq('is_system', true).is('center_id', null).eq('name', 'Head Start Early Learning Outcomes Framework').maybeSingle();
+  if (!fw) return null;
+  const { data: dom } = await svc.from('framework_domains').select('id, code').eq('framework_id', fw.id).eq('view', c.view).eq('code', domainCode).maybeSingle();
+  if (!dom) return null;
+  const meta = domainMeta(dom.code);
+
+  const { data: goalRows } = await svc.from('framework_goals').select('id, code, goal_text, sort_order, framework_subdomains!inner(domain_id)').eq('framework_subdomains.domain_id', dom.id);
+  const domainGoalIds = new Set((goalRows ?? []).map((g) => g.id as string));
+
+  const { data: obsRows } = await svc.from('observations').select('id, body, observed_on, users(full_name)').eq('child_id', p.activeChildId).is('deleted_at', null).order('observed_on', { ascending: false }).limit(60);
+  const obsIds = (obsRows ?? []).map((o) => o.id);
+  const { data: ogRows } = obsIds.length ? await svc.from('observation_goals').select('observation_id, goal_id').in('observation_id', obsIds) : { data: [] as { observation_id: string; goal_id: string }[] };
+  const goalByObs = new Map<string, string>();
+  for (const og of ogRows ?? []) if (!goalByObs.has(og.observation_id)) goalByObs.set(og.observation_id, og.goal_id);
+  const countByGoal = new Map<string, number>();
+  for (const og of ogRows ?? []) if (domainGoalIds.has(og.goal_id)) countByGoal.set(og.goal_id, (countByGoal.get(og.goal_id) ?? 0) + 1);
+
+  const goals: AreaGoal[] = (goalRows ?? [])
+    .filter((g) => isParentGoal(g.code as string) || (countByGoal.get(g.id as string) ?? 0) > 0)
+    .sort((a, b) => (a.sort_order as number) - (b.sort_order as number))
+    .map((g) => ({ id: g.id as string, label: friendlyGoal(g.code as string, g.goal_text as string) ?? (g.code as string), momentCount: countByGoal.get(g.id as string) ?? 0 }));
+
+  const inDomain = (o: { id: string }) => {
+    const gid = goalByObs.get(o.id);
+    return !!gid && domainGoalIds.has(gid);
+  };
+  const recentMoments: AreaMoment[] = (obsRows ?? [])
+    .filter(inDomain)
+    .slice(0, 10)
+    .map((o) => ({ id: o.id, on: o.observed_on, author: (Array.isArray(o.users) ? o.users[0] : o.users)?.full_name ?? 'Staff', body: redactNames(o.body, c.otherNames), icon: meta.icon }));
+  const monthKey = iso(getClock().now()).slice(0, 7);
+  const momentsThisMonth = (obsRows ?? []).filter((o) => inDomain(o) && o.observed_on.slice(0, 7) === monthKey).length;
+
+  return { childFirst: c.first, domainName: meta.name, subtitle: meta.subtitle, icon: meta.icon, colour: meta.colour, goals, recentMoments, momentsThisMonth };
+}
+
+// ── Goal drill-in (one ELOF goal) ────────────────────────────────────────────
+export type GoalMoment = { id: string; on: string; author: string; body: string };
+export type ParentGoal = {
+  childFirst: string;
+  label: string;
+  icon: string;
+  colour: string;
+  domainName: string;
+  steps: string[];
+  observations: GoalMoment[];
+};
+
+export async function getParentGoal(goalId: string): Promise<ParentGoal | null> {
+  const p = await parentContext();
+  if (!p || p.childIds.length === 0) return null;
+  const svc = p.service;
+  const c = await childView(svc, p.activeChildId);
+  if (!c) return null;
+
+  const { data: goal } = await svc.from('framework_goals').select('id, code, goal_text, framework_subdomains(framework_domains(code))').eq('id', goalId).maybeSingle();
+  if (!goal) return null;
+  const sd = Array.isArray(goal.framework_subdomains) ? goal.framework_subdomains[0] : goal.framework_subdomains;
+  const dm = sd ? (Array.isArray(sd.framework_domains) ? sd.framework_domains[0] : sd.framework_domains) : null;
+  const meta = domainMeta(dm?.code ?? '');
+
+  const { data: progs } = await svc.from('goal_progressions').select('descriptor, sort_order').eq('goal_id', goalId).order('sort_order');
+  const steps = (progs ?? []).map((pr) => shortStep(pr.descriptor as string));
+
+  // Observations the active child has for this goal (child-scoped content read).
+  const { data: tagRows } = await svc.from('observation_goals').select('observation_id').eq('goal_id', goalId);
+  const taggedIds = (tagRows ?? []).map((r) => r.observation_id);
+  const { data: obs } = taggedIds.length
+    ? await svc.from('observations').select('id, body, observed_on, users(full_name)').eq('child_id', p.activeChildId).in('id', taggedIds).is('deleted_at', null).order('observed_on', { ascending: false })
+    : { data: [] as { id: string; body: string; observed_on: string; users: { full_name: string } | { full_name: string }[] | null }[] };
+  const observations: GoalMoment[] = (obs ?? []).map((o) => ({ id: o.id, on: o.observed_on, author: (Array.isArray(o.users) ? o.users[0] : o.users)?.full_name ?? 'Staff', body: redactNames(o.body, c.otherNames) }));
+
+  return { childFirst: c.first, label: friendlyGoal(goal.code as string, goal.goal_text as string) ?? (goal.code as string), icon: meta.icon, colour: meta.colour, domainName: meta.name, steps, observations };
 }
