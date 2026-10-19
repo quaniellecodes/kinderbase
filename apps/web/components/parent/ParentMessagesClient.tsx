@@ -17,9 +17,9 @@ const META: Record<ParentConvKind, { label: string; disclosure: string }> = {
 // director) and the Office line (admins only). Mirrors the staff chat, but the
 // guardian is "mine" (right-aligned). Realtime works because the guardian is a
 // thread_members row (RLS lets their browser client see INSERTs).
-export function ParentMessagesClient({ data }: { data: ParentMessages }) {
+export function ParentMessagesClient({ data, initialKind = 'family' }: { data: ParentMessages; initialKind?: ParentConvKind }) {
   const router = useRouter();
-  const [active, setActive] = useState<ParentConvKind>('family');
+  const [active, setActive] = useState<ParentConvKind>(data.conversations.some((c) => c.kind === initialKind) ? initialKind : 'family');
   const [draft, setDraft] = useState<Record<ParentConvKind, string>>({ family: '', office: '' });
   const [pending, start] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);

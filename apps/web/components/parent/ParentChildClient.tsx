@@ -180,7 +180,7 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
         </div>
       </section>
 
-      <Link href="/p/messages" className="flex items-center justify-center gap-2 text-[13px] font-semibold text-brand bg-brand/10 rounded-xl py-3">
+      <Link href="/p/messages?tab=office" className="flex items-center justify-center gap-2 text-[13px] font-semibold text-brand bg-brand/10 rounded-xl py-3">
         <MessageSquare className="w-4 h-4" />
         Need to update something else? Message the office
       </Link>
