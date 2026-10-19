@@ -1232,10 +1232,10 @@ async function main(): Promise<void> {
     if (!cid) continue;
     const famId = randomUUID();
     const sampleChildId = randomUUID();
-    await db.from('families').insert({ id: famId, display_name: 'Sample Family', is_sample: true });
-    await db.from('children').insert({ id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, family_id: famId, is_sample: true, first_name: 'Sample', last_name: 'Family', birthdate: isoDate(daysAgo(330)), enrolled_at: isoDate(daysAgo(200)), status: 'enrolled', enrollment_status: 'active', tags: [] });
+    await db.from('families').insert({ id: famId, display_name: 'Brooks (Sample)', is_sample: true });
+    await db.from('children').insert({ id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, family_id: famId, is_sample: true, first_name: 'Darius', last_name: 'Brooks', birthdate: isoDate(daysAgo(330)), enrolled_at: isoDate(daysAgo(200)), status: 'enrolled', enrollment_status: 'active', tags: [] });
     await db.from('enrollments').insert({ child_id: sampleChildId, center_id: centerIds[ci], classroom_id: cid, starts_on: isoDate(daysAgo(200)), status: 'sample' });
-    await db.from('guardians').insert({ id: randomUUID(), child_id: sampleChildId, full_name: 'Sample Parent', relationship: 'mother', is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: 'en' });
+    await db.from('guardians').insert({ id: randomUUID(), child_id: sampleChildId, full_name: 'Alicia Brooks', relationship: 'mother', is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: 'en' });
     const sampleUpdates: { type: 'meal' | 'nap' | 'milestone'; body: string; goals: string[] }[] = [
       { type: 'milestone', body: 'Picked up a blueberry with thumb and finger — first pincer grasp!', goals: ['IT-PMP-7'] },
       { type: 'nap', body: 'Napped 12:10–1:30, woke happy.', goals: [] },
@@ -1816,6 +1816,135 @@ async function main(): Promise<void> {
     await db.from('guardians').update({ app_user_id: gu.id }).eq('child_id', gu.childId).eq('is_primary', true);
   }
 
+  // Give the first seeded guardian a SECOND child (a sibling in another room) so the
+  // multi-child switcher has something to switch between. Same family_id → true
+  // siblings; same app_user_id → both resolve from one parent login (family.0).
+  const g0 = guardianUsers[0];
+  const g0child = g0 ? childrenRows.find((c) => c.id === g0.childId) : undefined;
+  const siblingRoom = g0 ? classrooms.find((r) => r.centerIndex === 0 && classroomIds.get(r.key) !== g0.classroomId) : undefined;
+  if (g0 && g0child && siblingRoom) {
+    const siblingRoomId = classroomIds.get(siblingRoom.key)!;
+    const sibTeacher = (rosterByRoom.get(siblingRoom.key) ?? [])[0]?.userId ?? owner.id;
+    const siblingId = randomUUID();
+    await db.from('children').insert({ id: siblingId, center_id: centerIds[0], classroom_id: siblingRoomId, family_id: g0child.family_id, is_sample: false, first_name: 'Mateo', last_name: (g0child.last_name as string) ?? 'Mendez', birthdate: isoDate(daysAgo(42 * 30)), enrolled_at: isoDate(daysAgo(300)), status: 'enrolled', enrollment_status: 'active', tags: [] });
+    await db.from('enrollments').insert({ child_id: siblingId, center_id: centerIds[0], classroom_id: siblingRoomId, starts_on: isoDate(daysAgo(300)), status: 'active' });
+    await db.from('guardians').insert({ id: randomUUID(), child_id: siblingId, full_name: g0.name, relationship: 'mother', email: g0.email, is_primary: true, is_emergency: true, is_pickup_restricted: false, permissions: ['pickup', 'account', 'edit_record'], sort_order: 0, preferred_lang: g0.lang, app_user_id: g0.id });
+    // Rich, multi-day feed + progress for BOTH Mendez children so the demo family has
+    // a full history to scroll and switch between (Samuel = infant view, Mateo =
+    // preschool view): 14 days of care + milestones, observations, released checkpoints.
+    type RU = Database['public']['Tables']['child_updates']['Insert'];
+    type RT = Database['public']['Tables']['child_update_children']['Insert'];
+    type RO = Database['public']['Tables']['observations']['Insert'];
+    const { data: fw } = await db.from('frameworks').select('id').eq('is_system', true).is('center_id', null).eq('name', 'Head Start Early Learning Outcomes Framework').maybeSingle();
+    const g0RoomKey = classrooms.find((r) => classroomIds.get(r.key) === g0.classroomId)?.key;
+    const g0Teacher = (g0RoomKey ? rosterByRoom.get(g0RoomKey) ?? [] : [])[0]?.userId ?? owner.id;
+    const dayAt = (d: number, h: number): string => { const t = daysAgo(d); t.setHours(h, 0, 0, 0); return t.toISOString(); };
+    // ELOF goal + rating-level lookups so observations/ratings can be tagged (drives
+    // the Progress Areas bars + Journey goal pills). Keep in sync with lib/parent/elof-labels.ts.
+    const usedGoalCodes = ['IT-C 1', 'IT-SE 1', 'IT-PMP 2', 'IT-LC 1', 'IT-PMP 1', 'P-LIT 1', 'P-MATH 1', 'P-ATL 1', 'P-SE 1', 'P-SCI 1'];
+    const { data: goalIdRows } = await db.from('framework_goals').select('id, code').in('code', usedGoalCodes);
+    const goalIdByCode = new Map((goalIdRows ?? []).map((g) => [g.code as string, g.id as string]));
+    const { data: rlRows } = await db.from('rating_levels').select('id, level_number').is('center_id', null);
+    const ratingIdByLevel = new Map((rlRows ?? []).map((r) => [r.level_number as number, r.id as string]));
+    const seedRich = async (o: { childId: string; roomId: string; teacherId: string; view: 'infant_toddler' | 'preschool'; obsGoals: string[]; ratings: { code: string; level: number }[] }) => {
+      const infant = o.view === 'infant_toddler';
+      const meals = infant
+        ? ['Ate most of the sweet potato and all of the pears.', 'Took 5oz at the morning bottle.', 'Tried avocado for the first time — made a face but kept eating!', 'Full lunch today, loved the oatmeal.', 'Good appetite — finished the banana and yogurt.', 'Drank 6oz and settled right down.']
+        : ['Great appetite — finished the chicken and the broccoli.', 'Tried mango at snack and loved it.', 'Ate half his lunch, more interested in chatting with friends.', 'Finished all his rice and beans and asked for water.', 'Enjoyed the apple slices and cheese at snack.', 'Ate well and cleared his own plate.'];
+      const naps = infant
+        ? ['Napped 9:45–10:40 and again 1:10–2:30.', 'One long nap 12:30–2:15, woke up smiling.', 'Short morning nap, longer afternoon one.', 'Slept 12:40–2:00, easy to settle.']
+        : ['Rested quietly on his cot but stayed awake.', 'Napped 1:00–2:20.', 'Quiet rest time, looked at books on his cot.', 'Slept 12:50–2:10.'];
+      const ms = infant
+        ? ['Pulled up to standing at the activity table and held on for almost a minute!', 'First clear “mama” — said it twice during morning circle.', 'Transferred a block from one hand to the other, studying it closely.', 'Clapped along to the goodbye song today.', 'Took two wobbly steps holding the couch — so close to walking!', 'Waved bye-bye to his friends at pickup.']
+        : ['Counted to 20 without skipping a number during line-up.', 'Zipped his own jacket for the first time!', 'Built a tall tower, then a “bridge” for the cars — lots of planning.', 'Shared the markers without a reminder: “you can have the blue one.”', 'Recognized his written name on his cubby and read it out loud.', 'Hopped on one foot five times in a row at gross-motor time.'];
+      const ot = infant
+        ? ['Cause and effect', 'Social referencing', 'Fine motor', 'Language', 'Gross motor']
+        : ['Emergent writing', 'Number sense', 'Self-regulation', 'Cooperative play', 'Scientific thinking'];
+      const ob = infant
+        ? ['Dropped a ball from the high chair and watched it roll, then looked to me to fetch it — a dozen times over. Early understanding that his actions make things happen.', 'When a new visitor arrived, he checked his teacher’s face before deciding to smile — using us as a secure base.', 'Worked his pincer grasp picking up puffs one at a time for a whole snack.', 'Babbled a long “ba-da-ba-da” string with real conversational rhythm during tummy time.', 'Cruised the full length of the activity table sideways, both hands, confident and proud.']
+        : ['Formed the letter M several times on the whiteboard and told me “that’s for Mateo.” Connecting letters to meaning.', 'Counted out exactly five cups at the snack table, one for each friend — solid one-to-one correspondence.', 'Frustrated when his tower fell, he took a breath at the calm corner on his own and went back to try again.', 'Led a group “restaurant” game, assigning roles and taking orders — rich pretend play and language.', 'Predicted which objects would sink or float at the water table and tested each one, delighted when the cork surprised him.'];
+      const incident = infant ? 'Small bump on the forehead on the play mat — iced it, all smiles after. Incident report sent home.' : 'Scraped his knee on the playground — cleaned and bandaged, back to playing. Incident report sent home.';
+      const upd: RU[] = [];
+      const tags: RT[] = [];
+      const addU = (type: RU['update_type'], body: string, at: string) => {
+        const id = randomUUID();
+        upd.push({ id, classroom_id: o.roomId, author_id: o.teacherId, update_type: type, body, created_at: at, goal_codes: [] });
+        tags.push({ update_id: id, child_id: o.childId });
+      };
+      for (let d = 0; d < 14; d++) {
+        addU('meal', meals[(d * 2) % meals.length]!, dayAt(d, 9));
+        addU('meal', meals[(d * 2 + 1) % meals.length]!, dayAt(d, 12));
+        addU('nap', naps[d % naps.length]!, dayAt(d, 14));
+        if (d % 2 === 0 && d / 2 < ms.length) addU('milestone', ms[d / 2]!, dayAt(d, 15));
+      }
+      addU('incident', incident, dayAt(4, 11));
+      await insertChunked(db, 'child_updates', upd);
+      await insertChunked(db, 'child_update_children', tags);
+      type RG = Database['public']['Tables']['observation_goals']['Insert'];
+      const obs: RO[] = ot.map((t, i) => ({ id: randomUUID(), child_id: o.childId, classroom_id: o.roomId, center_id: centerIds[0], observed_by: o.teacherId, observed_on: isoDate(daysAgo((i + 1) * 2)), title: t, body: ob[i]! }));
+      await insertChunked(db, 'observations', obs);
+      const ogs: RG[] = [];
+      obs.forEach((row, i) => { const gid = goalIdByCode.get(o.obsGoals[i] ?? ''); if (gid && row.id) ogs.push({ observation_id: row.id, goal_id: gid }); });
+      if (ogs.length) await insertChunked(db, 'observation_goals', ogs);
+      if (fw) {
+        // Two released checkpoints (upsert so Samuel's existing SAEO 'Fall 2026' draft is released, not duplicated).
+        const { data: cpRows } = await db
+          .from('checkpoints')
+          .upsert(
+            [
+              { child_id: o.childId, center_id: centerIds[0], framework_id: fw.id, view: o.view, period_label: 'Summer 2026', period_start: isoDate(daysAgo(120)), period_end: isoDate(daysAgo(95)), status: 'locked', rated_by: o.teacherId, submitted_at: daysAgo(110).toISOString(), released_at: daysAgo(108).toISOString(), released_by: owner.id },
+              { child_id: o.childId, center_id: centerIds[0], framework_id: fw.id, view: o.view, period_label: 'Fall 2026', period_start: isoDate(daysAgo(20)), period_end: isoDate(daysFromNow(80)), status: 'locked', rated_by: o.teacherId, submitted_at: daysAgo(12).toISOString(), released_at: daysAgo(10).toISOString(), released_by: owner.id },
+            ],
+            { onConflict: 'child_id,period_label' },
+          )
+          .select('id, period_label');
+        const fallId = (cpRows ?? []).find((c) => c.period_label === 'Fall 2026')?.id as string | undefined;
+        if (fallId) {
+          type RR = Database['public']['Tables']['checkpoint_ratings']['Insert'];
+          const rrows: RR[] = [];
+          for (const rr of o.ratings) {
+            const gid = goalIdByCode.get(rr.code);
+            const rlid = ratingIdByLevel.get(rr.level);
+            if (gid && rlid) rrows.push({ checkpoint_id: fallId, goal_id: gid, rating_level_id: rlid, rated_at: daysAgo(10).toISOString() });
+          }
+          if (rrows.length) await db.from('checkpoint_ratings').upsert(rrows, { onConflict: 'checkpoint_id,goal_id' });
+        }
+      }
+    };
+    await seedRich({
+      childId: g0.childId, roomId: g0.classroomId, teacherId: g0Teacher, view: 'infant_toddler',
+      obsGoals: ['IT-C 1', 'IT-SE 1', 'IT-PMP 2', 'IT-LC 1', 'IT-PMP 1'],
+      ratings: [{ code: 'IT-SE 1', level: 3 }, { code: 'IT-LC 1', level: 2 }, { code: 'IT-C 1', level: 3 }, { code: 'IT-PMP 1', level: 3 }, { code: 'IT-PMP 2', level: 3 }],
+    });
+    await seedRich({
+      childId: siblingId, roomId: siblingRoomId, teacherId: sibTeacher, view: 'preschool',
+      obsGoals: ['P-LIT 1', 'P-MATH 1', 'P-ATL 1', 'P-SE 1', 'P-SCI 1'],
+      ratings: [{ code: 'P-LIT 1', level: 3 }, { code: 'P-MATH 1', level: 3 }, { code: 'P-ATL 1', level: 2 }, { code: 'P-SE 1', level: 3 }, { code: 'P-SCI 1', level: 3 }],
+    });
+
+    // A reported absence (PARENT-DECISIONS §6) so the parent + staff calendar show it.
+    await db.from('child_absences').insert({ child_id: g0.childId, center_id: centerIds[0], absent_on: isoDate(daysFromNow(1)), reason: 'sick', note: 'Low fever overnight', reported_by: g0.id });
+
+    // A pending profile-change request (PARENT-DECISIONS §17): the parent proposed a
+    // birthday change (a MAJOR change) — shows the admin approval queue + the parent's
+    // "pending review" badge.
+    const bOld = new Date(`${g0child.birthdate}T12:00:00`);
+    const bNew = new Date(bOld);
+    bNew.setDate(bNew.getDate() + 7);
+    const fmtDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    await db.from('change_requests').insert({ child_id: g0.childId, center_id: centerIds[0], requested_by: g0.id, field_key: 'child.birthdate', target_id: null, label: `${g0child.first_name}'s birthday`, old_value: fmtDay(bOld), new_value: fmtDay(bNew), apply_value: isoDate(bNew), severity: 'major', status: 'pending' });
+    // And a pending "add an authorized pickup" (family-level — applies to both siblings).
+    const pickupName = `Rosa ${g0child.last_name ?? 'Mendez'}`.trim();
+    await db.from('change_requests').insert({ child_id: g0.childId, center_id: centerIds[0], requested_by: g0.id, field_key: 'pickup.add', target_id: null, label: `Add pickup: ${pickupName}`, old_value: null, new_value: `${pickupName} · Grandmother · 410-555-0188`, apply_value: { full_name: pickupName, relationship: 'Grandmother', phone: '410-555-0188' }, apply_to_all: true, severity: 'major', status: 'pending' });
+
+    // Two already-approved pickups to demo the EDIT flow: one authorized on a single
+    // child (no "apply to all" when you edit them) and one shared across both siblings
+    // (the "update on all children" checkbox appears).
+    const surname = g0child.last_name ?? 'Mendez';
+    await db.from('authorized_pickups').insert({ child_id: g0.childId, full_name: `James ${surname}`, relationship: 'Uncle', phone: '410-555-0170' });
+    await db.from('authorized_pickups').insert([g0.childId, siblingId].map((cid) => ({ child_id: cid, full_name: `Luis ${surname}`, relationship: 'Grandfather', phone: '410-555-0161' })));
+  }
+
   const classroomKeyById = new Map<string, string>();
   classroomIds.forEach((id, key) => classroomKeyById.set(id, key));
   guardianUsers.forEach((gu, idx) => {
@@ -1843,6 +1972,18 @@ async function main(): Promise<void> {
     } else {
       addMsg(threadId, teacherId, 'Great day today — lots of block building and a big appetite at lunch. 🧱', hoursAgo(7), 'en');
       if (idx % 2 === 0) addMsg(threadId, gu.id, 'Love to hear it, thank you!', hoursAgo(6), 'en');
+    }
+
+    // Office line (kind='office'): a private channel to management, no teachers.
+    // Guardian is a member; admins reach it via RLS. One per child (student_id,kind).
+    const officeThreadId = randomUUID();
+    threadRows.push({ id: officeThreadId, center_id: centerIds[0], kind: 'office', classroom_id: null, student_id: gu.childId, title: null });
+    threadMemberRows.push({ thread_id: officeThreadId, user_id: gu.id, role: 'guardian', last_read_at: null });
+    if (idx === 0) {
+      // The Spanish family: office also translates both ways (director EN → stored ES).
+      const oe = 'Hi Yolanda — this is the front office. You can reach us here anytime about billing, schedules, or paperwork.';
+      const om = addMsg(officeThreadId, owner.id, oe, hoursAgo(20), 'en');
+      translationRows.push({ message_id: om, lang: 'es', body: 'Hola Yolanda — le escribe la oficina. Puede comunicarse con nosotros aquí en cualquier momento sobre facturación, horarios o documentación.' });
     }
   });
 

@@ -26,6 +26,7 @@ const APPROVAL_ICON: Record<ApprovalLite['kind'], { icon: typeof Clock; bg: stri
   leave: { icon: Calendar, bg: 'bg-amber-50', fg: 'text-status-amber', label: 'Leave' },
   sched: { icon: Calendar, bg: 'bg-blue-50', fg: 'text-blue-600', label: 'Schedule change' },
   plan: { icon: FileText, bg: 'bg-indigo-50', fg: 'text-indigo-600', label: 'Lesson plan' },
+  profile: { icon: FileText, bg: 'bg-sky-50', fg: 'text-sky-600', label: 'Profile change' },
 };
 
 export function AdminHomeClient({ data }: { data: AdminHome }) {

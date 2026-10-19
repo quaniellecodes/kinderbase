@@ -1,8 +1,11 @@
+import Link from 'next/link';
+import { CalendarDays } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getParentShell } from '@/lib/parent/shell';
 import { endEmulation } from '@/lib/parent/emulation';
 import { ParentNav } from '@/components/parent/ParentNav';
+import { ChildSwitcher } from '@/components/parent/ChildSwitcher';
 
 // The parent app shell (PARENT-DECISIONS §7). Guardian-gated: a non-guardian who
 // reaches /p (e.g. a staff-only account) is sent to the staff app rather than
@@ -41,14 +44,21 @@ export default async function ParentLayout({ children }: { children: React.React
         )}
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-gray-900 truncate leading-tight">{shell.centerName}</p>
-          <p className="text-[11px] text-gray-500 truncate">{shell.childName}</p>
+          {shell.childCount > 1 && !shell.emulated ? (
+            <ChildSwitcher options={shell.children} activeId={shell.childId} activeLabel={shell.firstName} />
+          ) : (
+            <p className="text-[11px] text-gray-500 truncate">{shell.childName}</p>
+          )}
         </div>
-        {/* The active context must be unmistakable (PARENT-DECISIONS §7b). */}
+        {/* Staff-app switch keeps the active context unmistakable for teacher-parents
+            (PARENT-DECISIONS §7b); the calendar lives here, top-right, on every tab. */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[10px] font-semibold text-brand bg-brand/10 rounded-full px-2 py-0.5">Family view</span>
           {shell.hasStaff && (
             <a href="/api/context/switch?to=staff" className="text-[11px] font-semibold text-gray-500 whitespace-nowrap">Staff&nbsp;app&nbsp;›</a>
           )}
+          <Link href="/p/calendar" aria-label="Center calendar" className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500">
+            <CalendarDays className="w-4 h-4" />
+          </Link>
         </div>
       </header>
 

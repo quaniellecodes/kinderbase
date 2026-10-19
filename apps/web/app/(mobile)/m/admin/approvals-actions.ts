@@ -6,6 +6,7 @@ import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { getClock } from '@/lib/clock';
 import { formatWeekOf } from '@/lib/format';
 import { isAdmin } from '@kinderbase/types';
+import { applyChangeRequest } from '@/lib/change-requests';
 
 type Service = ReturnType<typeof createServiceClient>;
 
@@ -21,7 +22,7 @@ async function requireAdmin(): Promise<{ service: Service; centerId: string; use
 
 export type Approval = {
   id: string;
-  kind: 'time' | 'leave' | 'sched' | 'plan';
+  kind: 'time' | 'leave' | 'sched' | 'plan' | 'profile';
   who: string;
   when: string;
   title: string;
@@ -93,7 +94,31 @@ export async function getApprovals(): Promise<Approval[]> {
       return { id: `plan:${p.id}`, kind: 'plan', who: u?.full_name ?? 'Lead', when: p.submitted_at ?? '', title: `Lesson plan · ${(room as { name: string } | null)?.name ?? ''}`, detail: `${formatWeekOf(p.week_of)} · ${u?.full_name ?? 'Lead'}`, meta: undefined };
     });
 
-  return [...planApprovals, ...reqApprovals];
+  // Parent-proposed profile changes (family app) — surfaced here so the existing
+  // approvals count/badge is the admin's notification.
+  const { data: changes } = await service
+    .from('change_requests')
+    .select('id, label, old_value, new_value, severity, apply_to_all, created_at, children(first_name, preferred_name, last_name), users!change_requests_requested_by_fkey(full_name)')
+    .eq('center_id', centerId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  const profileApprovals: Approval[] = (changes ?? []).map((r) => {
+    const ch = Array.isArray(r.children) ? r.children[0] : r.children;
+    const u = Array.isArray(r.users) ? r.users[0] : r.users;
+    const childName = ch ? `${(ch as { preferred_name: string | null; first_name: string }).preferred_name ?? (ch as { first_name: string }).first_name} ${(ch as { last_name: string }).last_name}`.trim() : 'Child';
+    const scopeNote = r.apply_to_all ? 'Applies to all their children' : undefined;
+    return {
+      id: `profile:${r.id}`,
+      kind: 'profile',
+      who: u?.full_name ?? 'Parent',
+      when: r.created_at ?? '',
+      title: `${childName} · ${r.label}`,
+      detail: `${r.old_value ?? '—'} → ${r.new_value ?? 'Remove'}`,
+      meta: [r.severity === 'major' ? 'Major change — review carefully' : null, scopeNote].filter(Boolean).join(' · ') || undefined,
+    };
+  });
+
+  return [...profileApprovals, ...planApprovals, ...reqApprovals];
 }
 
 export async function resolveApproval(id: string, decision: 'approved' | 'rejected' | 'returned', comment?: string): Promise<void> {
@@ -117,6 +142,26 @@ export async function resolveApproval(id: string, decision: 'approved' | 'reject
     if (!roomIds.length) throw new Error('Forbidden');
     const { error } = await service.from('lesson_plans').update({ status, reviewed_by: userId, reviewed_at: now, review_comment: comment ?? null }).eq('id', realId).in('classroom_id', roomIds);
     if (error) throw new Error(error.message);
+  } else if (kind === 'profile') {
+    // Approving a family profile change APPLIES it. Center-scope the lookup (service
+    // client bypasses RLS + client-supplied id), then write the whitelisted field.
+    const { data: req } = await service.from('change_requests').select('id, child_id, field_key, target_id, apply_value, apply_to_all, requested_by').eq('id', realId).eq('center_id', centerId).eq('status', 'pending').maybeSingle();
+    if (!req) throw new Error('Not found');
+    const approved = decision === 'approved';
+    if (approved) {
+      // Applies before the status flip, so a failed apply (missing target, DB error)
+      // throws and the request stays pending instead of being marked approved with
+      // nothing written. Fans out to the requester's own children in this center only
+      // when they chose "all my children"; pickup.add is idempotent against a retry.
+      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value, apply_to_all: req.apply_to_all, requested_by: req.requested_by }, centerId);
+    }
+    // Compare-and-swap on `pending` so two admins approving at once don't both proceed.
+    const { error } = await service.from('change_requests').update({ status: approved ? 'approved' : 'rejected', reviewed_by: userId, reviewed_at: now, review_note: comment ?? null }).eq('id', realId).eq('center_id', centerId).eq('status', 'pending');
+    if (error) throw new Error(error.message);
+    // Best-effort audit trail — the request row itself is the record of decision, so a
+    // failed log write must not fail the approval (the change is already applied).
+    await service.from('activity_log').insert({ center_id: centerId, actor_id: userId, event_type: approved ? 'profile.change_approved' : 'profile.change_denied', payload: { request: realId, field: req.field_key } });
+    revalidatePath('/p', 'layout');
   }
   revalidatePath('/m/admin/inbox');
   revalidatePath('/m/admin');

@@ -5,12 +5,13 @@ import { usePathname } from 'next/navigation';
 import { Home, Sprout, MessageSquare, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Four tabs (PARENT-DECISIONS kb-parent.html): Today · Progress · Messages · the
-// child's own name. Features are Session 12+; these are the shell's tab targets.
+// Four tabs (PARENT-DECISIONS kb-parent.html): Home · Progress · Messages · the
+// child's own name. (The first tab shows previous days too, so it reads "Home"
+// rather than "Today"; its route stays /p/today.)
 export function ParentNav({ firstName }: { firstName: string }) {
   const pathname = usePathname();
   const tabs = [
-    { href: '/p/today', label: 'Today', icon: Home },
+    { href: '/p/today', label: 'Home', icon: Home },
     { href: '/p/progress', label: 'Progress', icon: Sprout },
     { href: '/p/messages', label: 'Messages', icon: MessageSquare },
     { href: '/p/child', label: firstName, icon: User },

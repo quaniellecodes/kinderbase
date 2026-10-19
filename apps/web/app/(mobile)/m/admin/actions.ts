@@ -28,7 +28,7 @@ async function requireAdmin(): Promise<{ service: Service; centerId: string; cen
 // claimed pass (docs/sessions/10-DEMO-PHONE-POLISH.md §2).
 export type AdminRoom = { id: string; name: string; status: 'ok' | 'at_minimum' | 'out' | 'empty'; ratio: string; required: number; present: number; children: number; mixText: string; staffNames: string };
 export type HeadsUp = { key: string; title: string; sub: string; badge?: string; tone: 'red' | 'amber' | 'green'; href?: string; avatar?: string; nudgeUserId?: string };
-export type ApprovalLite = { id: string; kind: 'time' | 'leave' | 'sched' | 'plan'; title: string; who: string; detail: string };
+export type ApprovalLite = { id: string; kind: 'time' | 'leave' | 'sched' | 'plan' | 'profile'; title: string; who: string; detail: string };
 export type StaffTodayRow = { key: string; name: string; sub: string; badge?: string; tone: 'ok' | 'amber' | 'gray' };
 export type AdminHome = {
   centerName: string;
@@ -119,7 +119,7 @@ export async function getAdminHome(): Promise<AdminHome | null> {
 
   // Approvals (list + count) — shared with the Inbox resolver.
   const approvalsAll = await getApprovals();
-  const KIND_LABEL: Record<ApprovalLite['kind'], string> = { time: 'Time correction', leave: 'Leave', sched: 'Schedule change', plan: 'Lesson plan' };
+  const KIND_LABEL: Record<ApprovalLite['kind'], string> = { time: 'Time correction', leave: 'Leave', sched: 'Schedule change', plan: 'Lesson plan', profile: 'Profile change' };
   const approvalsTop: ApprovalLite[] = approvalsAll.slice(0, 3).map((a) => ({ id: a.id, kind: a.kind, title: a.title, who: a.who, detail: a.meta || a.detail || '' }));
 
   // ── Heads up ──
@@ -184,6 +184,14 @@ export async function getAdminHome(): Promise<AdminHome | null> {
 
   const aging = await getAgingFamilyThreads();
   if (aging.length) headsUp.push({ key: `aging:${aging[0]!.id}`, title: `A parent has waited ${aging[0]!.hours}h for a reply`, sub: `${aging[0]!.childName} · ${aging[0]!.snippet}`, badge: `${aging[0]!.hours}h`, tone: 'red', href: `/m/messages/${aging[0]!.id}` });
+
+  // Parent-proposed profile changes awaiting approval (major ones flagged red).
+  const { data: pcrs } = await service.from('change_requests').select('severity').eq('center_id', centerId).eq('status', 'pending');
+  const pcrCount = (pcrs ?? []).length;
+  if (pcrCount) {
+    const major = (pcrs ?? []).some((r) => r.severity === 'major');
+    headsUp.push({ key: `profile:${pcrCount}:${major ? 'm' : 'n'}`, title: `${pcrCount} family change request${pcrCount > 1 ? 's' : ''}`, sub: major ? 'Includes a major change — review carefully' : 'Parents proposed profile edits', badge: String(pcrCount), tone: major ? 'red' : 'amber', href: '/m/admin/inbox' });
+  }
 
   // ── Staff today: late (scheduled, not clocked in) + floats/subs on call ──
   const isoDow = ((now.getDay() + 6) % 7) + 1;

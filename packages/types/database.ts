@@ -856,6 +856,125 @@ export type Database = {
           }
         ];
       };
+      change_requests: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          requested_by: string | null;
+          field_key: string;
+          target_id: string | null;
+          label: string;
+          old_value: string | null;
+          new_value: string | null;
+          apply_value: Json | null;
+          apply_to_all: boolean;
+          severity: string;
+          status: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          requested_by?: string | null;
+          field_key: string;
+          target_id?: string | null;
+          label: string;
+          old_value?: string | null;
+          new_value?: string | null;
+          apply_value?: Json | null;
+          apply_to_all?: boolean;
+          severity?: string;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          requested_by?: string | null;
+          field_key?: string;
+          target_id?: string | null;
+          label?: string;
+          old_value?: string | null;
+          new_value?: string | null;
+          apply_value?: Json | null;
+          apply_to_all?: boolean;
+          severity?: string;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'change_requests_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'change_requests_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      child_absences: {
+        Row: {
+          id: string;
+          child_id: string;
+          center_id: string;
+          absent_on: string;
+          reason: string;
+          note: string | null;
+          reported_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          center_id: string;
+          absent_on: string;
+          reason?: string;
+          note?: string | null;
+          reported_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          center_id?: string;
+          absent_on?: string;
+          reason?: string;
+          note?: string | null;
+          reported_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'child_absences_child_id_fkey';
+            columns: ['child_id'];
+            referencedRelation: 'children';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'child_absences_center_id_fkey';
+            columns: ['center_id'];
+            referencedRelation: 'centers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       child_attendance: {
         Row: {
           id: string;
@@ -2575,7 +2694,7 @@ export type Database = {
         Row: {
           id: string;
           center_id: string;
-          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
           classroom_id: string | null;
           student_id: string | null;
           title: string | null;
@@ -2584,7 +2703,7 @@ export type Database = {
         Insert: {
           id?: string;
           center_id: string;
-          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          kind: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
           classroom_id?: string | null;
           student_id?: string | null;
           title?: string | null;
@@ -2593,7 +2712,7 @@ export type Database = {
         Update: {
           id?: string;
           center_id?: string;
-          kind?: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+          kind?: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
           classroom_id?: string | null;
           student_id?: string | null;
           title?: string | null;
@@ -2962,7 +3081,7 @@ export type Database = {
       credential_type_enum: 'preschool_90hr' | 'infant_toddler_9hr' | 'communication_9hr' | 'ada_training' | 'first_aid_cpr' | 'child_abuse_prevention' | 'medication_administration' | 'cda' | 'directors_certification' | 'college_degree' | 'other';
       credential_status_enum: 'active' | 'expiring_soon' | 'expired' | 'no_expiration';
       age_group_enum: 'infant' | 'toddler' | 'two_year' | 'preschool' | 'school_age';
-      thread_kind_enum: 'announcement' | 'room' | 'idea' | 'dm' | 'family';
+      thread_kind_enum: 'announcement' | 'room' | 'idea' | 'dm' | 'family' | 'office';
     };
   };
 };

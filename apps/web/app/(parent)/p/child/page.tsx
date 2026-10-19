@@ -1,11 +1,11 @@
-import { redirect } from 'next/navigation';
-import { ParentStub } from '@/components/parent/ParentStub';
-import { getParentShell } from '@/lib/parent/shell';
+import { getParentChild } from '@/lib/parent/child';
+import { ParentChildClient } from '@/components/parent/ParentChildClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ParentChildPage() {
-  const shell = await getParentShell();
-  if (!shell) redirect('/dashboard');
-  return <ParentStub title={shell.childName} sub="Profile, guardians, and authorized pickups." note="Child and guardian info arrives next." />;
+  const c = await getParentChild();
+  if (!c) return <div className="p-5 text-sm text-gray-500">Nothing to show yet.</div>;
+
+  return <ParentChildClient c={c} />;
 }

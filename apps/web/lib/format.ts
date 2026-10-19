@@ -15,6 +15,11 @@ export function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+/** Local-time yyyy-mm-dd for a Date (NOT toISOString, which is UTC). */
+export function localDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /** "Sep 28" from an ISO date ("2026-09-28") or timestamp. */
 export function formatDate(iso: string): string {
   // Date-only strings parse as UTC midnight; add noon so the local day is right.
