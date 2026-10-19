@@ -20,9 +20,10 @@ export type ChangeFieldKey =
   | 'child.home_languages'
   | 'health.remove'
   | 'pickup.add'
+  | 'pickup.edit'
   | 'pickup.remove';
 
-export type ChangeRow = { child_id: string; field_key: string; target_id: string | null; apply_value: Json | null; apply_to_all: boolean };
+export type ChangeRow = { child_id: string; field_key: string; target_id: string | null; apply_value: Json | null; apply_to_all: boolean; requested_by: string | null };
 type ApplyCtx = { svc: Service; row: ChangeRow; childIds: string[]; applyToAll: boolean };
 // `familyCapable` = the parent MAY choose to apply this across all their children
 // (a checkbox); when false the field is always child-only (birthday, health, …).
@@ -96,6 +97,23 @@ export const CHANGE_FIELDS: Record<ChangeFieldKey, FieldDef> = {
       await must(svc.from('authorized_pickups').insert(rows));
     },
   },
+  'pickup.edit': {
+    severity: 'normal',
+    familyCapable: true,
+    // Edits ONLY update existing authorizations — never adds this person to a child
+    // they aren't already authorized on (matched by their existing name).
+    apply: async ({ svc, row, childIds, applyToAll }) => {
+      const v = (row.apply_value ?? null) as { relationship?: string; phone?: string } | null;
+      const patch = { relationship: v?.relationship?.trim() || null, phone: v?.phone?.trim() || null };
+      if (!applyToAll) {
+        await must(svc.from('authorized_pickups').update(patch).eq('id', row.target_id ?? '').eq('child_id', row.child_id));
+        return;
+      }
+      const { data: t } = await svc.from('authorized_pickups').select('full_name').eq('id', row.target_id ?? '').maybeSingle();
+      if (!t) return;
+      await must(svc.from('authorized_pickups').update(patch).in('child_id', childIds).eq('full_name', t.full_name));
+    },
+  },
   'pickup.remove': {
     severity: 'normal',
     familyCapable: true,
@@ -124,20 +142,24 @@ export function isFamilyCapable(key: ChangeFieldKey): boolean {
   return CHANGE_FIELDS[key].familyCapable;
 }
 
-/** Every child in the same family (for family-scoped changes); falls back to the one child. */
-async function resolveFamilyChildIds(svc: Service, childId: string): Promise<string[]> {
-  const { data: c } = await svc.from('children').select('family_id').eq('id', childId).maybeSingle();
-  if (!c?.family_id) return [childId];
-  const { data: sibs } = await svc.from('children').select('id').eq('family_id', c.family_id);
-  const ids = (sibs ?? []).map((s) => s.id);
-  return ids.length ? ids : [childId];
+/**
+ * The children a "to all my children" change may touch: the ones the REQUESTING
+ * guardian actually guards — not the whole family. So a parent with a child in a
+ * different household can never affect a sibling they don't manage. Falls back to
+ * the single child.
+ */
+async function resolveRequesterChildIds(svc: Service, requestedBy: string | null, fallbackChildId: string): Promise<string[]> {
+  if (!requestedBy) return [fallbackChildId];
+  const { data } = await svc.from('guardians').select('child_id').eq('app_user_id', requestedBy);
+  const ids = [...new Set((data ?? []).map((g) => g.child_id))];
+  return ids.length ? ids : [fallbackChildId];
 }
 
-/** Apply an approved change — fans out to the family only when the parent chose to. */
+/** Apply an approved change — fans out to the requester's children only when chosen. */
 export async function applyChangeRequest(svc: Service, row: ChangeRow): Promise<void> {
   if (!isChangeField(row.field_key)) throw new Error('Unknown field');
   const def = CHANGE_FIELDS[row.field_key];
   const applyToAll = def.familyCapable && row.apply_to_all;
-  const childIds = applyToAll ? await resolveFamilyChildIds(svc, row.child_id) : [row.child_id];
+  const childIds = applyToAll ? await resolveRequesterChildIds(svc, row.requested_by, row.child_id) : [row.child_id];
   await def.apply({ svc, row, childIds, applyToAll });
 }

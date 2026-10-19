@@ -145,12 +145,12 @@ export async function resolveApproval(id: string, decision: 'approved' | 'reject
   } else if (kind === 'profile') {
     // Approving a family profile change APPLIES it. Center-scope the lookup (service
     // client bypasses RLS + client-supplied id), then write the whitelisted field.
-    const { data: req } = await service.from('change_requests').select('id, child_id, field_key, target_id, apply_value, apply_to_all').eq('id', realId).eq('center_id', centerId).eq('status', 'pending').maybeSingle();
+    const { data: req } = await service.from('change_requests').select('id, child_id, field_key, target_id, apply_value, apply_to_all, requested_by').eq('id', realId).eq('center_id', centerId).eq('status', 'pending').maybeSingle();
     if (!req) throw new Error('Not found');
     const approved = decision === 'approved';
     if (approved) {
-      // Fans out across the family only when the parent chose "all my children".
-      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value, apply_to_all: req.apply_to_all });
+      // Fans out to the requester's own children only when they chose "all my children".
+      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value, apply_to_all: req.apply_to_all, requested_by: req.requested_by });
     }
     const { error } = await service.from('change_requests').update({ status: approved ? 'approved' : 'rejected', reviewed_by: userId, reviewed_at: now, review_note: comment ?? null }).eq('id', realId).eq('center_id', centerId);
     if (error) throw new Error(error.message);

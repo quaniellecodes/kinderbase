@@ -7,7 +7,7 @@ import { Mail, Phone, MessageSquare, Pencil, Check, X, Clock, Plus } from 'lucid
 import { Avatar, Badge, toast } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { requestProfileChange, cancelProfileChange } from '@/app/(parent)/p/actions';
-import type { ParentChild, ChildHealth, PendingMap } from '@/lib/parent/child';
+import type { ParentChild, ChildHealth, ChildPickup, PendingMap } from '@/lib/parent/child';
 import type { Json } from '@kinderbase/types/database';
 
 const cap = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : s);
@@ -158,24 +158,15 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
           {c.pickups.length === 0 && c.pendingPickupAdds.length === 0 && (
             <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 text-center text-[13px] text-gray-400">No one else is authorized for pickup yet.</div>
           )}
-          {c.pickups.map((pk) => {
-            const rm = pend('pickup.remove', pk.id);
-            return (
-              <div key={pk.id} className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-gray-900 truncate">{pk.name}</p>
-                  <p className="text-[11px] text-gray-400">{[pk.relationship ? cap(pk.relationship) : null, pk.phone].filter(Boolean).join(' · ') || '—'}</p>
-                  {rm && (
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-2 py-1">
-                      <Clock className="w-3 h-3" /> Removal pending
-                      <button onClick={() => cancel(rm.id)} disabled={saving} aria-label="Cancel request" className="ml-1 text-amber-700/70 hover:text-status-red"><X className="w-3 h-3" /></button>
-                    </span>
-                  )}
-                </div>
-                {!rm && c.canEdit && <button onClick={() => submit({ fieldKey: 'pickup.remove', targetId: pk.id, label: `Pickup: ${pk.name}`, oldValue: pk.name, newValue: 'Remove', applyValue: null })} disabled={saving} className="text-[11px] font-semibold text-status-red flex-shrink-0">Remove</button>}
-              </div>
-            );
-          })}
+          {c.pickups.map((pk) => (
+            <PickupRow
+              key={pk.id} pk={pk} canEdit={c.canEdit} saving={saving}
+              pendEdit={pend('pickup.edit', pk.id)} pendRemove={pend('pickup.remove', pk.id)}
+              onEdit={(rel, phone, all) => submit({ fieldKey: 'pickup.edit', targetId: pk.id, label: `${pk.name}'s pickup details`, oldValue: [pk.relationship ? cap(pk.relationship) : null, pk.phone].filter(Boolean).join(' · ') || '—', newValue: [rel ? cap(rel) : null, phone].filter(Boolean).join(' · ') || '—', applyValue: { relationship: rel || null, phone: phone || null }, applyToAll: all })}
+              onRemove={() => submit({ fieldKey: 'pickup.remove', targetId: pk.id, label: `Pickup: ${pk.name}`, oldValue: pk.name, newValue: 'Remove', applyValue: null })}
+              onCancel={cancel}
+            />
+          ))}
           {c.pendingPickupAdds.map((pa) => (
             <div key={pa.id} className="flex items-center gap-2 bg-white border border-amber-100 rounded-xl p-3">
               <div className="min-w-0 flex-1">
@@ -198,6 +189,70 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
 }
 
 const fieldCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/30';
+
+function PickupRow({ pk, canEdit, saving, pendEdit, pendRemove, onEdit, onRemove, onCancel }: {
+  pk: ChildPickup;
+  canEdit: boolean;
+  saving: boolean;
+  pendEdit?: PendingMap[string];
+  pendRemove?: PendingMap[string];
+  onEdit: (relationship: string, phone: string, applyToAll: boolean) => void;
+  onRemove: () => void;
+  onCancel: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [rel, setRel] = useState(pk.relationship ?? '');
+  const [phone, setPhone] = useState(pk.phone ?? '');
+  const [all, setAll] = useState(false);
+
+  const pendingReq = pendRemove ?? pendEdit;
+  if (pendingReq) {
+    return (
+      <div className="flex items-center gap-2 bg-white border border-amber-100 rounded-xl p-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-gray-700 truncate">{pk.name}</p>
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700"><Clock className="w-3 h-3" /> {pendRemove ? 'Removal pending review' : 'Update pending review'}</span>
+        </div>
+        <button onClick={() => onCancel(pendingReq.id)} disabled={saving} aria-label="Cancel request" className="text-gray-300 hover:text-status-red flex-shrink-0"><X className="w-4 h-4" /></button>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-white border border-gray-100 rounded-xl p-3 space-y-2">
+        <p className="text-[12px] font-semibold text-gray-700">{pk.name}</p>
+        <input value={rel} onChange={(e) => setRel(e.target.value)} placeholder="Relationship" className={fieldCls} />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" type="tel" className={fieldCls} autoFocus />
+        {pk.onMultiple && (
+          <label className="flex items-center gap-2 text-[12px] text-gray-600">
+            <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} className="accent-brand" />
+            Update on all children they can collect
+          </label>
+        )}
+        <div className="flex gap-2 pt-0.5">
+          <button onClick={() => { setEditing(false); setRel(pk.relationship ?? ''); setPhone(pk.phone ?? ''); }} className="flex-1 text-[13px] font-semibold text-gray-500 border border-gray-200 rounded-lg py-2">Cancel</button>
+          <button onClick={() => { setEditing(false); onEdit(rel.trim(), phone.trim(), all); }} disabled={saving} className="flex-1 text-[13px] font-semibold text-white bg-brand rounded-lg py-2 disabled:opacity-40">Send for review</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl p-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium text-gray-900 truncate">{pk.name}</p>
+        <p className="text-[11px] text-gray-400">{[pk.relationship ? cap(pk.relationship) : null, pk.phone].filter(Boolean).join(' · ') || '—'}</p>
+      </div>
+      {canEdit && (
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <button onClick={() => { setRel(pk.relationship ?? ''); setPhone(pk.phone ?? ''); setEditing(true); }} aria-label={`Edit ${pk.name}`} className="text-gray-300 hover:text-brand"><Pencil className="w-3.5 h-3.5" /></button>
+          <button onClick={onRemove} disabled={saving} className="text-[11px] font-semibold text-status-red">Remove</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AddPickup({ saving, hasSiblings, childFirst, onAdd }: { saving: boolean; hasSiblings: boolean; childFirst: string; onAdd: (input: ChangeInput) => void }) {
   const [open, setOpen] = useState(false);

@@ -1936,6 +1936,13 @@ async function main(): Promise<void> {
     // And a pending "add an authorized pickup" (family-level — applies to both siblings).
     const pickupName = `Rosa ${g0child.last_name ?? 'Mendez'}`.trim();
     await db.from('change_requests').insert({ child_id: g0.childId, center_id: centerIds[0], requested_by: g0.id, field_key: 'pickup.add', target_id: null, label: `Add pickup: ${pickupName}`, old_value: null, new_value: `${pickupName} · Grandmother · 410-555-0188`, apply_value: { full_name: pickupName, relationship: 'Grandmother', phone: '410-555-0188' }, apply_to_all: true, severity: 'major', status: 'pending' });
+
+    // Two already-approved pickups to demo the EDIT flow: one authorized on a single
+    // child (no "apply to all" when you edit them) and one shared across both siblings
+    // (the "update on all children" checkbox appears).
+    const surname = g0child.last_name ?? 'Mendez';
+    await db.from('authorized_pickups').insert({ child_id: g0.childId, full_name: `James ${surname}`, relationship: 'Uncle', phone: '410-555-0170' });
+    await db.from('authorized_pickups').insert([g0.childId, siblingId].map((cid) => ({ child_id: cid, full_name: `Luis ${surname}`, relationship: 'Grandfather', phone: '410-555-0161' })));
   }
 
   const classroomKeyById = new Map<string, string>();
