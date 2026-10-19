@@ -1933,6 +1933,9 @@ async function main(): Promise<void> {
     bNew.setDate(bNew.getDate() + 7);
     const fmtDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     await db.from('change_requests').insert({ child_id: g0.childId, center_id: centerIds[0], requested_by: g0.id, field_key: 'child.birthdate', target_id: null, label: `${g0child.first_name}'s birthday`, old_value: fmtDay(bOld), new_value: fmtDay(bNew), apply_value: isoDate(bNew), severity: 'major', status: 'pending' });
+    // And a pending "add an authorized pickup" (family-level — applies to both siblings).
+    const pickupName = `Rosa ${g0child.last_name ?? 'Mendez'}`.trim();
+    await db.from('change_requests').insert({ child_id: g0.childId, center_id: centerIds[0], requested_by: g0.id, field_key: 'pickup.add', target_id: null, label: `Add pickup: ${pickupName}`, old_value: null, new_value: `${pickupName} · Grandmother · 410-555-0188`, apply_value: { full_name: pickupName, relationship: 'Grandmother', phone: '410-555-0188' }, severity: 'major', status: 'pending' });
   }
 
   const classroomKeyById = new Map<string, string>();

@@ -87,9 +87,12 @@ export async function requestProfileChange(input: {
   const { data: child } = await svc.from('children').select('center_id').eq('id', childId).maybeSingle();
   if (!child) throw new Error('Not found');
 
-  // Replace any existing open request for the same field+target.
-  const del = svc.from('change_requests').delete().eq('child_id', childId).eq('field_key', input.fieldKey).eq('status', 'pending');
-  await (input.targetId ? del.eq('target_id', input.targetId) : del.is('target_id', null));
+  // Replace any existing open request for the same field+target. (Pickup ADDs are
+  // distinct people, so several can be pending at once — don't collapse them.)
+  if (input.fieldKey !== 'pickup.add') {
+    const del = svc.from('change_requests').delete().eq('child_id', childId).eq('field_key', input.fieldKey).eq('status', 'pending');
+    await (input.targetId ? del.eq('target_id', input.targetId) : del.is('target_id', null));
+  }
 
   const { error } = await svc.from('change_requests').insert({
     child_id: childId,

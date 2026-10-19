@@ -13,6 +13,8 @@ export type ChildPickup = { id: string; name: string; relationship: string | nul
 export type ChildHealth = { id: string; kind: string; name: string; detail: string | null; severity: string | null };
 /** Open change requests, keyed `${field_key}:${target_id ?? ''}` → the pending badge. */
 export type PendingMap = Record<string, { id: string; label: string; severity: string }>;
+/** Pending "add a pickup person" requests (no existing row to attach a badge to). */
+export type PendingAdd = { id: string; display: string };
 export type ParentChild = {
   childName: string;
   firstName: string;
@@ -29,7 +31,9 @@ export type ParentChild = {
   pickups: ChildPickup[];
   health: ChildHealth[];
   canEdit: boolean;
+  hasSiblings: boolean;
   pending: PendingMap;
+  pendingPickupAdds: PendingAdd[];
 };
 
 const DOW = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; // ISO: 1=Mon … 7=Sun
@@ -91,10 +95,15 @@ export async function getParentChild(): Promise<ParentChild | null> {
   const dayNums = (sched?.days as { days?: number[] } | null)?.days ?? [];
   const scheduleDays = dayNums.filter((n) => n >= 1 && n <= 7).map((n) => DOW[n]!);
 
-  // Open change requests → the "pending review" badges.
-  const { data: reqs } = await svc.from('change_requests').select('id, field_key, target_id, label, severity').eq('child_id', childId).eq('status', 'pending');
+  // Open change requests → the "pending review" badges. Pickup ADDs have no existing
+  // row to badge, so they surface as their own list.
+  const { data: reqs } = await svc.from('change_requests').select('id, field_key, target_id, label, severity, new_value').eq('child_id', childId).eq('status', 'pending');
   const pending: PendingMap = {};
-  for (const r of reqs ?? []) pending[`${r.field_key}:${r.target_id ?? ''}`] = { id: r.id, label: r.label, severity: r.severity };
+  const pendingPickupAdds: PendingAdd[] = [];
+  for (const r of reqs ?? []) {
+    if (r.field_key === 'pickup.add') pendingPickupAdds.push({ id: r.id, display: r.new_value ?? r.label });
+    else pending[`${r.field_key}:${r.target_id ?? ''}`] = { id: r.id, label: r.label, severity: r.severity };
+  }
 
   return {
     childName: `${firstName} ${child.last_name}`.trim(),
@@ -112,6 +121,8 @@ export async function getParentChild(): Promise<ParentChild | null> {
     pickups,
     health,
     canEdit: hasPermission(p, childId, 'edit_record'),
+    hasSiblings: p.childIds.length > 1,
     pending,
+    pendingPickupAdds,
   };
 }

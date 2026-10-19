@@ -6,7 +6,7 @@ import { getActiveContextFromCookies } from '@/lib/session/active-context';
 import { getClock } from '@/lib/clock';
 import { formatWeekOf } from '@/lib/format';
 import { isAdmin } from '@kinderbase/types';
-import { isChangeField, CHANGE_FIELDS } from '@/lib/change-requests';
+import { applyChangeRequest } from '@/lib/change-requests';
 
 type Service = ReturnType<typeof createServiceClient>;
 
@@ -148,8 +148,8 @@ export async function resolveApproval(id: string, decision: 'approved' | 'reject
     if (!req) throw new Error('Not found');
     const approved = decision === 'approved';
     if (approved) {
-      if (!isChangeField(req.field_key)) throw new Error('Unknown field');
-      await CHANGE_FIELDS[req.field_key].apply(service, { child_id: req.child_id, target_id: req.target_id, apply_value: req.apply_value });
+      // Applies across the family for family-scoped fields (guardian contact, pickups).
+      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value });
     }
     const { error } = await service.from('change_requests').update({ status: approved ? 'approved' : 'rejected', reviewed_by: userId, reviewed_at: now, review_note: comment ?? null }).eq('id', realId).eq('center_id', centerId);
     if (error) throw new Error(error.message);
