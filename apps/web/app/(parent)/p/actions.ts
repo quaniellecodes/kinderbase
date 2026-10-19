@@ -74,6 +74,7 @@ export async function requestProfileChange(input: {
   oldValue: string | null;
   newValue: string | null;
   applyValue: Json | null;
+  applyToAll?: boolean;
 }): Promise<void> {
   const p = await parentContext();
   if (!p || p.childIds.length === 0) throw new Error('Not found');
@@ -104,6 +105,7 @@ export async function requestProfileChange(input: {
     old_value: input.oldValue,
     new_value: input.newValue,
     apply_value: input.applyValue,
+    apply_to_all: input.applyToAll ?? false,
     severity,
     status: 'pending',
   });

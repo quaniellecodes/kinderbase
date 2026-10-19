@@ -868,6 +868,7 @@ export type Database = {
           old_value: string | null;
           new_value: string | null;
           apply_value: Json | null;
+          apply_to_all: boolean;
           severity: string;
           status: string;
           reviewed_by: string | null;
@@ -886,6 +887,7 @@ export type Database = {
           old_value?: string | null;
           new_value?: string | null;
           apply_value?: Json | null;
+          apply_to_all?: boolean;
           severity?: string;
           status?: string;
           reviewed_by?: string | null;
@@ -904,6 +906,7 @@ export type Database = {
           old_value?: string | null;
           new_value?: string | null;
           apply_value?: Json | null;
+          apply_to_all?: boolean;
           severity?: string;
           status?: string;
           reviewed_by?: string | null;

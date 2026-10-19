@@ -98,7 +98,7 @@ export async function getApprovals(): Promise<Approval[]> {
   // approvals count/badge is the admin's notification.
   const { data: changes } = await service
     .from('change_requests')
-    .select('id, label, old_value, new_value, severity, created_at, children(first_name, preferred_name, last_name), users!change_requests_requested_by_fkey(full_name)')
+    .select('id, label, old_value, new_value, severity, apply_to_all, created_at, children(first_name, preferred_name, last_name), users!change_requests_requested_by_fkey(full_name)')
     .eq('center_id', centerId)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
@@ -106,6 +106,7 @@ export async function getApprovals(): Promise<Approval[]> {
     const ch = Array.isArray(r.children) ? r.children[0] : r.children;
     const u = Array.isArray(r.users) ? r.users[0] : r.users;
     const childName = ch ? `${(ch as { preferred_name: string | null; first_name: string }).preferred_name ?? (ch as { first_name: string }).first_name} ${(ch as { last_name: string }).last_name}`.trim() : 'Child';
+    const scopeNote = r.apply_to_all ? 'Applies to all their children' : undefined;
     return {
       id: `profile:${r.id}`,
       kind: 'profile',
@@ -113,7 +114,7 @@ export async function getApprovals(): Promise<Approval[]> {
       when: r.created_at ?? '',
       title: `${childName} · ${r.label}`,
       detail: `${r.old_value ?? '—'} → ${r.new_value ?? 'Remove'}`,
-      meta: r.severity === 'major' ? 'Major change — review carefully' : undefined,
+      meta: [r.severity === 'major' ? 'Major change — review carefully' : null, scopeNote].filter(Boolean).join(' · ') || undefined,
     };
   });
 
@@ -144,12 +145,12 @@ export async function resolveApproval(id: string, decision: 'approved' | 'reject
   } else if (kind === 'profile') {
     // Approving a family profile change APPLIES it. Center-scope the lookup (service
     // client bypasses RLS + client-supplied id), then write the whitelisted field.
-    const { data: req } = await service.from('change_requests').select('id, child_id, field_key, target_id, apply_value').eq('id', realId).eq('center_id', centerId).eq('status', 'pending').maybeSingle();
+    const { data: req } = await service.from('change_requests').select('id, child_id, field_key, target_id, apply_value, apply_to_all').eq('id', realId).eq('center_id', centerId).eq('status', 'pending').maybeSingle();
     if (!req) throw new Error('Not found');
     const approved = decision === 'approved';
     if (approved) {
-      // Applies across the family for family-scoped fields (guardian contact, pickups).
-      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value });
+      // Fans out across the family only when the parent chose "all my children".
+      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value, apply_to_all: req.apply_to_all });
     }
     const { error } = await service.from('change_requests').update({ status: approved ? 'approved' : 'rejected', reviewed_by: userId, reviewed_at: now, review_note: comment ?? null }).eq('id', realId).eq('center_id', centerId);
     if (error) throw new Error(error.message);

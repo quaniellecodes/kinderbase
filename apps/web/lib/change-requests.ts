@@ -22,9 +22,11 @@ export type ChangeFieldKey =
   | 'pickup.add'
   | 'pickup.remove';
 
-export type ChangeRow = { child_id: string; field_key: string; target_id: string | null; apply_value: Json | null };
-type ApplyCtx = { svc: Service; row: ChangeRow; familyChildIds: string[] };
-type FieldDef = { severity: 'normal' | 'major'; scope: 'child' | 'family'; apply: (ctx: ApplyCtx) => Promise<void> };
+export type ChangeRow = { child_id: string; field_key: string; target_id: string | null; apply_value: Json | null; apply_to_all: boolean };
+type ApplyCtx = { svc: Service; row: ChangeRow; childIds: string[]; applyToAll: boolean };
+// `familyCapable` = the parent MAY choose to apply this across all their children
+// (a checkbox); when false the field is always child-only (birthday, health, …).
+type FieldDef = { severity: 'normal' | 'major'; familyCapable: boolean; apply: (ctx: ApplyCtx) => Promise<void> };
 
 async function must(p: PromiseLike<{ error: { message: string } | null }>): Promise<void> {
   const { error } = await p;
@@ -46,61 +48,66 @@ function asStringArray(v: Json | null): string[] {
 export const CHANGE_FIELDS: Record<ChangeFieldKey, FieldDef> = {
   'guardian.mobile_phone': {
     severity: 'normal',
-    scope: 'family',
-    apply: async ({ svc, row, familyChildIds }) => {
-      // Update this guardian's contact on every sibling's record (same person).
+    familyCapable: true,
+    apply: async ({ svc, row, childIds }) => {
+      // Update this guardian's contact on the chosen children (same person).
       const { data: g } = await svc.from('guardians').select('app_user_id, full_name').eq('id', row.target_id ?? '').maybeSingle();
       if (!g) return;
-      let q = svc.from('guardians').update({ mobile_phone: asText(row.apply_value) }).in('child_id', familyChildIds);
+      let q = svc.from('guardians').update({ mobile_phone: asText(row.apply_value) }).in('child_id', childIds);
       q = g.app_user_id ? q.eq('app_user_id', g.app_user_id) : q.eq('full_name', g.full_name);
       await must(q);
     },
   },
   'guardian.email': {
     severity: 'normal',
-    scope: 'family',
-    apply: async ({ svc, row, familyChildIds }) => {
+    familyCapable: true,
+    apply: async ({ svc, row, childIds }) => {
       const { data: g } = await svc.from('guardians').select('app_user_id, full_name').eq('id', row.target_id ?? '').maybeSingle();
       if (!g) return;
-      let q = svc.from('guardians').update({ email: asText(row.apply_value) }).in('child_id', familyChildIds);
+      let q = svc.from('guardians').update({ email: asText(row.apply_value) }).in('child_id', childIds);
       q = g.app_user_id ? q.eq('app_user_id', g.app_user_id) : q.eq('full_name', g.full_name);
       await must(q);
     },
   },
   'child.birthdate': {
     severity: 'major',
-    scope: 'child',
+    familyCapable: false,
     apply: ({ svc, row }) => must(svc.from('children').update({ birthdate: asRequiredText(row.apply_value) }).eq('id', row.child_id)),
   },
   'child.home_languages': {
     severity: 'normal',
-    scope: 'child',
+    familyCapable: false,
     apply: ({ svc, row }) => must(svc.from('children').update({ home_languages: asStringArray(row.apply_value) }).eq('id', row.child_id)),
   },
   'health.remove': {
     severity: 'major',
-    scope: 'child',
+    familyCapable: false,
     // student_health has no soft-delete column; the admin approval is the safeguard.
     apply: ({ svc, row }) => must(svc.from('student_health').delete().eq('id', row.target_id ?? '').eq('child_id', row.child_id)),
   },
   'pickup.add': {
     severity: 'major', // authorizing a new person to collect a child is safety-critical
-    scope: 'family',
-    apply: async ({ svc, row, familyChildIds }) => {
+    familyCapable: true,
+    apply: async ({ svc, row, childIds }) => {
       const v = (row.apply_value ?? null) as { full_name?: string; relationship?: string; phone?: string } | null;
       const name = v?.full_name?.trim();
       if (!name) throw new Error('A name is required');
-      const rows = familyChildIds.map((cid) => ({ child_id: cid, full_name: name, relationship: v?.relationship?.trim() || null, phone: v?.phone?.trim() || null }));
+      const rows = childIds.map((cid) => ({ child_id: cid, full_name: name, relationship: v?.relationship?.trim() || null, phone: v?.phone?.trim() || null }));
       await must(svc.from('authorized_pickups').insert(rows));
     },
   },
   'pickup.remove': {
     severity: 'normal',
-    scope: 'family',
-    apply: async ({ svc, row, familyChildIds }) => {
+    familyCapable: true,
+    apply: async ({ svc, row, childIds, applyToAll }) => {
+      // "All children" removes this person everywhere (by name); otherwise just this row.
+      if (!applyToAll) {
+        await must(svc.from('authorized_pickups').delete().eq('id', row.target_id ?? '').eq('child_id', row.child_id));
+        return;
+      }
       const { data: pk } = await svc.from('authorized_pickups').select('full_name, phone').eq('id', row.target_id ?? '').maybeSingle();
       if (!pk) return;
-      let q = svc.from('authorized_pickups').delete().in('child_id', familyChildIds).eq('full_name', pk.full_name);
+      let q = svc.from('authorized_pickups').delete().in('child_id', childIds).eq('full_name', pk.full_name);
       q = pk.phone ? q.eq('phone', pk.phone) : q.is('phone', null);
       await must(q);
     },
@@ -113,6 +120,9 @@ export function isChangeField(key: string): key is ChangeFieldKey {
 export function changeSeverity(key: ChangeFieldKey): 'normal' | 'major' {
   return CHANGE_FIELDS[key].severity;
 }
+export function isFamilyCapable(key: ChangeFieldKey): boolean {
+  return CHANGE_FIELDS[key].familyCapable;
+}
 
 /** Every child in the same family (for family-scoped changes); falls back to the one child. */
 async function resolveFamilyChildIds(svc: Service, childId: string): Promise<string[]> {
@@ -123,10 +133,11 @@ async function resolveFamilyChildIds(svc: Service, childId: string): Promise<str
   return ids.length ? ids : [childId];
 }
 
-/** Apply an approved change — resolves family scope then runs the whitelisted write. */
+/** Apply an approved change — fans out to the family only when the parent chose to. */
 export async function applyChangeRequest(svc: Service, row: ChangeRow): Promise<void> {
   if (!isChangeField(row.field_key)) throw new Error('Unknown field');
   const def = CHANGE_FIELDS[row.field_key];
-  const familyChildIds = def.scope === 'family' ? await resolveFamilyChildIds(svc, row.child_id) : [row.child_id];
-  await def.apply({ svc, row, familyChildIds });
+  const applyToAll = def.familyCapable && row.apply_to_all;
+  const childIds = applyToAll ? await resolveFamilyChildIds(svc, row.child_id) : [row.child_id];
+  await def.apply({ svc, row, childIds, applyToAll });
 }

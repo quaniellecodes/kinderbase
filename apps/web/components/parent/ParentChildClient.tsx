@@ -19,7 +19,7 @@ function healthTone(h: ChildHealth): 'red' | 'amber' | 'neutral' | 'blue' {
   return 'neutral';
 }
 
-type ChangeInput = { fieldKey: string; targetId: string | null; label: string; oldValue: string | null; newValue: string | null; applyValue: Json | null };
+type ChangeInput = { fieldKey: string; targetId: string | null; label: string; oldValue: string | null; newValue: string | null; applyValue: Json | null; applyToAll?: boolean };
 
 // The Child & guardians tab. A guardian with edit permission can PROPOSE changes to a
 // handful of fields — each files a pending request an admin approves before it
@@ -136,14 +136,14 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
               </div>
               <div className="divide-y divide-gray-50 -mx-3">
                 <EditRow
-                  label="Phone" display={g.phone ?? '—'} raw={g.phone ?? ''} type="tel" icon={<Phone className="w-3.5 h-3.5 text-gray-400" />} hint={c.hasSiblings ? 'Applies to all your children' : undefined}
+                  label="Phone" display={g.phone ?? '—'} raw={g.phone ?? ''} type="tel" icon={<Phone className="w-3.5 h-3.5 text-gray-400" />} familyChoice={c.hasSiblings} familyDefault
                   editable={c.canEdit} pending={pend('guardian.mobile_phone', g.id)} saving={saving} onCancel={cancel}
-                  onSubmit={(raw) => submit({ fieldKey: 'guardian.mobile_phone', targetId: g.id, label: `${g.name}'s phone`, oldValue: g.phone, newValue: raw || '—', applyValue: raw || null })}
+                  onSubmit={(raw, all) => submit({ fieldKey: 'guardian.mobile_phone', targetId: g.id, label: `${g.name}'s phone`, oldValue: g.phone, newValue: raw || '—', applyValue: raw || null, applyToAll: all })}
                 />
                 <EditRow
-                  label="Email" display={g.email ?? '—'} raw={g.email ?? ''} type="email" icon={<Mail className="w-3.5 h-3.5 text-gray-400" />} hint={c.hasSiblings ? 'Applies to all your children' : undefined}
+                  label="Email" display={g.email ?? '—'} raw={g.email ?? ''} type="email" icon={<Mail className="w-3.5 h-3.5 text-gray-400" />} familyChoice={c.hasSiblings} familyDefault
                   editable={c.canEdit} pending={pend('guardian.email', g.id)} saving={saving} onCancel={cancel}
-                  onSubmit={(raw) => submit({ fieldKey: 'guardian.email', targetId: g.id, label: `${g.name}'s email`, oldValue: g.email, newValue: raw || '—', applyValue: raw || null })}
+                  onSubmit={(raw, all) => submit({ fieldKey: 'guardian.email', targetId: g.id, label: `${g.name}'s email`, oldValue: g.email, newValue: raw || '—', applyValue: raw || null, applyToAll: all })}
                 />
               </div>
             </div>
@@ -185,7 +185,7 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
               <button onClick={() => cancel(pa.id)} disabled={saving} aria-label="Cancel request" className="text-gray-300 hover:text-status-red flex-shrink-0"><X className="w-4 h-4" /></button>
             </div>
           ))}
-          {c.canEdit && <AddPickup saving={saving} hasSiblings={c.hasSiblings} onAdd={submit} />}
+          {c.canEdit && <AddPickup saving={saving} hasSiblings={c.hasSiblings} childFirst={c.firstName} onAdd={submit} />}
         </div>
       </section>
 
@@ -199,11 +199,12 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
 
 const fieldCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/30';
 
-function AddPickup({ saving, hasSiblings, onAdd }: { saving: boolean; hasSiblings: boolean; onAdd: (input: ChangeInput) => void }) {
+function AddPickup({ saving, hasSiblings, childFirst, onAdd }: { saving: boolean; hasSiblings: boolean; childFirst: string; onAdd: (input: ChangeInput) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [rel, setRel] = useState('');
   const [phone, setPhone] = useState('');
+  const [all, setAll] = useState(false); // default: this child only (blended-family case)
 
   if (!open) {
     return (
@@ -225,11 +226,13 @@ function AddPickup({ saving, hasSiblings, onAdd }: { saving: boolean; hasSibling
       oldValue: null,
       newValue: [nm, relClean ? cap(relClean) : null, phoneClean || null].filter(Boolean).join(' · '),
       applyValue: { full_name: nm, relationship: relClean || null, phone: phoneClean || null },
+      applyToAll: all,
     });
     setOpen(false);
     setName('');
     setRel('');
     setPhone('');
+    setAll(false);
   }
 
   return (
@@ -238,7 +241,13 @@ function AddPickup({ saving, hasSiblings, onAdd }: { saving: boolean; hasSibling
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={fieldCls} autoFocus />
       <input value={rel} onChange={(e) => setRel(e.target.value)} placeholder="Relationship (e.g. Grandmother)" className={fieldCls} />
       <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (optional)" type="tel" className={fieldCls} />
-      <p className="text-[11px] text-amber-700">An admin reviews new pickup people before they can collect{hasSiblings ? '. Applies to all your children.' : '.'}</p>
+      {hasSiblings && (
+        <label className="flex items-center gap-2 text-[12px] text-gray-600">
+          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} className="accent-brand" />
+          Apply to all my children {!all && <span className="text-gray-400">(otherwise just {childFirst})</span>}
+        </label>
+      )}
+      <p className="text-[11px] text-amber-700">An admin reviews new pickup people before they can collect.</p>
       <div className="flex gap-2 pt-0.5">
         <button onClick={() => setOpen(false)} className="flex-1 text-[13px] font-semibold text-gray-500 border border-gray-200 rounded-lg py-2">Cancel</button>
         <button onClick={send} disabled={saving || !name.trim()} className="flex-1 text-[13px] font-semibold text-white bg-brand rounded-lg py-2 disabled:opacity-40">Send for review</button>
@@ -256,22 +265,24 @@ function StaticRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EditRow({ label, display, raw, type, major, hint, icon, editable, pending, saving, onSubmit, onCancel }: {
+function EditRow({ label, display, raw, type, major, familyChoice, familyDefault, icon, editable, pending, saving, onSubmit, onCancel }: {
   label: string;
   display: string;
   raw: string;
   type: 'text' | 'email' | 'tel' | 'date';
   major?: boolean;
-  hint?: string;
+  familyChoice?: boolean; // show the "apply to all my children" checkbox
+  familyDefault?: boolean;
   icon?: React.ReactNode;
   editable: boolean;
   pending?: PendingMap[string];
   saving: boolean;
-  onSubmit: (raw: string) => void;
+  onSubmit: (raw: string, applyToAll: boolean) => void;
   onCancel: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(raw);
+  const [all, setAll] = useState(!!familyDefault);
 
   if (pending) {
     return (
@@ -292,11 +303,16 @@ function EditRow({ label, display, raw, type, major, hint, icon, editable, pendi
         <p className="text-[12px] text-gray-500 mb-1">{label}</p>
         <div className="flex items-center gap-2">
           <input type={type} value={val} onChange={(e) => setVal(e.target.value)} autoFocus className="flex-1 min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand/30" />
-          <button onClick={() => { setEditing(false); onSubmit(val); }} disabled={saving} aria-label="Send request" className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center flex-shrink-0"><Check className="w-4 h-4" /></button>
+          <button onClick={() => { setEditing(false); onSubmit(val, all); }} disabled={saving} aria-label="Send request" className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center flex-shrink-0"><Check className="w-4 h-4" /></button>
           <button onClick={() => { setEditing(false); setVal(raw); }} aria-label="Cancel" className="w-8 h-8 rounded-lg border border-gray-200 text-gray-400 flex items-center justify-center flex-shrink-0"><X className="w-4 h-4" /></button>
         </div>
         {major && <p className="text-[11px] text-amber-700 mt-1.5">This is a big change — an admin reviews it before it takes effect.</p>}
-        {hint && <p className="text-[11px] text-gray-400 mt-1">{hint}</p>}
+        {familyChoice && (
+          <label className="flex items-center gap-2 text-[12px] text-gray-600 mt-2">
+            <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} className="accent-brand" />
+            Apply to all my children
+          </label>
+        )}
       </div>
     );
   }
