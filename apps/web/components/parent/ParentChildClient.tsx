@@ -6,9 +6,8 @@ import Link from 'next/link';
 import { Mail, Phone, MessageSquare, Pencil, Check, X, Clock, Plus } from 'lucide-react';
 import { Avatar, Badge, toast } from '@/components/ui';
 import { formatDate } from '@/lib/format';
-import { requestProfileChange, cancelProfileChange } from '@/app/(parent)/p/actions';
+import { requestProfileChange, cancelProfileChange, type ProfileChangeInput } from '@/app/(parent)/p/actions';
 import type { ParentChild, ChildHealth, ChildPickup, PendingMap } from '@/lib/parent/child';
-import type { Json } from '@kinderbase/types/database';
 
 const cap = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : s);
 
@@ -19,7 +18,6 @@ function healthTone(h: ChildHealth): 'red' | 'amber' | 'neutral' | 'blue' {
   return 'neutral';
 }
 
-type ChangeInput = { fieldKey: string; targetId: string | null; label: string; oldValue: string | null; newValue: string | null; applyValue: Json | null; applyToAll?: boolean };
 
 // The Child & guardians tab. A guardian with edit permission can PROPOSE changes to a
 // handful of fields — each files a pending request an admin approves before it
@@ -29,7 +27,7 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
   const [saving, start] = useTransition();
   const pend = (fieldKey: string, targetId: string | null): PendingMap[string] | undefined => c.pending[`${fieldKey}:${targetId ?? ''}`];
 
-  function submit(input: ChangeInput) {
+  function submit(input: ProfileChangeInput) {
     start(async () => {
       try {
         await requestProfileChange(input);
@@ -46,8 +44,8 @@ export function ParentChildClient({ c }: { c: ParentChild }) {
         await cancelProfileChange(id);
         toast('Request cancelled');
         router.refresh();
-      } catch {
-        toast('Could not cancel');
+      } catch (e) {
+        toast(e instanceof Error ? e.message : 'Could not cancel');
       }
     });
   }
@@ -254,7 +252,7 @@ function PickupRow({ pk, canEdit, saving, pendEdit, pendRemove, onEdit, onRemove
   );
 }
 
-function AddPickup({ saving, hasSiblings, childFirst, onAdd }: { saving: boolean; hasSiblings: boolean; childFirst: string; onAdd: (input: ChangeInput) => void }) {
+function AddPickup({ saving, hasSiblings, childFirst, onAdd }: { saving: boolean; hasSiblings: boolean; childFirst: string; onAdd: (input: ProfileChangeInput) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [rel, setRel] = useState('');

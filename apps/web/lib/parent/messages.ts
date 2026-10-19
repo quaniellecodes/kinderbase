@@ -1,6 +1,7 @@
 import 'server-only';
 import { redactNames } from '@kinderbase/core';
 import { parentContext } from './principal';
+import { roomOtherNames } from './scrub';
 
 // The family's two conversations (docs/PARENT-DECISIONS.md §1):
 //   • Classroom (kind='family') — the room's teachers + the center director.
@@ -39,14 +40,13 @@ export async function getParentMessages(): Promise<ParentMessages | null> {
   const roomName = (Array.isArray(child.classrooms) ? child.classrooms[0] : child.classrooms)?.name ?? '';
 
   // Other children in the room → the names to scrub from staff-written bodies.
-  const { data: roommates } = child.classroom_id
-    ? await svc.from('children').select('first_name, preferred_name').eq('classroom_id', child.classroom_id).neq('id', childId)
-    : { data: [] as { first_name: string; preferred_name: string | null }[] };
-  const otherNames = (roommates ?? []).flatMap((r) => [r.first_name, r.preferred_name]).filter((n): n is string => !!n);
+  const otherNames = await roomOtherNames(svc, childId, child.classroom_id);
 
   // The viewing guardian's language (their own row; the primary guardian under emulation).
   const { data: gs } = await svc.from('guardians').select('app_user_id, preferred_lang, is_primary').eq('child_id', childId);
-  const prefLang = ((gs ?? []).find((g) => g.app_user_id === p.userId) ?? (gs ?? []).find((g) => g.is_primary) ?? gs?.[0])?.preferred_lang ?? 'en';
+  const guards = gs ?? [];
+  const viewer = guards.find((g) => g.app_user_id === p.userId) ?? guards.find((g) => g.is_primary) ?? guards[0];
+  const prefLang = viewer?.preferred_lang ?? 'en';
 
   const { data: threadRows } = await svc.from('threads').select('id, kind').eq('student_id', childId).in('kind', ['family', 'office']);
   const threadByKind = new Map<ParentConvKind, string>();

@@ -2,7 +2,12 @@ import 'server-only';
 import { redactNames } from '@kinderbase/core';
 import { getClock } from '@/lib/clock';
 import { parentContext } from './principal';
+import type { createServiceClient } from '@/lib/supabase/server';
+import { localDate } from '@/lib/format';
 import { domainMeta, friendlyGoal, isParentGoal, shortStep } from './elof-labels';
+import { roomOtherNames } from './scrub';
+
+type Service = ReturnType<typeof createServiceClient>;
 
 // The Progress tab (docs/PARENT-DECISIONS.md §2 + §3c), two views:
 //   • Areas   — which ELOF domains got attention + what she's doing now. The bar is
@@ -38,9 +43,6 @@ export type ParentProgress = {
   journey: JourneyEntry[];
 };
 
-function iso(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 function monthsBetween(fromIso: string | null | undefined, toIso: string): number | null {
   if (!fromIso) return null;
   const a = new Date(`${fromIso}T12:00:00`);
@@ -84,7 +86,7 @@ export async function getParentProgress(): Promise<ParentProgress | null> {
   const otherNames = (roommates ?? []).flatMap((r) => [r.first_name, r.preferred_name]).filter((n): n is string => !!n);
 
   const now = getClock().now();
-  const ageMonths = monthsBetween(child.birthdate, iso(now));
+  const ageMonths = monthsBetween(child.birthdate, localDate(now));
   const view = ageMonths != null && ageMonths < 36 ? 'infant_toddler' : 'preschool';
 
   // ELOF framework → domains for this view + a goal→domain lookup.
@@ -111,7 +113,7 @@ export async function getParentProgress(): Promise<ParentProgress | null> {
   const goalByObs = new Map<string, string>();
   for (const og of ogRows ?? []) if (!goalByObs.has(og.observation_id)) goalByObs.set(og.observation_id, og.goal_id);
 
-  const monthKey = iso(now).slice(0, 7);
+  const monthKey = localDate(now).slice(0, 7);
   type DomStat = { momentsThisMonth: number; lastOn: string | null; nowGoalCode: string | null };
   const domStat = new Map<string, DomStat>();
   const journey: JourneyEntry[] = [];
@@ -192,9 +194,9 @@ export async function getParentProgress(): Promise<ParentProgress | null> {
     const cn = (Array.isArray(enr.centers) ? enr.centers[0] : enr.centers)?.name ?? centerName;
     journey.push({ kind: 'origin', on: enr.starts_on, centerName: cn, roomName: r, ageLabel: ageAtLabel(child.birthdate, enr.starts_on) });
   }
-  journey.sort((a, b) => (a.on < b.on ? 1 : a.on > b.on ? -1 : 0));
+  journey.sort((a, b) => b.on.localeCompare(a.on));
 
-  const monthsWithUs = enr?.starts_on ? monthsBetween(enr.starts_on, iso(now)) ?? 0 : 0;
+  const monthsWithUs = enr?.starts_on ? monthsBetween(enr.starts_on, localDate(now)) ?? 0 : 0;
 
   return { childFirst, monthsWithUs, momentCount, banner, areas, journey };
 }
@@ -213,14 +215,11 @@ export type ParentArea = {
   momentsThisMonth: number;
 };
 
-async function childView(svc: ReturnType<typeof import('@/lib/supabase/server').createServiceClient>, childId: string): Promise<{ first: string; birthdate: string | null; classroomId: string | null; otherNames: string[]; view: 'infant_toddler' | 'preschool' } | null> {
+async function childView(svc: Service, childId: string): Promise<{ first: string; birthdate: string | null; classroomId: string | null; otherNames: string[]; view: 'infant_toddler' | 'preschool' } | null> {
   const { data: child } = await svc.from('children').select('first_name, preferred_name, birthdate, classroom_id').eq('id', childId).maybeSingle();
   if (!child) return null;
-  const { data: roommates } = child.classroom_id
-    ? await svc.from('children').select('first_name, preferred_name').eq('classroom_id', child.classroom_id).neq('id', childId)
-    : { data: [] as { first_name: string; preferred_name: string | null }[] };
-  const otherNames = (roommates ?? []).flatMap((r) => [r.first_name, r.preferred_name]).filter((n): n is string => !!n);
-  const ageMonths = monthsBetween(child.birthdate, iso(getClock().now()));
+  const otherNames = await roomOtherNames(svc, childId, child.classroom_id);
+  const ageMonths = monthsBetween(child.birthdate, localDate(getClock().now()));
   return { first: child.preferred_name ?? child.first_name, birthdate: child.birthdate, classroomId: child.classroom_id, otherNames, view: ageMonths != null && ageMonths < 36 ? 'infant_toddler' : 'preschool' };
 }
 
@@ -261,7 +260,7 @@ export async function getParentArea(domainCode: string): Promise<ParentArea | nu
     .filter(inDomain)
     .slice(0, 10)
     .map((o) => ({ id: o.id, on: o.observed_on, author: (Array.isArray(o.users) ? o.users[0] : o.users)?.full_name ?? 'Staff', body: redactNames(o.body, c.otherNames), icon: meta.icon }));
-  const monthKey = iso(getClock().now()).slice(0, 7);
+  const monthKey = localDate(getClock().now()).slice(0, 7);
   const momentsThisMonth = (obsRows ?? []).filter((o) => inDomain(o) && o.observed_on.slice(0, 7) === monthKey).length;
 
   return { childFirst: c.first, domainName: meta.name, subtitle: meta.subtitle, icon: meta.icon, colour: meta.colour, goals, recentMoments, momentsThisMonth };

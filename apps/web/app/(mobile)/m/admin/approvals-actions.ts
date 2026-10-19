@@ -149,11 +149,17 @@ export async function resolveApproval(id: string, decision: 'approved' | 'reject
     if (!req) throw new Error('Not found');
     const approved = decision === 'approved';
     if (approved) {
-      // Fans out to the requester's own children only when they chose "all my children".
-      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value, apply_to_all: req.apply_to_all, requested_by: req.requested_by });
+      // Applies before the status flip, so a failed apply (missing target, DB error)
+      // throws and the request stays pending instead of being marked approved with
+      // nothing written. Fans out to the requester's own children in this center only
+      // when they chose "all my children"; pickup.add is idempotent against a retry.
+      await applyChangeRequest(service, { child_id: req.child_id, field_key: req.field_key, target_id: req.target_id, apply_value: req.apply_value, apply_to_all: req.apply_to_all, requested_by: req.requested_by }, centerId);
     }
-    const { error } = await service.from('change_requests').update({ status: approved ? 'approved' : 'rejected', reviewed_by: userId, reviewed_at: now, review_note: comment ?? null }).eq('id', realId).eq('center_id', centerId);
+    // Compare-and-swap on `pending` so two admins approving at once don't both proceed.
+    const { error } = await service.from('change_requests').update({ status: approved ? 'approved' : 'rejected', reviewed_by: userId, reviewed_at: now, review_note: comment ?? null }).eq('id', realId).eq('center_id', centerId).eq('status', 'pending');
     if (error) throw new Error(error.message);
+    // Best-effort audit trail — the request row itself is the record of decision, so a
+    // failed log write must not fail the approval (the change is already applied).
     await service.from('activity_log').insert({ center_id: centerId, actor_id: userId, event_type: approved ? 'profile.change_approved' : 'profile.change_denied', payload: { request: realId, field: req.field_key } });
     revalidatePath('/p', 'layout');
   }

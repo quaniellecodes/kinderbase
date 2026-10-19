@@ -1,5 +1,7 @@
 import 'server-only';
+import { getClock } from '@/lib/clock';
 import { parentContext, hasPermission } from './principal';
+import type { Severity } from '@/lib/change-requests';
 
 // The Child & guardians tab (docs/PARENT-DECISIONS.md §17 Phase 1: child/guardian
 // info + authorized pickups). A guardian with `edit_record` may PROPOSE changes
@@ -12,7 +14,7 @@ export type ChildGuardian = { id: string; name: string; relationship: string; em
 export type ChildPickup = { id: string; name: string; relationship: string | null; phone: string | null; onMultiple: boolean };
 export type ChildHealth = { id: string; kind: string; name: string; detail: string | null; severity: string | null };
 /** Open change requests, keyed `${field_key}:${target_id ?? ''}` → the pending badge. */
-export type PendingMap = Record<string, { id: string; label: string; severity: string }>;
+export type PendingMap = Record<string, { id: string; label: string; severity: Severity }>;
 /** Pending "add a pickup person" requests (no existing row to attach a badge to). */
 export type PendingAdd = { id: string; display: string };
 export type ParentChild = {
@@ -41,7 +43,7 @@ const DOW = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; // ISO: 1=Mon
 function ageLabel(birthdate: string | null): string | null {
   if (!birthdate) return null;
   const b = new Date(`${birthdate}T12:00:00`);
-  const now = new Date();
+  const now = getClock().now(); // clock-aware so the age matches the rest of the app under DEMO_MODE
   let months = (now.getFullYear() - b.getFullYear()) * 12 + (now.getMonth() - b.getMonth());
   if (now.getDate() < b.getDate()) months -= 1;
   if (months < 0) return null;
@@ -100,8 +102,9 @@ export async function getParentChild(): Promise<ParentChild | null> {
   const health: ChildHealth[] = (sh ?? []).map((h) => ({ id: h.id, kind: h.kind, name: h.name, detail: h.detail, severity: h.severity }));
 
   const { data: sched } = await svc.from('student_schedule').select('days, dropoff_window, pickup_window').eq('child_id', childId).maybeSingle();
-  const dayNums = (sched?.days as { days?: number[] } | null)?.days ?? [];
-  const scheduleDays = dayNums.filter((n) => n >= 1 && n <= 7).map((n) => DOW[n]!);
+  // The jsonb `days` column stores { days: number[] } (ISO weekday numbers).
+  const scheduleJson = sched?.days as { days?: number[] } | null;
+  const scheduleDays = (scheduleJson?.days ?? []).filter((n) => n >= 1 && n <= 7).map((n) => DOW[n]!);
 
   // Open change requests → the "pending review" badges. Pickup ADDs have no existing
   // row to badge, so they surface as their own list.
@@ -110,7 +113,7 @@ export async function getParentChild(): Promise<ParentChild | null> {
   const pendingPickupAdds: PendingAdd[] = [];
   for (const r of reqs ?? []) {
     if (r.field_key === 'pickup.add') pendingPickupAdds.push({ id: r.id, display: r.new_value ?? r.label });
-    else pending[`${r.field_key}:${r.target_id ?? ''}`] = { id: r.id, label: r.label, severity: r.severity };
+    else pending[`${r.field_key}:${r.target_id ?? ''}`] = { id: r.id, label: r.label, severity: r.severity === 'major' ? 'major' : 'normal' };
   }
 
   return {

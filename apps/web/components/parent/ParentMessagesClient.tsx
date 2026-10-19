@@ -3,6 +3,7 @@
 import { useState, useRef, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Send, Languages } from 'lucide-react';
+import { toast } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { sendParentMessage } from '@/app/(parent)/p/messages/actions';
@@ -53,8 +54,9 @@ export function ParentMessagesClient({ data, initialKind = 'family' }: { data: P
       try {
         await sendParentMessage(kind, body);
         router.refresh();
-      } catch {
+      } catch (e) {
         setDraft((d) => ({ ...d, [kind]: body })); // restore the draft so nothing is lost
+        toast(e instanceof Error ? e.message : 'Message not sent — tap send to try again');
       }
     });
   }

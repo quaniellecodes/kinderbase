@@ -3,8 +3,9 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { getClock } from '@/lib/clock';
+import { localDate } from '@/lib/format';
 import { parentContext, assertReachable, assertCanWrite, hasPermission, ACTIVE_CHILD_COOKIE } from '@/lib/parent/principal';
-import { ABSENCE_REASONS, localDate } from '@/lib/parent/absences';
+import { ABSENCE_REASONS } from '@/lib/parent/absences';
 import { isChangeField, changeSeverity } from '@/lib/change-requests';
 import type { Json } from '@kinderbase/types/database';
 
@@ -63,11 +64,7 @@ export async function cancelAbsence(id: string): Promise<void> {
   revalidatePath('/p', 'layout');
 }
 
-// Propose a profile change (PARENT-DECISIONS §17). A guardian with `edit_record`
-// files a PENDING request; nothing changes until an admin approves it. Major fields
-// (birthday, removing a health item) are flagged for the admin. One open request per
-// field+target — re-submitting replaces the previous one.
-export async function requestProfileChange(input: {
+export type ProfileChangeInput = {
   fieldKey: string;
   targetId: string | null;
   label: string;
@@ -75,7 +72,13 @@ export async function requestProfileChange(input: {
   newValue: string | null;
   applyValue: Json | null;
   applyToAll?: boolean;
-}): Promise<void> {
+};
+
+// Propose a profile change (PARENT-DECISIONS §17). A guardian with `edit_record`
+// files a PENDING request; nothing changes until an admin approves it. Major fields
+// (birthday, removing a health item) are flagged for the admin. One open request per
+// field+target — re-submitting replaces the previous one.
+export async function requestProfileChange(input: ProfileChangeInput): Promise<void> {
   const p = await parentContext();
   if (!p || p.childIds.length === 0) throw new Error('Not found');
   assertCanWrite(p);
@@ -92,7 +95,8 @@ export async function requestProfileChange(input: {
   // distinct people, so several can be pending at once — don't collapse them.)
   if (input.fieldKey !== 'pickup.add') {
     const del = svc.from('change_requests').delete().eq('child_id', childId).eq('field_key', input.fieldKey).eq('status', 'pending');
-    await (input.targetId ? del.eq('target_id', input.targetId) : del.is('target_id', null));
+    const { error: delErr } = await (input.targetId ? del.eq('target_id', input.targetId) : del.is('target_id', null));
+    if (delErr) throw new Error(delErr.message);
   }
 
   const { error } = await svc.from('change_requests').insert({
@@ -111,7 +115,8 @@ export async function requestProfileChange(input: {
   });
   if (error) throw new Error(error.message);
 
-  // "Notify" admins: an activity-log row + its presence in the approvals inbox.
+  // Best-effort "notify" admins — the request row (surfaced in the approvals inbox)
+  // is the real notification, so a failed audit-log write must not fail the request.
   await svc.from('activity_log').insert({ center_id: child.center_id, actor_id: p.userId, event_type: 'profile.change_requested', payload: { child_id: childId, field: input.fieldKey, label: input.label, severity } });
   revalidatePath('/p', 'layout');
 }

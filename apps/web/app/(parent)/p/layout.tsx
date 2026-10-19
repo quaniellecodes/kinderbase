@@ -45,7 +45,7 @@ export default async function ParentLayout({ children }: { children: React.React
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-gray-900 truncate leading-tight">{shell.centerName}</p>
           {shell.childCount > 1 && !shell.emulated ? (
-            <ChildSwitcher children={shell.children} activeId={shell.childId} activeLabel={shell.firstName} />
+            <ChildSwitcher options={shell.children} activeId={shell.childId} activeLabel={shell.firstName} />
           ) : (
             <p className="text-[11px] text-gray-500 truncate">{shell.childName}</p>
           )}

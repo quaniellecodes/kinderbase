@@ -46,8 +46,8 @@ export function AbsencePanel({ childFirst, upcoming, todayIso, tomorrowIso }: { 
         await cancelAbsence(id);
         toast('Absence cancelled');
         router.refresh();
-      } catch {
-        toast('Could not cancel');
+      } catch (e) {
+        toast(e instanceof Error ? e.message : 'Could not cancel');
       }
     });
   }

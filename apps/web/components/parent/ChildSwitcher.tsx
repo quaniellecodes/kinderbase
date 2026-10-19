@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, Check } from 'lucide-react';
+import { toast } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { switchChild } from '@/app/(parent)/p/actions';
 import type { ParentChildOption } from '@/lib/parent/shell';
 
 // Header child switcher for guardians with more than one child. Sets the active
 // child (cookie, server-side) and refreshes so every tab re-resolves to it.
-export function ChildSwitcher({ children, activeId, activeLabel }: { children: ParentChildOption[]; activeId: string; activeLabel: string }) {
+export function ChildSwitcher({ options, activeId, activeLabel }: { options: ParentChildOption[]; activeId: string; activeLabel: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
@@ -28,8 +29,12 @@ export function ChildSwitcher({ children, activeId, activeLabel }: { children: P
     setOpen(false);
     if (id === activeId) return;
     start(async () => {
-      await switchChild(id);
-      router.refresh();
+      try {
+        await switchChild(id);
+        router.refresh();
+      } catch (e) {
+        toast(e instanceof Error ? e.message : 'Could not switch');
+      }
     });
   }
 
@@ -46,7 +51,7 @@ export function ChildSwitcher({ children, activeId, activeLabel }: { children: P
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 z-50 min-w-[160px] bg-white border border-gray-200 rounded-xl shadow-lg py-1">
-          {children.map((c) => (
+          {options.map((c) => (
             <button
               key={c.id}
               onClick={() => pick(c.id)}

@@ -1,5 +1,6 @@
 import 'server-only';
 import { getClock } from '@/lib/clock';
+import { localDate } from '@/lib/format';
 import { parentContext } from './principal';
 
 // Parent absence reporting (docs/PARENT-DECISIONS.md §6). A guardian reports the
@@ -11,11 +12,6 @@ export type AbsenceReason = 'sick' | 'vacation' | 'appointment' | 'other';
 export const ABSENCE_REASONS: readonly AbsenceReason[] = ['sick', 'vacation', 'appointment', 'other'];
 export type AbsenceEntry = { id: string; date: string; dateLabel: string; reason: AbsenceReason; note: string | null };
 export type ParentAbsences = { childFirst: string; upcoming: AbsenceEntry[] };
-
-/** yyyy-mm-dd in local time (clock-aware so the demo clock is honored). */
-export function localDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function dayLabel(key: string, today: string): string {
   if (key === today) return 'Today';

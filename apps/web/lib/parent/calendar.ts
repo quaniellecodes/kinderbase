@@ -1,6 +1,7 @@
 import 'server-only';
 import { filterVisible, type CalItem } from '@kinderbase/core';
 import { getClock } from '@/lib/clock';
+import { localDate } from '@/lib/format';
 import { parentContext } from './principal';
 
 // The center calendar as a family sees it (docs/PARENT-DECISIONS.md §1/§6). Reuses
@@ -11,10 +12,6 @@ import { parentContext } from './principal';
 
 export type ParentCalEntry = { id: string; date: string; title: string; detail?: string; timeLabel?: string; icon: string; colour: string };
 export type ParentCalendar = { centerName: string; entries: ParentCalEntry[] };
-
-function localDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 export async function getParentCalendar(): Promise<ParentCalendar | null> {
   const p = await parentContext();

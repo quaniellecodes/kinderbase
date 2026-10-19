@@ -1,8 +1,9 @@
 import 'server-only';
 import { redactNames } from '@kinderbase/core';
 import { getClock } from '@/lib/clock';
-import { clockTime } from '@/lib/format';
+import { clockTime, localDate } from '@/lib/format';
 import { parentContext } from './principal';
+import { roomOtherNames } from './scrub';
 
 // The scrubbed parent feed (docs/PARENT-DECISIONS.md §1). Parents have NO direct
 // RLS read on child_updates — their free-text bodies can name a classmate and RLS
@@ -27,11 +28,6 @@ const CARE_META: Record<string, { emoji: string; label: string }> = {
   incident: { emoji: '⚠️', label: 'Incident' },
 };
 
-function localDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 export async function getParentFeed(): Promise<ParentFeed | null> {
   const p = await parentContext();
   if (!p || p.childIds.length === 0) return null;
@@ -47,13 +43,9 @@ export async function getParentFeed(): Promise<ParentFeed | null> {
   const childFirst = child.preferred_name ?? child.first_name;
   const room = (Array.isArray(child.classrooms) ? child.classrooms[0] : child.classrooms)?.name ?? '';
 
-  // Other children in the room → the names to redact from free-text bodies. (A
-  // body can name a classmate who isn't even tagged, so scrub against the roster,
-  // not just the tagged set.)
-  const { data: roommates } = child.classroom_id
-    ? await svc.from('children').select('id, first_name, preferred_name').eq('classroom_id', child.classroom_id).neq('id', childId)
-    : { data: [] as { id: string; first_name: string; preferred_name: string | null }[] };
-  const otherNames = (roommates ?? []).flatMap((r) => [r.first_name, r.preferred_name]).filter((n): n is string => !!n);
+  // Other children in the room → the names to redact from free-text bodies. (A body
+  // can name a classmate who isn't even tagged, so scrub against the whole roster.)
+  const otherNames = await roomOtherNames(svc, childId, child.classroom_id);
 
   // Updates tagged to this child (service client; parents can't read these directly).
   const { data: links } = await svc
@@ -67,14 +59,14 @@ export async function getParentFeed(): Promise<ParentFeed | null> {
 
   // Today's sign-in, and the latest announcement.
   const now = getClock().now();
-  const today = localDate(now.toISOString());
+  const today = localDate(now);
   const { data: att } = await svc.from('child_attendance').select('signed_in_at').eq('child_id', childId).eq('attendance_date', today).maybeSingle();
   const { data: ann } = await svc.from('announcements').select('body').eq('center_id', child.center_id).order('created_at', { ascending: false }).limit(1).maybeSingle();
 
   // Group by day, scrubbing each body to this family.
   const byDay = new Map<string, ParentFeedDay>();
   for (const u of updates) {
-    const key = localDate(u.created_at!);
+    const key = localDate(new Date(u.created_at!));
     if (!byDay.has(key)) byDay.set(key, { key, label: dayLabel(key, today), moments: [], care: [] });
     const day = byDay.get(key)!;
     const author = (Array.isArray(u.users) ? u.users[0] : u.users)?.full_name ?? 'Staff';

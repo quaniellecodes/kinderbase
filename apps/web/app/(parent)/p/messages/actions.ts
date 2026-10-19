@@ -52,6 +52,10 @@ export async function sendParentMessage(kind: ParentConvKind, body: string): Pro
   );
   if (mErr) throw new Error(mErr.message);
 
+  // Translate BEFORE persisting the message, so a translation failure can't leave a
+  // sent-but-reported-as-failed message that the parent then re-sends (a duplicate).
+  const en = lang !== 'en' ? await translate(trimmed, 'en') : null;
+
   const { data: msg, error: msgErr } = await svc
     .from('messages')
     .insert({ thread_id: threadId, author_id: p.userId, body: trimmed, lang })
@@ -59,11 +63,9 @@ export async function sendParentMessage(kind: ParentConvKind, body: string): Pro
     .single();
   if (msgErr) throw new Error(msgErr.message);
 
-  if (lang !== 'en') {
-    const en = await translate(trimmed, 'en');
-    const { error: trErr } = await svc.from('message_translations').insert({ message_id: msg.id, lang: 'en', body: en });
-    if (trErr) throw new Error(trErr.message);
-  }
+  // The message is now committed and visible to staff; the English copy is best-effort
+  // (staff still see the original if this write fails) and must not trigger a re-send.
+  if (en !== null) await svc.from('message_translations').insert({ message_id: msg.id, lang: 'en', body: en });
 
   revalidatePath('/p/messages');
 }

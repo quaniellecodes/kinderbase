@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { Avatar } from '@/components/ui';
-import { clockTime, formatDate } from '@/lib/format';
+import { clockTime, formatDate, localDate } from '@/lib/format';
 import { getClock } from '@/lib/clock';
 import { getParentFeed } from '@/lib/parent/feed';
 import { getParentCalendar } from '@/lib/parent/calendar';
-import { getParentAbsences, localDate } from '@/lib/parent/absences';
+import { getParentAbsences } from '@/lib/parent/absences';
 import { AbsencePanel } from '@/components/parent/AbsencePanel';
 
 export const dynamic = 'force-dynamic';
